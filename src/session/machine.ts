@@ -1,5 +1,5 @@
 export type Screen =
-  | 'connect' | 'welcome' | 'empty' | 'menu' | 'category' | 'dish' | 'waiter' | 'waiter-notified' | 'waiting-bill' | 'bill-ready' | 'bill' | 'full-check' | 'recommendation' | 'pay' | 'split' | 'split-share' | 'tip' | 'review' | 'method' | 'momo' | 'otp' | 'authorise' | 'processing' | 'payment-error' | 'success' | 'receipt-choice' | 'phone' | 'otp-rewards' | 'name' | 'rewards' | 'guest-receipt' | 'feedback' | 'complete'
+  | 'connect' | 'welcome' | 'empty' | 'menu' | 'category' | 'dish' | 'waiter' | 'waiter-notified' | 'waiting-bill' | 'bill-ready' | 'bill' | 'bill-issue' | 'full-check' | 'recommendation' | 'pay' | 'split' | 'split-share' | 'tip' | 'review' | 'method' | 'momo' | 'otp' | 'authorise' | 'processing' | 'payment-error' | 'success' | 'receipt-choice' | 'phone' | 'otp-rewards' | 'name' | 'rewards' | 'guest-receipt' | 'feedback' | 'complete'
 
 export type State = { screen: Screen; hasOrder: boolean; dish: string; people: number; tip: number; paymentError: boolean; waiter: boolean; navigator: boolean }
 
