@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as ApiPublicMenuRouteImport } from './routes/api/public/menu'
 import { Route as ApiPublicQrResolveRouteImport } from './routes/api/public/qr-resolve'
+import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +25,74 @@ const STokenRoute = STokenRouteImport.update({
   path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMenuRoute = ApiPublicMenuRouteImport.update({
+  id: '/api/public/menu',
+  path: '/api/public/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicQrResolveRoute = ApiPublicQrResolveRouteImport.update({
   id: '/api/public/qr-resolve',
   path: '/api/public/qr-resolve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWaiterRequestRoute = ApiPublicWaiterRequestRouteImport.update({
+  id: '/api/public/waiter-request',
+  path: '/api/public/waiter-request',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/public/menu': typeof ApiPublicMenuRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
+  '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/public/menu': typeof ApiPublicMenuRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
+  '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/public/menu': typeof ApiPublicMenuRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
+  '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/s/$token' | '/api/public/qr-resolve'
+  fullPaths:
+    | '/'
+    | '/s/$token'
+    | '/api/public/menu'
+    | '/api/public/qr-resolve'
+    | '/api/public/waiter-request'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/s/$token' | '/api/public/qr-resolve'
-  id: '__root__' | '/' | '/s/$token' | '/api/public/qr-resolve'
+  to:
+    | '/'
+    | '/s/$token'
+    | '/api/public/menu'
+    | '/api/public/qr-resolve'
+    | '/api/public/waiter-request'
+  id:
+    | '__root__'
+    | '/'
+    | '/s/$token'
+    | '/api/public/menu'
+    | '/api/public/qr-resolve'
+    | '/api/public/waiter-request'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   STokenRoute: typeof STokenRoute
+  ApiPublicMenuRoute: typeof ApiPublicMenuRoute
   ApiPublicQrResolveRoute: typeof ApiPublicQrResolveRoute
+  ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,11 +111,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/menu': {
+      id: '/api/public/menu'
+      path: '/api/public/menu'
+      fullPath: '/api/public/menu'
+      preLoaderRoute: typeof ApiPublicMenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/qr-resolve': {
       id: '/api/public/qr-resolve'
       path: '/api/public/qr-resolve'
       fullPath: '/api/public/qr-resolve'
       preLoaderRoute: typeof ApiPublicQrResolveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/waiter-request': {
+      id: '/api/public/waiter-request'
+      path: '/api/public/waiter-request'
+      fullPath: '/api/public/waiter-request'
+      preLoaderRoute: typeof ApiPublicWaiterRequestRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -88,7 +138,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   STokenRoute: STokenRoute,
+  ApiPublicMenuRoute: ApiPublicMenuRoute,
   ApiPublicQrResolveRoute: ApiPublicQrResolveRoute,
+  ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
