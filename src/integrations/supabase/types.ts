@@ -46,6 +46,86 @@ export type Database = {
           },
         ]
       }
+      bill_disputes: {
+        Row: {
+          bill_id: string | null
+          created_at: string
+          id: string
+          note: string | null
+          session_id: string
+          status: string
+        }
+        Insert: {
+          bill_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          session_id: string
+          status?: string
+        }
+        Update: {
+          bill_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_disputes_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_disputes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "dining_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bill_items: {
+        Row: {
+          bill_id: string
+          created_at: string
+          id: string
+          line_total_pesewas: number
+          name: string
+          qty: number
+          sort: number
+        }
+        Insert: {
+          bill_id: string
+          created_at?: string
+          id?: string
+          line_total_pesewas: number
+          name: string
+          qty?: number
+          sort?: number
+        }
+        Update: {
+          bill_id?: string
+          created_at?: string
+          id?: string
+          line_total_pesewas?: number
+          name?: string
+          qty?: number
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_items_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bills: {
         Row: {
           created_at: string

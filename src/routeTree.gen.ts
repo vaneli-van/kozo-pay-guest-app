@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as ApiPublicBillRouteImport } from './routes/api/public/bill'
+import { Route as ApiPublicBillDisputeRouteImport } from './routes/api/public/bill-dispute'
 import { Route as ApiPublicMenuRouteImport } from './routes/api/public/menu'
 import { Route as ApiPublicQrResolveRouteImport } from './routes/api/public/qr-resolve'
 import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
@@ -23,6 +25,16 @@ const IndexRoute = IndexRouteImport.update({
 const STokenRoute = STokenRouteImport.update({
   id: '/s/$token',
   path: '/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBillRoute = ApiPublicBillRouteImport.update({
+  id: '/api/public/bill',
+  path: '/api/public/bill',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBillDisputeRoute = ApiPublicBillDisputeRouteImport.update({
+  id: '/api/public/bill-dispute',
+  path: '/api/public/bill-dispute',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicMenuRoute = ApiPublicMenuRouteImport.update({
@@ -44,6 +56,8 @@ const ApiPublicWaiterRequestRoute = ApiPublicWaiterRequestRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/public/bill': typeof ApiPublicBillRoute
+  '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/menu': typeof ApiPublicMenuRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
@@ -51,6 +65,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/public/bill': typeof ApiPublicBillRoute
+  '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/menu': typeof ApiPublicMenuRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
@@ -59,6 +75,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/public/bill': typeof ApiPublicBillRoute
+  '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/menu': typeof ApiPublicMenuRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
@@ -68,6 +86,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/s/$token'
+    | '/api/public/bill'
+    | '/api/public/bill-dispute'
     | '/api/public/menu'
     | '/api/public/qr-resolve'
     | '/api/public/waiter-request'
@@ -75,6 +95,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/s/$token'
+    | '/api/public/bill'
+    | '/api/public/bill-dispute'
     | '/api/public/menu'
     | '/api/public/qr-resolve'
     | '/api/public/waiter-request'
@@ -82,6 +104,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/s/$token'
+    | '/api/public/bill'
+    | '/api/public/bill-dispute'
     | '/api/public/menu'
     | '/api/public/qr-resolve'
     | '/api/public/waiter-request'
@@ -90,6 +114,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   STokenRoute: typeof STokenRoute
+  ApiPublicBillRoute: typeof ApiPublicBillRoute
+  ApiPublicBillDisputeRoute: typeof ApiPublicBillDisputeRoute
   ApiPublicMenuRoute: typeof ApiPublicMenuRoute
   ApiPublicQrResolveRoute: typeof ApiPublicQrResolveRoute
   ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
@@ -109,6 +135,20 @@ declare module '@tanstack/react-router' {
       path: '/s/$token'
       fullPath: '/s/$token'
       preLoaderRoute: typeof STokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bill': {
+      id: '/api/public/bill'
+      path: '/api/public/bill'
+      fullPath: '/api/public/bill'
+      preLoaderRoute: typeof ApiPublicBillRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bill-dispute': {
+      id: '/api/public/bill-dispute'
+      path: '/api/public/bill-dispute'
+      fullPath: '/api/public/bill-dispute'
+      preLoaderRoute: typeof ApiPublicBillDisputeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/menu': {
@@ -138,6 +178,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   STokenRoute: STokenRoute,
+  ApiPublicBillRoute: ApiPublicBillRoute,
+  ApiPublicBillDisputeRoute: ApiPublicBillDisputeRoute,
   ApiPublicMenuRoute: ApiPublicMenuRoute,
   ApiPublicQrResolveRoute: ApiPublicQrResolveRoute,
   ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
