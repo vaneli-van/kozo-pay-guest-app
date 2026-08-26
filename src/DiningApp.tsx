@@ -1,7 +1,11 @@
+import { useEffect, useState } from 'react'
+import App from './App'
+
+// The diner experience is client-only (uses window, sessionStorage, history).
+// Render nothing on the server / first paint, then mount the full app.
 export default function DiningApp() {
-  return (
-    <div className="app-shell">
-      <p>Klown Pay — porting in progress</p>
-    </div>
-  );
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  if (!mounted) return null
+  return <App />
 }
