@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as ApiPublicQrResolveRouteImport } from './routes/api/public/qr-resolve'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicQrResolveRoute = ApiPublicQrResolveRouteImport.update({
@@ -25,27 +31,31 @@ const ApiPublicQrResolveRoute = ApiPublicQrResolveRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/s/$token': typeof STokenRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/s/$token': typeof STokenRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/s/$token': typeof STokenRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/public/qr-resolve'
+  fullPaths: '/' | '/s/$token' | '/api/public/qr-resolve'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/public/qr-resolve'
-  id: '__root__' | '/' | '/api/public/qr-resolve'
+  to: '/' | '/s/$token' | '/api/public/qr-resolve'
+  id: '__root__' | '/' | '/s/$token' | '/api/public/qr-resolve'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  STokenRoute: typeof STokenRoute
   ApiPublicQrResolveRoute: typeof ApiPublicQrResolveRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/qr-resolve': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  STokenRoute: STokenRoute,
   ApiPublicQrResolveRoute: ApiPublicQrResolveRoute,
 }
 export const routeTree = rootRouteImport
