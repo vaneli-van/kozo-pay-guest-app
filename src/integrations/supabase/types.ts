@@ -167,6 +167,82 @@ export type Database = {
           },
         ]
       }
+      menu_categories: {
+        Row: {
+          branch_id: string
+          created_at: string
+          id: string
+          name: string
+          sort: number
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          id?: string
+          name: string
+          sort?: number
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_categories_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          available: boolean
+          category_id: string
+          created_at: string
+          id: string
+          image_key: string | null
+          name: string
+          price_pesewas: number
+          sort: number
+          tags: Json
+        }
+        Insert: {
+          available?: boolean
+          category_id: string
+          created_at?: string
+          id?: string
+          image_key?: string | null
+          name: string
+          price_pesewas: number
+          sort?: number
+          tags?: Json
+        }
+        Update: {
+          available?: boolean
+          category_id?: string
+          created_at?: string
+          id?: string
+          image_key?: string | null
+          name?: string
+          price_pesewas?: number
+          sort?: number
+          tags?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qr_tokens: {
         Row: {
           created_at: string
@@ -195,6 +271,54 @@ export type Database = {
             columns: ["table_id"]
             isOneToOne: false
             referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendations: {
+        Row: {
+          branch_id: string
+          created_at: string
+          id: string
+          item_id: string | null
+          kind: string
+          sort: number
+          subtitle: string | null
+          title: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          kind?: string
+          sort?: number
+          subtitle?: string | null
+          title: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          kind?: string
+          sort?: number
+          subtitle?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendations_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
             referencedColumns: ["id"]
           },
         ]
@@ -251,6 +375,48 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      waiter_requests: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          session_id: string
+          status: string
+          table_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          session_id: string
+          status?: string
+          table_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          session_id?: string
+          status?: string
+          table_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waiter_requests_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "dining_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waiter_requests_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
