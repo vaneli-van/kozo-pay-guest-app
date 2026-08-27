@@ -214,9 +214,7 @@ export default function App({
 
   return (
     <>
-      {isHandoff ? (
-        <Handoff dispatch={navigate} />
-      ) : s.screen === 'connect' || s.screen === 'welcome' ? (
+      {s.screen === 'connect' || s.screen === 'welcome' ? (
         <div className="app-shell">
           {s.screen === 'connect' ? <Connect dispatch={navigate} /> : <Welcome s={s} dispatch={navigate} />}
         </div>
@@ -224,18 +222,6 @@ export default function App({
         <Shell s={s} dispatch={navigate}>
           <C s={s} dispatch={navigate} />
         </Shell>
-      )}
-      {showToggle && (
-        <button
-          className="prototype-toggle"
-          onClick={() => {
-            window.location.hash = isHandoff ? '' : 'handoff'
-            window.location.reload()
-          }}
-          aria-label="Open prototype navigator"
-        >
-          {isHandoff ? 'Close handoff' : 'Prototype map'}
-        </button>
       )}
     </>
   )
