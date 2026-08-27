@@ -8,6 +8,22 @@ const POST = (url: string, body: unknown): Promise<any> =>
     .then((r) => r.json())
     .catch(() => null)
 
+// Paystack's checkout sends X-Frame-Options: SAMEORIGIN, so it cannot load inside an
+// embedded preview iframe. Navigate the top-level window when we're framed; if the
+// browser blocks cross-origin top navigation, fall back to opening a new tab.
+function openCheckout(url: string) {
+  if (typeof window === 'undefined') return
+  const framed = window.top !== window.self
+  if (!framed) { window.location.href = url; return }
+  try {
+    if (window.top) { window.top.location.href = url; return }
+  } catch { /* cross-origin parent — cannot navigate it */ }
+  const w = window.open(url, '_blank', 'noopener')
+  if (!w) window.location.href = url
+}
+
+
+
 export default function App({
   initialState,
   storageKey = 'klown-dining-session',
@@ -181,7 +197,7 @@ export default function App({
       }).then((r) => {
         if (!r?.ok) { goScreen('payment-error'); return }
         if (r.paymentRef) patch({ paymentRef: r.paymentRef, momoNumber: undefined })
-        if (r.redirectUrl) { window.location.href = r.redirectUrl; return } // card → Paystack hosted page
+        if (r.redirectUrl) { openCheckout(r.redirectUrl); return } // card / hosted MoMo → Paystack page
         if (r.action === 'otp') goScreen('otp') // MoMo send_otp path
       })
     }
@@ -219,6 +235,7 @@ export default function App({
     patch({ paymentRef: reference })
     goScreen('processing')
     POST('/api/public/payment-verify', { sessionToken, reference }).then((r) => {
+      if (r?.paymentRef) patch({ paymentRef: r.paymentRef }) // poll by attempt id, not the gateway reference
       if (r?.status === 'captured') goScreen('success')
       else if (r?.status === 'failed') goScreen('payment-error')
       // otherwise stay on processing — the polling effect continues via paymentRef
