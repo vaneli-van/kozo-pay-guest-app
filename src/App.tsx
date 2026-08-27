@@ -33,6 +33,13 @@ export default function App({
 
   const navigate = (action: any) => {
     if (!action) return
+    // Going back into the checkout means starting a fresh charge — drop the old attempt
+    // so a retry (or a changed amount/method) initiates a new, idempotent payment.
+    const target: string | null = action.type === 'screen' ? action.value : action.type === 'patch-go' ? action.to : null
+    if (target && ['pay', 'split', 'split-share', 'tip', 'review', 'method', 'momo', 'authorise'].includes(target) && s.paymentRef) {
+      idemRef.current = ''
+      patch({ paymentRef: undefined })
+    }
     switch (action.type) {
       case 'waiter':
         if (sessionToken) POST('/api/public/waiter-request', { sessionToken, kind: action.kind ?? 'assistance' })
