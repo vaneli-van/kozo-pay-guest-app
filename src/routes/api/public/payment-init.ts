@@ -52,10 +52,19 @@ export const Route = createFileRoute('/api/public/payment-init')({
           if (raced) return json({ ok: true, paymentRef: raced.id, providerRef: raced.provider_ref, status: raced.status, amountPesewas: raced.amount_pesewas, tipPesewas: raced.tip_pesewas, totalPesewas: raced.total_pesewas, idempotent: true })
           return json({ ok: false, reason: 'init_failed' })
         }
-        const init = await paymentProvider.initiate({ paymentAttemptId: attempt.id, provider, method: method ?? undefined, totalPesewas: quote.grandTotalPesewas })
+        // MoMo number and card details are used only to initiate the charge with the gateway — never stored.
+        const phone = typeof body.phone === 'string' ? body.phone : undefined
+        const callbackUrl = typeof body.callbackUrl === 'string' ? body.callbackUrl : undefined
+        let init
+        try {
+          init = await paymentProvider.initiate({ paymentAttemptId: attempt.id, provider, method: method ?? undefined, totalPesewas: quote.grandTotalPesewas, phone, callbackUrl })
+        } catch (e) {
+          await supabaseAdmin.from('payment_attempts').update({ status: 'failed', failure_reason: 'gateway_error', updated_at: new Date().toISOString() }).eq('id', attempt.id)
+          return json({ ok: false, reason: 'gateway_error', message: String(e) })
+        }
         await supabaseAdmin.from('payment_attempts').update({ provider_ref: init.providerRef, status: 'pending', updated_at: new Date().toISOString() }).eq('id', attempt.id)
         await supabaseAdmin.from('audit_events').insert({ session_id: session.id, type: 'payment.initiated', data: { paymentRef: attempt.id, provider, total: quote.grandTotalPesewas } })
-        return json({ ok: true, paymentRef: attempt.id, providerRef: init.providerRef, status: 'pending', amountPesewas: quote.sharePesewas, tipPesewas: quote.tipPesewas, totalPesewas: quote.grandTotalPesewas })
+        return json({ ok: true, paymentRef: attempt.id, providerRef: init.providerRef, status: 'pending', action: init.action, displayText: init.displayText, redirectUrl: init.redirectUrl, amountPesewas: quote.sharePesewas, tipPesewas: quote.tipPesewas, totalPesewas: quote.grandTotalPesewas })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },
   } },

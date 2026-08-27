@@ -1,22 +1,150 @@
 import { supabaseAdmin } from '@/integrations/supabase/client.server'
 
-export interface InitiateInput { paymentAttemptId: string; provider: string; method?: string; totalPesewas: number }
-export interface InitiateResult { providerRef: string; status: 'pending' }
-export interface PaymentProvider { initiate(input: InitiateInput): Promise<InitiateResult> }
+const enc = new TextEncoder()
 
-// Mock provider. A real MoMo/card adapter (Paystack, Hubtel, Flutterwave, …) pushes the prompt /
-// redirect to the provider and returns its own reference; capture then arrives via signed webhook.
+// ── Provider adapter ──────────────────────────────────────────────────────────
+// The whole payment layer talks to this interface, never to a gateway directly.
+// MockPaymentProvider drives the demo; PaystackProvider is the real Ghana gateway.
+// Selection is by env: set PAYSTACK_SECRET_KEY and the real provider is used.
+
+export interface InitiateInput {
+  paymentAttemptId: string        // our attempt id — also used as the Paystack reference
+  provider: string                // 'momo' | 'card'
+  method?: string
+  totalPesewas: number            // GHS subunit — Paystack's `amount` is the same unit
+  email?: string                  // Paystack requires an email; a guest placeholder is fine
+  phone?: string                  // MoMo number (transaction-only, never persisted)
+  momoProvider?: string           // 'mtn' | 'vod' | 'atl' (derived from the number if absent)
+  callbackUrl?: string            // where Paystack returns the diner after the hosted card page
+}
+export type InitiateAction = 'phone_approval' | 'redirect' | 'otp' | 'none'
+export interface InitiateResult {
+  providerRef: string
+  status: 'pending'
+  action: InitiateAction
+  displayText?: string            // MoMo: instruction to show ("Approve on your phone")
+  redirectUrl?: string            // card: Paystack hosted page URL
+}
+export interface PaymentProvider {
+  initiate(input: InitiateInput): Promise<InitiateResult>
+}
+
+// ── Mobile-money network inference (Ghana MSISDN prefixes) ────────────────────
+// Lets the diner just type their number — no network picker needed on the locked UI.
+export function momoProviderFromNumber(phone?: string): 'mtn' | 'vod' | 'atl' {
+  const d = (phone ?? '').replace(/\D/g, '')
+  const local = d.startsWith('233') ? '0' + d.slice(3) : d.startsWith('0') ? d : '0' + d
+  const p = local.slice(0, 3)
+  if (['024', '025', '053', '054', '055', '059'].includes(p)) return 'mtn'
+  if (['020', '050'].includes(p)) return 'vod'            // Telecel (ex-Vodafone)
+  if (['026', '027', '056', '057'].includes(p)) return 'atl' // AirtelTigo
+  return 'mtn'
+}
+
+// ── Mock provider (demo / local) ──────────────────────────────────────────────
 export class MockPaymentProvider implements PaymentProvider {
   async initiate(input: InitiateInput): Promise<InitiateResult> {
-    return { providerRef: `mock_${input.paymentAttemptId}`, status: 'pending' }
+    return {
+      providerRef: `mock_${input.paymentAttemptId}`,
+      status: 'pending',
+      action: input.provider === 'card' ? 'none' : 'phone_approval',
+      displayText: 'Demo — approve the prompt to complete',
+    }
   }
 }
-export const paymentProvider: PaymentProvider = new MockPaymentProvider()
 
+// ── Paystack provider (real, Ghana) ───────────────────────────────────────────
+const PAYSTACK_BASE = 'https://api.paystack.co'
+function paystackSecret(): string {
+  const k = process.env['PAYSTACK_SECRET_KEY']
+  if (!k) throw new Error('PAYSTACK_SECRET_KEY is not set')
+  return k
+}
+async function paystackPost(path: string, body: unknown): Promise<any> {
+  const res = await fetch(`${PAYSTACK_BASE}${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${paystackSecret()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return res.json().catch(() => ({}))
+}
+
+export class PaystackProvider implements PaymentProvider {
+  async initiate(input: InitiateInput): Promise<InitiateResult> {
+    const reference = input.paymentAttemptId
+    const email = input.email || `guest-${reference}@guests.kozopay.app`
+    const amount = String(Math.trunc(input.totalPesewas)) // GHS subunit == pesewas
+
+    if (input.provider === 'card') {
+      // PCI-safe: never handle the PAN ourselves. Paystack hosts card entry + 3DS/OTP.
+      const r = await paystackPost('/transaction/initialize', {
+        email, amount, currency: 'GHS', reference, channels: ['card'],
+        callback_url: input.callbackUrl,
+      })
+      const url = r?.data?.authorization_url
+      if (!r?.status || !url) throw new Error(r?.message || 'paystack_init_failed')
+      return { providerRef: r.data.reference || reference, status: 'pending', action: 'redirect', redirectUrl: url }
+    }
+
+    // Mobile money: direct charge — the diner approves the prompt on their own phone.
+    const r = await paystackPost('/charge', {
+      email, amount, currency: 'GHS', reference,
+      mobile_money: { phone: input.phone, provider: input.momoProvider || momoProviderFromNumber(input.phone) },
+    })
+    if (!r?.status) throw new Error(r?.message || 'paystack_charge_failed')
+    const st = r?.data?.status
+    const action: InitiateAction = st === 'send_otp' ? 'otp' : 'phone_approval'
+    return { providerRef: r?.data?.reference || reference, status: 'pending', action, displayText: r?.data?.display_text }
+  }
+}
+
+// Lazily pick the provider so the env is read at call time (inside a server handler).
+let _pp: PaymentProvider | undefined
+export const paymentProvider: PaymentProvider = {
+  initiate: (input) => {
+    if (!_pp) _pp = process.env['PAYSTACK_SECRET_KEY'] ? new PaystackProvider() : new MockPaymentProvider()
+    return _pp.initiate(input)
+  },
+}
+
+// ── Paystack post-init helpers (verify, OTP, webhook signature) ───────────────
+// Verify is authoritative: it asks Paystack the real status of a reference.
+export async function verifyPaystackTransaction(reference: string): Promise<'captured' | 'failed' | 'pending'> {
+  const res = await fetch(`${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`, {
+    headers: { Authorization: `Bearer ${paystackSecret()}` },
+  })
+  const r = await res.json().catch(() => ({}))
+  const st = r?.data?.status
+  if (st === 'success') return 'captured'
+  if (st === 'failed' || st === 'abandoned' || st === 'reversed') return 'failed'
+  return 'pending'
+}
+
+// For MoMo transactions that come back as send_otp.
+export async function submitPaystackOtp(reference: string, otp: string): Promise<any> {
+  return paystackPost('/charge/submit_otp', { reference, otp })
+}
+
+// Paystack signs every webhook: HMAC-SHA512 of the raw body with the SECRET KEY.
+export async function verifyPaystackSignature(rawBody: string, header: string | null): Promise<boolean> {
+  if (!header) return false
+  const key = await crypto.subtle.importKey('raw', enc.encode(paystackSecret()), { name: 'HMAC', hash: 'SHA-512' }, false, ['sign'])
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(rawBody))
+  const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
+  if (hex.length !== header.length) return false
+  let diff = 0
+  for (let i = 0; i < hex.length; i++) diff |= hex.charCodeAt(i) ^ header.charCodeAt(i)
+  return diff === 0
+}
+
+export function isPaystackEnabled(): boolean {
+  return !!process.env['PAYSTACK_SECRET_KEY']
+}
+
+// ── Mock webhook signing (demo path only; unrelated to Paystack) ──────────────
 function webhookSecret(): string {
   return process.env['PAYMENT_WEBHOOK_SECRET'] || 'dev_webhook_secret_change_me'
 }
-const enc = new TextEncoder()
 async function hmacHex(payload: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', enc.encode(webhookSecret()), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
   const sig = await crypto.subtle.sign('HMAC', key, enc.encode(payload))
@@ -33,6 +161,7 @@ export async function verifyCallback(providerRef: string, outcome: string, signa
   return diff === 0
 }
 
+// ── Capture (shared by every provider) ────────────────────────────────────────
 // Sum of captured payments toward a bill (remaining-balance math).
 export async function amountPaidForBill(billId: string): Promise<number> {
   const { data } = await supabaseAdmin.from('payment_attempts').select('amount_pesewas').eq('bill_id', billId).eq('status', 'captured')

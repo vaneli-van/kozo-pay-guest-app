@@ -17,6 +17,7 @@ export type State = {
   customAmountPesewas?: number
   tipPercent?: number
   method?: 'momo' | 'card'
+  momoNumber?: string
   paymentRef?: string
   phone?: string
   receiptNumber?: string

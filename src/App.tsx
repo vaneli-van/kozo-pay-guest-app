@@ -88,6 +88,13 @@ export default function App({
         }
         return
       }
+      case 'pay-otp':
+        if (sessionToken && s.paymentRef) {
+          POST('/api/public/payment-otp', { sessionToken, paymentRef: s.paymentRef, otp: action.value?.otp }).then(() => goScreen('processing'))
+        } else {
+          goScreen('processing')
+        }
+        return
       case 'pay-mock':
         if (sessionToken && s.paymentRef) {
           POST('/api/mock/pay-callback', { sessionToken, paymentRef: s.paymentRef, outcome: action.outcome }).then(() =>
@@ -109,6 +116,7 @@ export default function App({
     if (!sessionToken) return
     if ((s.screen === 'authorise' || s.screen === 'processing') && !s.paymentRef) {
       if (!idemRef.current) idemRef.current = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`
+      const callbackUrl = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : undefined
       POST('/api/public/payment-init', {
         sessionToken,
         idempotencyKey: idemRef.current,
@@ -118,8 +126,13 @@ export default function App({
         tipPercent: s.tipPercent ?? s.tip,
         method: s.method ?? 'momo',
         provider: s.method === 'card' ? 'card' : 'momo',
+        phone: s.momoNumber, // MoMo number — transaction-only, cleared once initiated
+        callbackUrl,
       }).then((r) => {
-        if (r?.ok && r.paymentRef) patch({ paymentRef: r.paymentRef })
+        if (!r?.ok) { goScreen('payment-error'); return }
+        if (r.paymentRef) patch({ paymentRef: r.paymentRef, momoNumber: undefined })
+        if (r.redirectUrl) { window.location.href = r.redirectUrl; return } // card → Paystack hosted page
+        if (r.action === 'otp') goScreen('otp') // MoMo send_otp path
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,6 +158,23 @@ export default function App({
     return () => window.clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, s.paymentRef, sessionToken])
+
+  // Returning from Paystack's hosted card page (?reference=…): verify server-side, then route.
+  useEffect(() => {
+    if (!sessionToken || typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const reference = params.get('reference') || params.get('trxref')
+    if (!reference) return
+    window.history.replaceState({}, '', window.location.pathname)
+    patch({ paymentRef: reference })
+    goScreen('processing')
+    POST('/api/public/payment-verify', { sessionToken, reference }).then((r) => {
+      if (r?.status === 'captured') goScreen('success')
+      else if (r?.status === 'failed') goScreen('payment-error')
+      // otherwise stay on processing — the polling effect continues via paymentRef
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionToken])
 
   // Issue / fetch the receipt once payment is captured.
   useEffect(() => {
