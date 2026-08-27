@@ -11,9 +11,8 @@ const POST = (url: string, body: unknown): Promise<any> =>
 export default function App({
   initialState,
   storageKey = 'klown-dining-session',
-  showToggle = true,
   sessionToken,
-}: { initialState?: Partial<State>; storageKey?: string; showToggle?: boolean; sessionToken?: string } = {}) {
+}: { initialState?: Partial<State>; storageKey?: string; sessionToken?: string } = {}) {
   const [s, dispatch] = useReducer(reducer, { ...initial, ...initialState })
   const [hydrated, setHydrated] = useState(false)
   const idemRef = useRef<string>('')
