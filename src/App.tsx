@@ -82,7 +82,24 @@ export default function App({
         goScreen('name')
         return
 
+      case 'whatsapp-receipt': {
+        const wp = action.value?.phone
+        if (!sessionToken || !wp) { patch({ waStatus: 'error', waError: 'Enter a valid number.' }); return }
+        patch({ waStatus: 'sending', waError: undefined })
+        POST('/api/public/whatsapp-receipt', { sessionToken, phone: wp }).then((r) => {
+          if (r?.ok) { patch({ waStatus: 'sent', waError: undefined }); return }
+          const reason = r?.reason
+          const msg = reason === 'not_configured' ? "WhatsApp isn't set up yet"
+            : reason === 'bad_phone' ? 'That number does not look right.'
+            : reason === 'no_payment' ? 'No completed payment on this table yet.'
+            : reason === 'invalid_session' ? 'This table session has expired.'
+            : 'We could not send your receipt. Try again.'
+          patch({ waStatus: 'error', waError: msg })
+        })
+        return
+      }
       case 'rewards-consent':
+
         if (sessionToken) {
           POST('/api/public/rewards-consent', {
             sessionToken,

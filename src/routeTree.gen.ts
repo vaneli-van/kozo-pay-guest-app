@@ -31,6 +31,7 @@ import { Route as ApiPublicReceiptWhatsappRouteImport } from './routes/api/publi
 import { Route as ApiPublicReviewLinkRouteImport } from './routes/api/public/review-link'
 import { Route as ApiPublicRewardsConsentRouteImport } from './routes/api/public/rewards-consent'
 import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
+import { Route as ApiPublicWhatsappReceiptRouteImport } from './routes/api/public/whatsapp-receipt'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -144,6 +145,12 @@ const ApiPublicWaiterRequestRoute = ApiPublicWaiterRequestRouteImport.update({
   path: '/api/public/waiter-request',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicWhatsappReceiptRoute =
+  ApiPublicWhatsappReceiptRouteImport.update({
+    id: '/api/public/whatsapp-receipt',
+    path: '/api/public/whatsapp-receipt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
+  '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -192,6 +200,7 @@ export interface FileRoutesByTo {
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
+  '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -217,6 +226,7 @@ export interface FileRoutesById {
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
+  '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
+    | '/api/public/whatsapp-receipt'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
+    | '/api/public/whatsapp-receipt'
   id:
     | '__root__'
     | '/'
@@ -291,6 +303,7 @@ export interface FileRouteTypes {
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
+    | '/api/public/whatsapp-receipt'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -316,6 +329,7 @@ export interface RootRouteChildren {
   ApiPublicReviewLinkRoute: typeof ApiPublicReviewLinkRoute
   ApiPublicRewardsConsentRoute: typeof ApiPublicRewardsConsentRoute
   ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
+  ApiPublicWhatsappReceiptRoute: typeof ApiPublicWhatsappReceiptRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -474,6 +488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWaiterRequestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/whatsapp-receipt': {
+      id: '/api/public/whatsapp-receipt'
+      path: '/api/public/whatsapp-receipt'
+      fullPath: '/api/public/whatsapp-receipt'
+      preLoaderRoute: typeof ApiPublicWhatsappReceiptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -500,6 +521,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicReviewLinkRoute: ApiPublicReviewLinkRoute,
   ApiPublicRewardsConsentRoute: ApiPublicRewardsConsentRoute,
   ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
+  ApiPublicWhatsappReceiptRoute: ApiPublicWhatsappReceiptRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

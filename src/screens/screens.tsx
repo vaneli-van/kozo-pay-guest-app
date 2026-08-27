@@ -57,7 +57,22 @@ export function Authorise({ s, dispatch }: any) { return <Center eyebrow="CHECK 
 
 export function Processing({ s }: any) { return <Center eyebrow="SECURE PAYMENT" title={'Making it<br /><em>official.</em>'} copy={s?.method === 'card' ? 'Confirming your payment with your bank...' : 'Confirming your payment with mobile money...'}><div className="loader large" /></Center> }
 
-export function Success({ dispatch }: any) { return <Center eyebrow="PAYMENT COMPLETE" title={'You&apos;re all<br /><em>settled.</em>'} copy="Thanks for dining at Kozo. Your receipt is ready whenever you are." icon="✓"><Action onClick={() => dispatch(go('receipt-choice'))}>View receipt options</Action></Center> }
+export function Success({ s, dispatch }: any) {
+  const [open, setOpen] = useState(false)
+  const [phone, setPhone] = useState(s?.phone ?? s?.momoNumber ?? '')
+  return <Center eyebrow="PAYMENT COMPLETE" title={'You&apos;re all<br /><em>settled.</em>'} copy="Thanks for dining at Kozo. Your receipt is ready whenever you are." icon="✓">
+    <Action onClick={() => dispatch(go('receipt-choice'))}>View receipt options</Action>
+    {!open && <Action secondary onClick={() => setOpen(true)}>Send receipt to WhatsApp</Action>}
+    {open && <>
+      <label className="field-label">WhatsApp number<input value={phone} onChange={e => setPhone(e.target.value)} placeholder="024 000 0000" inputMode="tel" /></label>
+      {s?.waStatus === 'sending' && <div className="notice-card"><span>Sending…</span></div>}
+      {s?.waStatus === 'sent' && <div className="notice-card"><span>Receipt sent to WhatsApp ✓</span></div>}
+      {s?.waStatus === 'error' && <div className="error"><X />{s?.waError ?? 'We could not send your receipt.'}</div>}
+      <Action onClick={() => dispatch({ type: 'whatsapp-receipt', value: { phone } })}>Send receipt</Action>
+    </>}
+  </Center>
+}
+
 
 export function ReceiptChoice({ s, dispatch }: any) { return <section><p className="eyebrow">KOZO · RECEIPT {s?.receiptNumber ?? '#2841'}</p><h1>Keep a little<br /><em>memory.</em></h1><div className="receipt-card"><div className="receipt-head"><span>Kozo</span><b>PAID</b></div><p>Tuesday, 26 August 2026 · 9:16 PM</p><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div><Action onClick={() => dispatch(go('phone'))}>Save receipt & earn rewards</Action><button className="outline-button" onClick={() => dispatch(go('guest-receipt'))}>Continue as guest</button></section> }
 
