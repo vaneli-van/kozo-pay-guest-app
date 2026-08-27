@@ -181,7 +181,7 @@ export default function App({
       }).then((r) => {
         if (!r?.ok) { goScreen('payment-error'); return }
         if (r.paymentRef) patch({ paymentRef: r.paymentRef, momoNumber: undefined })
-        if (r.redirectUrl) { window.location.href = r.redirectUrl; return } // card → Paystack hosted page
+        if (r.redirectUrl) { openCheckout(r.redirectUrl); return } // card / hosted MoMo → Paystack page
         if (r.action === 'otp') goScreen('otp') // MoMo send_otp path
       })
     }
