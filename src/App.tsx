@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { reducer, initial, go, type State, type Screen } from './session/machine'
 import { Shell } from './ui/primitives'
-import { Connect, Welcome, Handoff, map } from './screens/screens'
+import { Connect, Welcome, map } from './screens/screens'
 
 const POST = (url: string, body: unknown): Promise<any> =>
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
