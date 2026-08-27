@@ -27,6 +27,7 @@ import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/publi
 import { Route as ApiPublicQrResolveRouteImport } from './routes/api/public/qr-resolve'
 import { Route as ApiPublicQuoteRouteImport } from './routes/api/public/quote'
 import { Route as ApiPublicReceiptRouteImport } from './routes/api/public/receipt'
+import { Route as ApiPublicReceiptWhatsappRouteImport } from './routes/api/public/receipt-whatsapp'
 import { Route as ApiPublicReviewLinkRouteImport } from './routes/api/public/review-link'
 import { Route as ApiPublicRewardsConsentRouteImport } from './routes/api/public/rewards-consent'
 import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
@@ -122,6 +123,12 @@ const ApiPublicReceiptRoute = ApiPublicReceiptRouteImport.update({
   path: '/api/public/receipt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicReceiptWhatsappRoute =
+  ApiPublicReceiptWhatsappRouteImport.update({
+    id: '/api/public/receipt-whatsapp',
+    path: '/api/public/receipt-whatsapp',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicReviewLinkRoute = ApiPublicReviewLinkRouteImport.update({
   id: '/api/public/review-link',
   path: '/api/public/review-link',
@@ -157,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
@@ -180,6 +188,7 @@ export interface FileRoutesByTo {
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
@@ -204,6 +213,7 @@ export interface FileRoutesById {
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/api/public/qr-resolve'
     | '/api/public/quote'
     | '/api/public/receipt'
+    | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
@@ -252,6 +263,7 @@ export interface FileRouteTypes {
     | '/api/public/qr-resolve'
     | '/api/public/quote'
     | '/api/public/receipt'
+    | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
@@ -275,6 +287,7 @@ export interface FileRouteTypes {
     | '/api/public/qr-resolve'
     | '/api/public/quote'
     | '/api/public/receipt'
+    | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
@@ -299,6 +312,7 @@ export interface RootRouteChildren {
   ApiPublicQrResolveRoute: typeof ApiPublicQrResolveRoute
   ApiPublicQuoteRoute: typeof ApiPublicQuoteRoute
   ApiPublicReceiptRoute: typeof ApiPublicReceiptRoute
+  ApiPublicReceiptWhatsappRoute: typeof ApiPublicReceiptWhatsappRoute
   ApiPublicReviewLinkRoute: typeof ApiPublicReviewLinkRoute
   ApiPublicRewardsConsentRoute: typeof ApiPublicRewardsConsentRoute
   ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
@@ -432,6 +446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicReceiptRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/receipt-whatsapp': {
+      id: '/api/public/receipt-whatsapp'
+      path: '/api/public/receipt-whatsapp'
+      fullPath: '/api/public/receipt-whatsapp'
+      preLoaderRoute: typeof ApiPublicReceiptWhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/review-link': {
       id: '/api/public/review-link'
       path: '/api/public/review-link'
@@ -475,6 +496,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicQrResolveRoute: ApiPublicQrResolveRoute,
   ApiPublicQuoteRoute: ApiPublicQuoteRoute,
   ApiPublicReceiptRoute: ApiPublicReceiptRoute,
+  ApiPublicReceiptWhatsappRoute: ApiPublicReceiptWhatsappRoute,
   ApiPublicReviewLinkRoute: ApiPublicReviewLinkRoute,
   ApiPublicRewardsConsentRoute: ApiPublicRewardsConsentRoute,
   ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
