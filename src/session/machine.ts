@@ -23,6 +23,8 @@ export type State = {
   receiptNumber?: string
   totalPaidPesewas?: number
   reviewUrl?: string | null
+  bill?: { status?: string; items: { name: string; qty: number; lineTotalPesewas: number }[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number } | undefined
+  quote?: { billTotalPesewas: number; remainingPesewas: number; sharePesewas: number; tipPesewas: number; grandTotalPesewas: number } | undefined
 }
 
 export const initial: State = { screen: 'connect', hasOrder: true, dish: 'Sea bass, charred lemon', people: 2, tip: 10, paymentError: false, waiter: false, navigator: false }
