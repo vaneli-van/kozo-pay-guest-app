@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import DiningApp from "../DiningApp";
+import ResolvedDiningApp from "../ResolvedDiningApp";
 
 export const Route = createFileRoute("/")({
-  component: DiningApp,
+  component: () => <ResolvedDiningApp token="demo" />,
 });
