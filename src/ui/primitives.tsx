@@ -4,7 +4,7 @@ import { go, type State } from '../session/machine'
 import { money } from '../lib/format'
 
 export function Shell({ children, s, dispatch }: { children: React.ReactNode; s: State; dispatch: React.Dispatch<any> }) {
-  return <main className="app-shell"><div className="topline"><img className="wordmark-logo" src="/klown-logo.png" alt="Klown" /><span className="table-pill">TABLE 07 <span className="dot" /></span></div>{children}<nav className="bottom-nav"><button onClick={() => dispatch(go('menu'))}><Utensils />Menu</button><button onClick={() => dispatch(go(s.hasOrder ? 'bill' : 'empty'))}><ReceiptText />Bill</button><button onClick={() => dispatch(go('waiter'))}><Send />Waiter</button></nav></main>
+  return <main className="app-shell"><div className="app-scroll"><div className="topline"><img className="wordmark-logo" src="/klown-logo.png" alt="Klown" /><span className="table-pill">TABLE {s?.tableLabel ?? '07'} <span className="dot" /></span></div>{children}</div><nav className="bottom-nav"><button onClick={() => dispatch(go('menu'))}><Utensils />Menu</button><button onClick={() => dispatch(go(s.hasOrder ? 'bill' : 'empty'))}><ReceiptText />Bill</button><button onClick={() => dispatch(go('waiter'))}><Send />Waiter</button></nav></main>
 }
 
 export function Back({ dispatch, to = 'menu' }: any) { return <button className="back" onClick={() => dispatch(go(to))}><ArrowLeft />Back</button> }

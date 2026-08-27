@@ -272,7 +272,9 @@ export default function App({
     <>
       {s.screen === 'connect' || s.screen === 'welcome' ? (
         <div className="app-shell">
-          {s.screen === 'connect' ? <Connect dispatch={navigate} /> : <Welcome s={s} dispatch={navigate} />}
+          <div className="app-scroll">
+            {s.screen === 'connect' ? <Connect dispatch={navigate} /> : <Welcome s={s} dispatch={navigate} />}
+          </div>
         </div>
       ) : (
         <Shell s={s} dispatch={navigate}>
