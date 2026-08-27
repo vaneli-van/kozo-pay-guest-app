@@ -12,6 +12,7 @@ export type State = {
   paymentError: boolean
   waiter: boolean
   navigator: boolean
+  tableLabel?: string
   // payment + post-payment context (populated at runtime; all optional)
   shareMode?: ShareMode
   customAmountPesewas?: number

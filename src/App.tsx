@@ -233,7 +233,12 @@ export default function App({
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(storageKey)
-      if (saved) dispatch({ type: 'restore', value: JSON.parse(saved) })
+      if (saved) {
+        // Keep the diner on whatever screen they were on, but let the freshly-resolved
+        // table + order state win over a stale saved copy (order placed since last visit, etc.).
+        const prev = JSON.parse(saved)
+        dispatch({ type: 'restore', value: { ...prev, hasOrder: initialState?.hasOrder ?? prev.hasOrder, tableLabel: initialState?.tableLabel ?? prev.tableLabel } })
+      }
     } catch {}
     setHydrated(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
