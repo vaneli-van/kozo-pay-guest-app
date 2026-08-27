@@ -33,6 +33,13 @@ export default function App({
 
   const navigate = (action: any) => {
     if (!action) return
+    // Going back into the checkout means starting a fresh charge — drop the old attempt
+    // so a retry (or a changed amount/method) initiates a new, idempotent payment.
+    const target: string | null = action.type === 'screen' ? action.value : action.type === 'patch-go' ? action.to : null
+    if (target && ['pay', 'split', 'split-share', 'tip', 'review', 'method', 'momo', 'authorise'].includes(target) && s.paymentRef) {
+      idemRef.current = ''
+      patch({ paymentRef: undefined })
+    }
     switch (action.type) {
       case 'waiter':
         if (sessionToken) POST('/api/public/waiter-request', { sessionToken, kind: action.kind ?? 'assistance' })
@@ -109,6 +116,41 @@ export default function App({
     }
     dispatch(action)
   }
+
+  // Live bill from the POS — refreshed whenever the diner is on a bill/payment screen.
+  useEffect(() => {
+    const billScreens = ['welcome', 'bill', 'bill-ready', 'waiting-bill', 'full-check', 'pay', 'split', 'split-share', 'tip', 'review', 'method']
+    if (!sessionToken || !billScreens.includes(s.screen)) return
+    let cancelled = false
+    const load = async () => {
+      const r = await POST('/api/public/bill', { sessionToken })
+      if (cancelled) return
+      if (r?.ok && r.bill) {
+        patch({ bill: r.bill })
+        if (s.screen === 'waiting-bill') goScreen('bill-ready')
+      }
+    }
+    load()
+    const id = window.setInterval(load, s.screen === 'waiting-bill' ? 8000 : 30000)
+    return () => { cancelled = true; window.clearInterval(id) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.screen, sessionToken])
+
+  // Server-authoritative quote (share + tip) behind every amount shown during checkout.
+  useEffect(() => {
+    if (!sessionToken) return
+    const quoteScreens = ['pay', 'split', 'split-share', 'tip', 'review', 'method', 'momo', 'authorise']
+    if (!quoteScreens.includes(s.screen)) return
+    const preTip = s.screen === 'pay' || s.screen === 'split' || s.screen === 'split-share' || s.screen === 'tip'
+    POST('/api/public/quote', {
+      sessionToken,
+      mode: s.shareMode ?? 'full',
+      people: s.people,
+      customAmountPesewas: s.customAmountPesewas,
+      tipPercent: preTip ? 0 : (s.tipPercent ?? s.tip),
+    }).then((r) => { if (r?.ok && r.quote) patch({ quote: r.quote }) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, sessionToken])
 
   // Initiate the payment server-side (idempotent) when the diner commits — amounts are computed on the server.
   useEffect(() => {

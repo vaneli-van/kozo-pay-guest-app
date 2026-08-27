@@ -86,15 +86,32 @@ export class PaystackProvider implements PaymentProvider {
       return { providerRef: r.data.reference || reference, status: 'pending', action: 'redirect', redirectUrl: url }
     }
 
-    // Mobile money: direct charge — the diner approves the prompt on their own phone.
-    const r = await paystackPost('/charge', {
-      email, amount, currency: 'GHS', reference,
-      mobile_money: { phone: input.phone, provider: input.momoProvider || momoProviderFromNumber(input.phone) },
+    // Mobile money: try the direct charge first — the diner approves the prompt on their own phone.
+    if (input.phone) {
+      const r = await paystackPost('/charge', {
+        email, amount, currency: 'GHS', reference,
+        mobile_money: { phone: input.phone, provider: input.momoProvider || momoProviderFromNumber(input.phone) },
+      })
+      if (r?.status) {
+        const st = r?.data?.status
+        const action: InitiateAction = st === 'send_otp' ? 'otp' : 'phone_approval'
+        return { providerRef: r?.data?.reference || reference, status: 'pending', action, displayText: r?.data?.display_text }
+      }
+      // Direct charge unavailable (account/channel/test-mode restrictions) → fall through
+      // to Paystack's hosted mobile-money checkout so the diner can still pay.
+    }
+
+    // Hosted mobile-money checkout. The reference is suffixed because Paystack burns a
+    // reference once a charge has been attempted against it.
+    const hostedRef = input.phone ? `${reference}-hc` : reference
+    const h = await paystackPost('/transaction/initialize', {
+      email, amount, currency: 'GHS', reference: hostedRef,
+      channels: ['mobile_money'], callback_url: input.callbackUrl,
+      metadata: { attempt: reference },
     })
-    if (!r?.status) throw new Error(r?.message || 'paystack_charge_failed')
-    const st = r?.data?.status
-    const action: InitiateAction = st === 'send_otp' ? 'otp' : 'phone_approval'
-    return { providerRef: r?.data?.reference || reference, status: 'pending', action, displayText: r?.data?.display_text }
+    const hostedUrl = h?.data?.authorization_url
+    if (!h?.status || !hostedUrl) throw new Error(h?.message || 'paystack_charge_failed')
+    return { providerRef: h?.data?.reference || hostedRef, status: 'pending', action: 'redirect', redirectUrl: hostedUrl }
   }
 }
 
