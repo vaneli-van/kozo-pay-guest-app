@@ -16,5 +16,5 @@ function ResolvedInner({ token }: { token: string }) {
   const s = useDiningSession(token)
   if (s.status === 'loading') return <div className="app-shell"><Connect dispatch={() => {}} /></div>
   if (s.status === 'error') return <div className="app-shell"><InvalidSession reason={s.reason} onRetry={() => window.location.reload()} /></div>
-  return <App initialState={{ screen: 'welcome', hasOrder: s.hasActiveBill }} storageKey={`klown-dining:${token}`} showToggle={false} sessionToken={s.sessionToken} />
+  return <App initialState={{ screen: 'welcome', hasOrder: s.hasActiveBill }} storageKey={`klown-dining:${token}`} sessionToken={s.sessionToken} />
 }
