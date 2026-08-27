@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      payment_attempts: {
+        Row: { id: string; session_id: string; bill_id: string | null; idempotency_key: string; provider: string; method: string | null; share_mode: string | null; amount_pesewas: number; tip_pesewas: number; total_pesewas: number; status: string; provider_ref: string | null; failure_reason: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; session_id: string; bill_id?: string | null; idempotency_key: string; provider: string; method?: string | null; share_mode?: string | null; amount_pesewas: number; tip_pesewas?: number; total_pesewas: number; status?: string; provider_ref?: string | null; failure_reason?: string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; session_id?: string; bill_id?: string | null; idempotency_key?: string; provider?: string; method?: string | null; share_mode?: string | null; amount_pesewas?: number; tip_pesewas?: number; total_pesewas?: number; status?: string; provider_ref?: string | null; failure_reason?: string | null; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      receipts: {
+        Row: { id: string; session_id: string; bill_id: string | null; receipt_number: string; total_paid_pesewas: number; issued_at: string; created_at: string }
+        Insert: { id?: string; session_id: string; bill_id?: string | null; receipt_number: string; total_paid_pesewas?: number; issued_at?: string; created_at?: string }
+        Update: { id?: string; session_id?: string; bill_id?: string | null; receipt_number?: string; total_paid_pesewas?: number; issued_at?: string; created_at?: string }
+        Relationships: []
+      }
+      rewards_consent: {
+        Row: { id: string; session_id: string; restaurant_id: string | null; phone: string; first_name: string | null; receipt_consent: boolean; rewards_consent: boolean; marketing_consent: boolean; consent_version: string; created_at: string }
+        Insert: { id?: string; session_id: string; restaurant_id?: string | null; phone: string; first_name?: string | null; receipt_consent?: boolean; rewards_consent?: boolean; marketing_consent?: boolean; consent_version?: string; created_at?: string }
+        Update: { id?: string; session_id?: string; restaurant_id?: string | null; phone?: string; first_name?: string | null; receipt_consent?: boolean; rewards_consent?: boolean; marketing_consent?: boolean; consent_version?: string; created_at?: string }
+        Relationships: []
+      }
+      rewards_activity: {
+        Row: { id: string; consent_id: string | null; phone: string; points: number; reason: string | null; created_at: string }
+        Insert: { id?: string; consent_id?: string | null; phone: string; points?: number; reason?: string | null; created_at?: string }
+        Update: { id?: string; consent_id?: string | null; phone?: string; points?: number; reason?: string | null; created_at?: string }
+        Relationships: []
+      }
+      feedback: {
+        Row: { id: string; session_id: string; rating: number | null; comment: string | null; sentiment: string | null; created_at: string }
+        Insert: { id?: string; session_id: string; rating?: number | null; comment?: string | null; sentiment?: string | null; created_at?: string }
+        Update: { id?: string; session_id?: string; rating?: number | null; comment?: string | null; sentiment?: string | null; created_at?: string }
+        Relationships: []
+      }
       audit_events: {
         Row: {
           created_at: string
