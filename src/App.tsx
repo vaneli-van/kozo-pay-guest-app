@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { reducer, initial, go, type State, type Screen } from './session/machine'
 import { Shell } from './ui/primitives'
-import { Connect, Welcome, Handoff, map } from './screens/screens'
+import { Connect, Welcome, map } from './screens/screens'
 
 const POST = (url: string, body: unknown): Promise<any> =>
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -11,9 +11,8 @@ const POST = (url: string, body: unknown): Promise<any> =>
 export default function App({
   initialState,
   storageKey = 'klown-dining-session',
-  showToggle = true,
   sessionToken,
-}: { initialState?: Partial<State>; storageKey?: string; showToggle?: boolean; sessionToken?: string } = {}) {
+}: { initialState?: Partial<State>; storageKey?: string; sessionToken?: string } = {}) {
   const [s, dispatch] = useReducer(reducer, { ...initial, ...initialState })
   const [hydrated, setHydrated] = useState(false)
   const idemRef = useRef<string>('')
@@ -188,7 +187,6 @@ export default function App({
   }, [s.screen, s.receiptNumber, sessionToken])
 
   const C = map[s.screen] || Connect
-  const isHandoff = typeof window !== 'undefined' && window.location.hash === '#handoff'
 
   useEffect(() => {
     try {
@@ -216,9 +214,7 @@ export default function App({
 
   return (
     <>
-      {isHandoff ? (
-        <Handoff dispatch={navigate} />
-      ) : s.screen === 'connect' || s.screen === 'welcome' ? (
+      {s.screen === 'connect' || s.screen === 'welcome' ? (
         <div className="app-shell">
           {s.screen === 'connect' ? <Connect dispatch={navigate} /> : <Welcome s={s} dispatch={navigate} />}
         </div>
@@ -226,18 +222,6 @@ export default function App({
         <Shell s={s} dispatch={navigate}>
           <C s={s} dispatch={navigate} />
         </Shell>
-      )}
-      {showToggle && (
-        <button
-          className="prototype-toggle"
-          onClick={() => {
-            window.location.hash = isHandoff ? '' : 'handoff'
-            window.location.reload()
-          }}
-          aria-label="Open prototype navigator"
-        >
-          {isHandoff ? 'Close handoff' : 'Prototype map'}
-        </button>
       )}
     </>
   )
