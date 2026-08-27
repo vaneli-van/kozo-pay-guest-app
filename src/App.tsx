@@ -187,7 +187,6 @@ export default function App({
   }, [s.screen, s.receiptNumber, sessionToken])
 
   const C = map[s.screen] || Connect
-  const isHandoff = typeof window !== 'undefined' && window.location.hash === '#handoff'
 
   useEffect(() => {
     try {
