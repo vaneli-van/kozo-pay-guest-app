@@ -14,36 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      payment_attempts: {
-        Row: { id: string; session_id: string; bill_id: string | null; idempotency_key: string; provider: string; method: string | null; share_mode: string | null; amount_pesewas: number; tip_pesewas: number; total_pesewas: number; status: string; provider_ref: string | null; failure_reason: string | null; created_at: string; updated_at: string }
-        Insert: { id?: string; session_id: string; bill_id?: string | null; idempotency_key: string; provider: string; method?: string | null; share_mode?: string | null; amount_pesewas: number; tip_pesewas?: number; total_pesewas: number; status?: string; provider_ref?: string | null; failure_reason?: string | null; created_at?: string; updated_at?: string }
-        Update: { id?: string; session_id?: string; bill_id?: string | null; idempotency_key?: string; provider?: string; method?: string | null; share_mode?: string | null; amount_pesewas?: number; tip_pesewas?: number; total_pesewas?: number; status?: string; provider_ref?: string | null; failure_reason?: string | null; created_at?: string; updated_at?: string }
-        Relationships: []
-      }
-      receipts: {
-        Row: { id: string; session_id: string; bill_id: string | null; receipt_number: string; total_paid_pesewas: number; issued_at: string; created_at: string }
-        Insert: { id?: string; session_id: string; bill_id?: string | null; receipt_number: string; total_paid_pesewas?: number; issued_at?: string; created_at?: string }
-        Update: { id?: string; session_id?: string; bill_id?: string | null; receipt_number?: string; total_paid_pesewas?: number; issued_at?: string; created_at?: string }
-        Relationships: []
-      }
-      rewards_consent: {
-        Row: { id: string; session_id: string; restaurant_id: string | null; phone: string; first_name: string | null; receipt_consent: boolean; rewards_consent: boolean; marketing_consent: boolean; consent_version: string; created_at: string }
-        Insert: { id?: string; session_id: string; restaurant_id?: string | null; phone: string; first_name?: string | null; receipt_consent?: boolean; rewards_consent?: boolean; marketing_consent?: boolean; consent_version?: string; created_at?: string }
-        Update: { id?: string; session_id?: string; restaurant_id?: string | null; phone?: string; first_name?: string | null; receipt_consent?: boolean; rewards_consent?: boolean; marketing_consent?: boolean; consent_version?: string; created_at?: string }
-        Relationships: []
-      }
-      rewards_activity: {
-        Row: { id: string; consent_id: string | null; phone: string; points: number; reason: string | null; created_at: string }
-        Insert: { id?: string; consent_id?: string | null; phone: string; points?: number; reason?: string | null; created_at?: string }
-        Update: { id?: string; consent_id?: string | null; phone?: string; points?: number; reason?: string | null; created_at?: string }
-        Relationships: []
-      }
-      feedback: {
-        Row: { id: string; session_id: string; rating: number | null; comment: string | null; sentiment: string | null; created_at: string }
-        Insert: { id?: string; session_id: string; rating?: number | null; comment?: string | null; sentiment?: string | null; created_at?: string }
-        Update: { id?: string; session_id?: string; rating?: number | null; comment?: string | null; sentiment?: string | null; created_at?: string }
-        Relationships: []
-      }
       audit_events: {
         Row: {
           created_at: string
@@ -277,6 +247,41 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number | null
+          sentiment: string | null
+          session_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number | null
+          sentiment?: string | null
+          session_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number | null
+          sentiment?: string | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "dining_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_categories: {
         Row: {
           branch_id: string
@@ -353,6 +358,75 @@ export type Database = {
           },
         ]
       }
+      payment_attempts: {
+        Row: {
+          amount_pesewas: number
+          bill_id: string | null
+          created_at: string
+          failure_reason: string | null
+          id: string
+          idempotency_key: string
+          method: string | null
+          provider: string
+          provider_ref: string | null
+          session_id: string
+          share_mode: string | null
+          status: string
+          tip_pesewas: number
+          total_pesewas: number
+          updated_at: string
+        }
+        Insert: {
+          amount_pesewas: number
+          bill_id?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          idempotency_key: string
+          method?: string | null
+          provider: string
+          provider_ref?: string | null
+          session_id: string
+          share_mode?: string | null
+          status?: string
+          tip_pesewas?: number
+          total_pesewas: number
+          updated_at?: string
+        }
+        Update: {
+          amount_pesewas?: number
+          bill_id?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          idempotency_key?: string
+          method?: string | null
+          provider?: string
+          provider_ref?: string | null
+          session_id?: string
+          share_mode?: string | null
+          status?: string
+          tip_pesewas?: number
+          total_pesewas?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_attempts_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_attempts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "dining_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qr_tokens: {
         Row: {
           created_at: string
@@ -381,6 +455,51 @@ export type Database = {
             columns: ["table_id"]
             isOneToOne: false
             referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipts: {
+        Row: {
+          bill_id: string | null
+          created_at: string
+          id: string
+          issued_at: string
+          receipt_number: string
+          session_id: string
+          total_paid_pesewas: number
+        }
+        Insert: {
+          bill_id?: string | null
+          created_at?: string
+          id?: string
+          issued_at?: string
+          receipt_number: string
+          session_id: string
+          total_paid_pesewas?: number
+        }
+        Update: {
+          bill_id?: string | null
+          created_at?: string
+          id?: string
+          issued_at?: string
+          receipt_number?: string
+          session_id?: string
+          total_paid_pesewas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "dining_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -485,6 +604,95 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      rewards_activity: {
+        Row: {
+          consent_id: string | null
+          created_at: string
+          id: string
+          phone: string
+          points: number
+          reason: string | null
+        }
+        Insert: {
+          consent_id?: string | null
+          created_at?: string
+          id?: string
+          phone: string
+          points?: number
+          reason?: string | null
+        }
+        Update: {
+          consent_id?: string | null
+          created_at?: string
+          id?: string
+          phone?: string
+          points?: number
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_activity_consent_id_fkey"
+            columns: ["consent_id"]
+            isOneToOne: false
+            referencedRelation: "rewards_consent"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards_consent: {
+        Row: {
+          consent_version: string
+          created_at: string
+          first_name: string | null
+          id: string
+          marketing_consent: boolean
+          phone: string
+          receipt_consent: boolean
+          restaurant_id: string | null
+          rewards_consent: boolean
+          session_id: string
+        }
+        Insert: {
+          consent_version?: string
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          marketing_consent?: boolean
+          phone: string
+          receipt_consent?: boolean
+          restaurant_id?: string | null
+          rewards_consent?: boolean
+          session_id: string
+        }
+        Update: {
+          consent_version?: string
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          marketing_consent?: boolean
+          phone?: string
+          receipt_consent?: boolean
+          restaurant_id?: string | null
+          rewards_consent?: boolean
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_consent_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rewards_consent_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "dining_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       waiter_requests: {
         Row: {

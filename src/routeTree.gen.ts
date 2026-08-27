@@ -11,10 +11,24 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as ApiMockPayCallbackRouteImport } from './routes/api/mock/pay-callback'
 import { Route as ApiPublicBillRouteImport } from './routes/api/public/bill'
 import { Route as ApiPublicBillDisputeRouteImport } from './routes/api/public/bill-dispute'
+import { Route as ApiPublicFeedbackRouteImport } from './routes/api/public/feedback'
 import { Route as ApiPublicMenuRouteImport } from './routes/api/public/menu'
+import { Route as ApiPublicOtpSendRouteImport } from './routes/api/public/otp-send'
+import { Route as ApiPublicOtpVerifyRouteImport } from './routes/api/public/otp-verify'
+import { Route as ApiPublicPaymentInitRouteImport } from './routes/api/public/payment-init'
+import { Route as ApiPublicPaymentOtpRouteImport } from './routes/api/public/payment-otp'
+import { Route as ApiPublicPaymentStatusRouteImport } from './routes/api/public/payment-status'
+import { Route as ApiPublicPaymentVerifyRouteImport } from './routes/api/public/payment-verify'
+import { Route as ApiPublicPaymentWebhookRouteImport } from './routes/api/public/payment-webhook'
+import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
 import { Route as ApiPublicQrResolveRouteImport } from './routes/api/public/qr-resolve'
+import { Route as ApiPublicQuoteRouteImport } from './routes/api/public/quote'
+import { Route as ApiPublicReceiptRouteImport } from './routes/api/public/receipt'
+import { Route as ApiPublicReviewLinkRouteImport } from './routes/api/public/review-link'
+import { Route as ApiPublicRewardsConsentRouteImport } from './routes/api/public/rewards-consent'
 import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
 
 const IndexRoute = IndexRouteImport.update({
@@ -27,6 +41,11 @@ const STokenRoute = STokenRouteImport.update({
   path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMockPayCallbackRoute = ApiMockPayCallbackRouteImport.update({
+  id: '/api/mock/pay-callback',
+  path: '/api/mock/pay-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBillRoute = ApiPublicBillRouteImport.update({
   id: '/api/public/bill',
   path: '/api/public/bill',
@@ -37,14 +56,80 @@ const ApiPublicBillDisputeRoute = ApiPublicBillDisputeRouteImport.update({
   path: '/api/public/bill-dispute',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFeedbackRoute = ApiPublicFeedbackRouteImport.update({
+  id: '/api/public/feedback',
+  path: '/api/public/feedback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMenuRoute = ApiPublicMenuRouteImport.update({
   id: '/api/public/menu',
   path: '/api/public/menu',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicOtpSendRoute = ApiPublicOtpSendRouteImport.update({
+  id: '/api/public/otp-send',
+  path: '/api/public/otp-send',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOtpVerifyRoute = ApiPublicOtpVerifyRouteImport.update({
+  id: '/api/public/otp-verify',
+  path: '/api/public/otp-verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaymentInitRoute = ApiPublicPaymentInitRouteImport.update({
+  id: '/api/public/payment-init',
+  path: '/api/public/payment-init',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaymentOtpRoute = ApiPublicPaymentOtpRouteImport.update({
+  id: '/api/public/payment-otp',
+  path: '/api/public/payment-otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaymentStatusRoute = ApiPublicPaymentStatusRouteImport.update({
+  id: '/api/public/payment-status',
+  path: '/api/public/payment-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaymentVerifyRoute = ApiPublicPaymentVerifyRouteImport.update({
+  id: '/api/public/payment-verify',
+  path: '/api/public/payment-verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaymentWebhookRoute = ApiPublicPaymentWebhookRouteImport.update({
+  id: '/api/public/payment-webhook',
+  path: '/api/public/payment-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaystackWebhookRoute =
+  ApiPublicPaystackWebhookRouteImport.update({
+    id: '/api/public/paystack-webhook',
+    path: '/api/public/paystack-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicQrResolveRoute = ApiPublicQrResolveRouteImport.update({
   id: '/api/public/qr-resolve',
   path: '/api/public/qr-resolve',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicQuoteRoute = ApiPublicQuoteRouteImport.update({
+  id: '/api/public/quote',
+  path: '/api/public/quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicReceiptRoute = ApiPublicReceiptRouteImport.update({
+  id: '/api/public/receipt',
+  path: '/api/public/receipt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicReviewLinkRoute = ApiPublicReviewLinkRouteImport.update({
+  id: '/api/public/review-link',
+  path: '/api/public/review-link',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicRewardsConsentRoute = ApiPublicRewardsConsentRouteImport.update({
+  id: '/api/public/rewards-consent',
+  path: '/api/public/rewards-consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWaiterRequestRoute = ApiPublicWaiterRequestRouteImport.update({
@@ -56,29 +141,71 @@ const ApiPublicWaiterRequestRoute = ApiPublicWaiterRequestRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
+  '/api/public/feedback': typeof ApiPublicFeedbackRoute
   '/api/public/menu': typeof ApiPublicMenuRoute
+  '/api/public/otp-send': typeof ApiPublicOtpSendRoute
+  '/api/public/otp-verify': typeof ApiPublicOtpVerifyRoute
+  '/api/public/payment-init': typeof ApiPublicPaymentInitRoute
+  '/api/public/payment-otp': typeof ApiPublicPaymentOtpRoute
+  '/api/public/payment-status': typeof ApiPublicPaymentStatusRoute
+  '/api/public/payment-verify': typeof ApiPublicPaymentVerifyRoute
+  '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
+  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
+  '/api/public/quote': typeof ApiPublicQuoteRoute
+  '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/review-link': typeof ApiPublicReviewLinkRoute
+  '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
+  '/api/public/feedback': typeof ApiPublicFeedbackRoute
   '/api/public/menu': typeof ApiPublicMenuRoute
+  '/api/public/otp-send': typeof ApiPublicOtpSendRoute
+  '/api/public/otp-verify': typeof ApiPublicOtpVerifyRoute
+  '/api/public/payment-init': typeof ApiPublicPaymentInitRoute
+  '/api/public/payment-otp': typeof ApiPublicPaymentOtpRoute
+  '/api/public/payment-status': typeof ApiPublicPaymentStatusRoute
+  '/api/public/payment-verify': typeof ApiPublicPaymentVerifyRoute
+  '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
+  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
+  '/api/public/quote': typeof ApiPublicQuoteRoute
+  '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/review-link': typeof ApiPublicReviewLinkRoute
+  '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
+  '/api/public/feedback': typeof ApiPublicFeedbackRoute
   '/api/public/menu': typeof ApiPublicMenuRoute
+  '/api/public/otp-send': typeof ApiPublicOtpSendRoute
+  '/api/public/otp-verify': typeof ApiPublicOtpVerifyRoute
+  '/api/public/payment-init': typeof ApiPublicPaymentInitRoute
+  '/api/public/payment-otp': typeof ApiPublicPaymentOtpRoute
+  '/api/public/payment-status': typeof ApiPublicPaymentStatusRoute
+  '/api/public/payment-verify': typeof ApiPublicPaymentVerifyRoute
+  '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
+  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
+  '/api/public/quote': typeof ApiPublicQuoteRoute
+  '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/review-link': typeof ApiPublicReviewLinkRoute
+  '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
 }
 export interface FileRouteTypes {
@@ -86,38 +213,94 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/s/$token'
+    | '/api/mock/pay-callback'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
+    | '/api/public/feedback'
     | '/api/public/menu'
+    | '/api/public/otp-send'
+    | '/api/public/otp-verify'
+    | '/api/public/payment-init'
+    | '/api/public/payment-otp'
+    | '/api/public/payment-status'
+    | '/api/public/payment-verify'
+    | '/api/public/payment-webhook'
+    | '/api/public/paystack-webhook'
     | '/api/public/qr-resolve'
+    | '/api/public/quote'
+    | '/api/public/receipt'
+    | '/api/public/review-link'
+    | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/s/$token'
+    | '/api/mock/pay-callback'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
+    | '/api/public/feedback'
     | '/api/public/menu'
+    | '/api/public/otp-send'
+    | '/api/public/otp-verify'
+    | '/api/public/payment-init'
+    | '/api/public/payment-otp'
+    | '/api/public/payment-status'
+    | '/api/public/payment-verify'
+    | '/api/public/payment-webhook'
+    | '/api/public/paystack-webhook'
     | '/api/public/qr-resolve'
+    | '/api/public/quote'
+    | '/api/public/receipt'
+    | '/api/public/review-link'
+    | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
   id:
     | '__root__'
     | '/'
     | '/s/$token'
+    | '/api/mock/pay-callback'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
+    | '/api/public/feedback'
     | '/api/public/menu'
+    | '/api/public/otp-send'
+    | '/api/public/otp-verify'
+    | '/api/public/payment-init'
+    | '/api/public/payment-otp'
+    | '/api/public/payment-status'
+    | '/api/public/payment-verify'
+    | '/api/public/payment-webhook'
+    | '/api/public/paystack-webhook'
     | '/api/public/qr-resolve'
+    | '/api/public/quote'
+    | '/api/public/receipt'
+    | '/api/public/review-link'
+    | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   STokenRoute: typeof STokenRoute
+  ApiMockPayCallbackRoute: typeof ApiMockPayCallbackRoute
   ApiPublicBillRoute: typeof ApiPublicBillRoute
   ApiPublicBillDisputeRoute: typeof ApiPublicBillDisputeRoute
+  ApiPublicFeedbackRoute: typeof ApiPublicFeedbackRoute
   ApiPublicMenuRoute: typeof ApiPublicMenuRoute
+  ApiPublicOtpSendRoute: typeof ApiPublicOtpSendRoute
+  ApiPublicOtpVerifyRoute: typeof ApiPublicOtpVerifyRoute
+  ApiPublicPaymentInitRoute: typeof ApiPublicPaymentInitRoute
+  ApiPublicPaymentOtpRoute: typeof ApiPublicPaymentOtpRoute
+  ApiPublicPaymentStatusRoute: typeof ApiPublicPaymentStatusRoute
+  ApiPublicPaymentVerifyRoute: typeof ApiPublicPaymentVerifyRoute
+  ApiPublicPaymentWebhookRoute: typeof ApiPublicPaymentWebhookRoute
+  ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
   ApiPublicQrResolveRoute: typeof ApiPublicQrResolveRoute
+  ApiPublicQuoteRoute: typeof ApiPublicQuoteRoute
+  ApiPublicReceiptRoute: typeof ApiPublicReceiptRoute
+  ApiPublicReviewLinkRoute: typeof ApiPublicReviewLinkRoute
+  ApiPublicRewardsConsentRoute: typeof ApiPublicRewardsConsentRoute
   ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
 }
 
@@ -137,6 +320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mock/pay-callback': {
+      id: '/api/mock/pay-callback'
+      path: '/api/mock/pay-callback'
+      fullPath: '/api/mock/pay-callback'
+      preLoaderRoute: typeof ApiMockPayCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bill': {
       id: '/api/public/bill'
       path: '/api/public/bill'
@@ -151,6 +341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBillDisputeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/feedback': {
+      id: '/api/public/feedback'
+      path: '/api/public/feedback'
+      fullPath: '/api/public/feedback'
+      preLoaderRoute: typeof ApiPublicFeedbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/menu': {
       id: '/api/public/menu'
       path: '/api/public/menu'
@@ -158,11 +355,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMenuRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/otp-send': {
+      id: '/api/public/otp-send'
+      path: '/api/public/otp-send'
+      fullPath: '/api/public/otp-send'
+      preLoaderRoute: typeof ApiPublicOtpSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/otp-verify': {
+      id: '/api/public/otp-verify'
+      path: '/api/public/otp-verify'
+      fullPath: '/api/public/otp-verify'
+      preLoaderRoute: typeof ApiPublicOtpVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payment-init': {
+      id: '/api/public/payment-init'
+      path: '/api/public/payment-init'
+      fullPath: '/api/public/payment-init'
+      preLoaderRoute: typeof ApiPublicPaymentInitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payment-otp': {
+      id: '/api/public/payment-otp'
+      path: '/api/public/payment-otp'
+      fullPath: '/api/public/payment-otp'
+      preLoaderRoute: typeof ApiPublicPaymentOtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payment-status': {
+      id: '/api/public/payment-status'
+      path: '/api/public/payment-status'
+      fullPath: '/api/public/payment-status'
+      preLoaderRoute: typeof ApiPublicPaymentStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payment-verify': {
+      id: '/api/public/payment-verify'
+      path: '/api/public/payment-verify'
+      fullPath: '/api/public/payment-verify'
+      preLoaderRoute: typeof ApiPublicPaymentVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payment-webhook': {
+      id: '/api/public/payment-webhook'
+      path: '/api/public/payment-webhook'
+      fullPath: '/api/public/payment-webhook'
+      preLoaderRoute: typeof ApiPublicPaymentWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/paystack-webhook': {
+      id: '/api/public/paystack-webhook'
+      path: '/api/public/paystack-webhook'
+      fullPath: '/api/public/paystack-webhook'
+      preLoaderRoute: typeof ApiPublicPaystackWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/qr-resolve': {
       id: '/api/public/qr-resolve'
       path: '/api/public/qr-resolve'
       fullPath: '/api/public/qr-resolve'
       preLoaderRoute: typeof ApiPublicQrResolveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/quote': {
+      id: '/api/public/quote'
+      path: '/api/public/quote'
+      fullPath: '/api/public/quote'
+      preLoaderRoute: typeof ApiPublicQuoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/receipt': {
+      id: '/api/public/receipt'
+      path: '/api/public/receipt'
+      fullPath: '/api/public/receipt'
+      preLoaderRoute: typeof ApiPublicReceiptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/review-link': {
+      id: '/api/public/review-link'
+      path: '/api/public/review-link'
+      fullPath: '/api/public/review-link'
+      preLoaderRoute: typeof ApiPublicReviewLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/rewards-consent': {
+      id: '/api/public/rewards-consent'
+      path: '/api/public/rewards-consent'
+      fullPath: '/api/public/rewards-consent'
+      preLoaderRoute: typeof ApiPublicRewardsConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/waiter-request': {
@@ -178,10 +459,24 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   STokenRoute: STokenRoute,
+  ApiMockPayCallbackRoute: ApiMockPayCallbackRoute,
   ApiPublicBillRoute: ApiPublicBillRoute,
   ApiPublicBillDisputeRoute: ApiPublicBillDisputeRoute,
+  ApiPublicFeedbackRoute: ApiPublicFeedbackRoute,
   ApiPublicMenuRoute: ApiPublicMenuRoute,
+  ApiPublicOtpSendRoute: ApiPublicOtpSendRoute,
+  ApiPublicOtpVerifyRoute: ApiPublicOtpVerifyRoute,
+  ApiPublicPaymentInitRoute: ApiPublicPaymentInitRoute,
+  ApiPublicPaymentOtpRoute: ApiPublicPaymentOtpRoute,
+  ApiPublicPaymentStatusRoute: ApiPublicPaymentStatusRoute,
+  ApiPublicPaymentVerifyRoute: ApiPublicPaymentVerifyRoute,
+  ApiPublicPaymentWebhookRoute: ApiPublicPaymentWebhookRoute,
+  ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
   ApiPublicQrResolveRoute: ApiPublicQrResolveRoute,
+  ApiPublicQuoteRoute: ApiPublicQuoteRoute,
+  ApiPublicReceiptRoute: ApiPublicReceiptRoute,
+  ApiPublicReviewLinkRoute: ApiPublicReviewLinkRoute,
+  ApiPublicRewardsConsentRoute: ApiPublicRewardsConsentRoute,
   ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
 }
 export const routeTree = rootRouteImport
