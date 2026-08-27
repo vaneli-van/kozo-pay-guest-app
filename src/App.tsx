@@ -136,6 +136,15 @@ export default function App({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, sessionToken])
 
+  // Load the real menu once (categories, items, recommendations) and pick a default category.
+  useEffect(() => {
+    if (!sessionToken || s.menu) return
+    POST('/api/public/menu', { sessionToken }).then((r) => {
+      if (r?.ok) patch({ menu: { categories: r.categories ?? [], items: r.items ?? [], recommendations: r.recommendations ?? [] }, activeCategoryId: s.activeCategoryId ?? (r.categories?.[0]?.id) })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionToken, s.menu])
+
   // Server-authoritative quote (share + tip) behind every amount shown during checkout.
   useEffect(() => {
     if (!sessionToken) return

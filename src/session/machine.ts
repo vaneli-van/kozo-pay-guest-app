@@ -26,7 +26,15 @@ export type State = {
   reviewUrl?: string | null
   bill?: { status?: string; items: { name: string; qty: number; lineTotalPesewas: number }[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number } | undefined
   quote?: { billTotalPesewas: number; remainingPesewas: number; sharePesewas: number; tipPesewas: number; grandTotalPesewas: number } | undefined
+  // Menu (fetched once from /api/public/menu; all optional)
+  menu?: { categories: MenuCategory[]; items: MenuItem[]; recommendations: MenuRec[] } | undefined
+  activeCategoryId?: string
+  selectedItem?: MenuItem | undefined
 }
+
+export type MenuCategory = { id: string; name: string; sort: number }
+export type MenuItem = { id: string; category_id: string; name: string; price_pesewas: number; image_key: string | null; tags: { desc?: string; sub?: string; veg?: boolean; signature?: boolean; origin?: string; shot?: number; bottle?: number; glass?: number }; sort: number; available: boolean }
+export type MenuRec = { id: string; item_id: string | null; kind: string; title: string; subtitle: string | null; sort: number }
 
 export const initial: State = { screen: 'connect', hasOrder: true, dish: 'Sea bass, charred lemon', people: 2, tip: 10, paymentError: false, waiter: false, navigator: false }
 
