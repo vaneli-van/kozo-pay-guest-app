@@ -57,7 +57,7 @@ export const Route = createFileRoute('/api/public/receipt-whatsapp')({
             ? await supabaseAdmin.from('bills').select('id,subtotal_pesewas,service_charge_pesewas,total_pesewas').eq('id', session.active_bill_id).maybeSingle()
             : { data: null }
           const { data: items } = bill
-            ? await supabaseAdmin.from('bill_items').select('name,quantity,unit_price_pesewas').eq('bill_id', bill.id)
+            ? await supabaseAdmin.from('bill_items').select('name,qty,line_total_pesewas,sort').eq('bill_id', bill.id).order('sort')
             : { data: [] }
           const { data: caps } = await supabaseAdmin
             .from('payment_attempts').select('total_pesewas,tip_pesewas,provider').eq('session_id', session.id).eq('status', 'captured')
@@ -78,8 +78,8 @@ export const Route = createFileRoute('/api/public/receipt-whatsapp')({
           rows.push(line(`RCPT ${receipt?.receipt_number ?? '--'}`, (stamp.split(',')[1] ?? '').trim()))
           rows.push(rule())
           for (const it of items ?? []) {
-            const q = it.quantity ?? 1
-            const amt = pes((it.unit_price_pesewas ?? 0) * q)
+            const q = it.qty ?? 1
+            const amt = pes(it.line_total_pesewas ?? 0)
             rows.push(line(`${q} x ${it.name}`, amt))
           }
           rows.push(rule())
