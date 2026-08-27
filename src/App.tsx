@@ -8,6 +8,22 @@ const POST = (url: string, body: unknown): Promise<any> =>
     .then((r) => r.json())
     .catch(() => null)
 
+// Paystack's checkout sends X-Frame-Options: SAMEORIGIN, so it cannot load inside an
+// embedded preview iframe. Navigate the top-level window when we're framed; if the
+// browser blocks cross-origin top navigation, fall back to opening a new tab.
+function openCheckout(url: string) {
+  if (typeof window === 'undefined') return
+  const framed = window.top !== window.self
+  if (!framed) { window.location.href = url; return }
+  try {
+    if (window.top) { window.top.location.href = url; return }
+  } catch { /* cross-origin parent — cannot navigate it */ }
+  const w = window.open(url, '_blank', 'noopener')
+  if (!w) window.location.href = url
+}
+
+
+
 export default function App({
   initialState,
   storageKey = 'klown-dining-session',
