@@ -219,6 +219,7 @@ export default function App({
     patch({ paymentRef: reference })
     goScreen('processing')
     POST('/api/public/payment-verify', { sessionToken, reference }).then((r) => {
+      if (r?.paymentRef) patch({ paymentRef: r.paymentRef }) // poll by attempt id, not the gateway reference
       if (r?.status === 'captured') goScreen('success')
       else if (r?.status === 'failed') goScreen('payment-error')
       // otherwise stay on processing — the polling effect continues via paymentRef
