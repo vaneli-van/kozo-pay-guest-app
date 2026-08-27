@@ -256,7 +256,8 @@ export default function App({
   useEffect(() => {
     if (!hydrated) return
     try {
-      sessionStorage.setItem(storageKey, JSON.stringify(s))
+      const { menu, selectedItem, ...persist } = s
+      sessionStorage.setItem(storageKey, JSON.stringify(persist))
     } catch {}
   }, [s, hydrated, storageKey])
 
@@ -272,9 +273,7 @@ export default function App({
     <>
       {s.screen === 'connect' || s.screen === 'welcome' ? (
         <div className="app-shell">
-          <div className="app-scroll">
-            {s.screen === 'connect' ? <Connect dispatch={navigate} /> : <Welcome s={s} dispatch={navigate} />}
-          </div>
+          {s.screen === 'connect' ? <Connect dispatch={navigate} /> : <Welcome s={s} dispatch={navigate} />}
         </div>
       ) : (
         <Shell s={s} dispatch={navigate}>
