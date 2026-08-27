@@ -21,6 +21,9 @@ export type State = {
   momoNumber?: string | undefined
   paymentRef?: string | undefined
   phone?: string
+  waStatus?: 'sending' | 'sent' | 'error' | undefined
+  waError?: string | undefined
+
   receiptNumber?: string
   totalPaidPesewas?: number
   reviewUrl?: string | null
