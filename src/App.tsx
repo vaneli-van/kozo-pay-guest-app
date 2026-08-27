@@ -69,14 +69,19 @@ export default function App({
         if (action.to) goScreen(action.to as Screen)
         return
       case 'otp-send':
+        // No verification step: the receipt goes straight to the diner's WhatsApp.
         if (action.value?.phone) patch({ phone: action.value.phone })
-        if (sessionToken && action.value?.phone) POST('/api/public/otp-send', { sessionToken, phone: action.value.phone })
-        goScreen('otp-rewards')
-        return
-      case 'otp-verify':
-        if (sessionToken) POST('/api/public/otp-verify', { sessionToken, code: action.value?.code ?? '123456' })
+        if (sessionToken && action.value?.phone) {
+          POST('/api/public/receipt-whatsapp', { sessionToken, phone: action.value.phone }).then((r) => {
+            if (r?.ok && !r.sent && r.waLink) window.open(r.waLink, '_blank', 'noopener')
+          })
+        }
         goScreen('name')
         return
+      case 'otp-verify':
+        goScreen('name')
+        return
+
       case 'rewards-consent':
         if (sessionToken) {
           POST('/api/public/rewards-consent', {
