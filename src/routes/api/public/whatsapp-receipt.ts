@@ -91,7 +91,7 @@ export const Route = createFileRoute('/api/public/whatsapp-receipt')({
         for (const it of items ?? []) {
           const qty = it.qty ?? 1
           draw(`${it.name}   ${qty} ×`, 11)
-          drawRight(`GH${'\u20B5'}${ghs(it.line_total_pesewas ?? 0)}`, 11)
+          drawRight(`GHS ${ghs(it.line_total_pesewas ?? 0)}`, 11)
           y -= 16
           if (y < 90) break
         }
@@ -99,7 +99,7 @@ export const Route = createFileRoute('/api/public/whatsapp-receipt')({
         y -= 8
         page.drawLine({ start: { x: L, y }, end: { x: R, y }, thickness: 1, color: black }); y -= 22
         draw('TOTAL PAID', 13, bold)
-        drawRight(`GH${'\u20B5'}${ghs(receipt.total_paid_pesewas ?? totalPaid)}`, 13, bold)
+        drawRight(`GHS ${ghs(receipt.total_paid_pesewas ?? totalPaid)}`, 13, bold)
         y -= 30
         draw('Thank you for dining with us.', 11)
 
