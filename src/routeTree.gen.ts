@@ -30,6 +30,7 @@ import { Route as ApiPublicReceiptRouteImport } from './routes/api/public/receip
 import { Route as ApiPublicReceiptWhatsappRouteImport } from './routes/api/public/receipt-whatsapp'
 import { Route as ApiPublicReviewLinkRouteImport } from './routes/api/public/review-link'
 import { Route as ApiPublicRewardsConsentRouteImport } from './routes/api/public/rewards-consent'
+import { Route as ApiPublicSplitCreateRouteImport } from './routes/api/public/split-create'
 import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
 import { Route as ApiPublicWhatsappReceiptRouteImport } from './routes/api/public/whatsapp-receipt'
 import { Route as ApiSyncPosOrdersRouteImport } from './routes/api/sync/pos-orders'
@@ -141,6 +142,11 @@ const ApiPublicRewardsConsentRoute = ApiPublicRewardsConsentRouteImport.update({
   path: '/api/public/rewards-consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSplitCreateRoute = ApiPublicSplitCreateRouteImport.update({
+  id: '/api/public/split-create',
+  path: '/api/public/split-create',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWaiterRequestRoute = ApiPublicWaiterRequestRouteImport.update({
   id: '/api/public/waiter-request',
   path: '/api/public/waiter-request',
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
+  '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
+  '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
+  '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
+    | '/api/public/split-create'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/sync/pos-orders'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
+    | '/api/public/split-create'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/sync/pos-orders'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
+    | '/api/public/split-create'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/sync/pos-orders'
@@ -340,6 +352,7 @@ export interface RootRouteChildren {
   ApiPublicReceiptWhatsappRoute: typeof ApiPublicReceiptWhatsappRoute
   ApiPublicReviewLinkRoute: typeof ApiPublicReviewLinkRoute
   ApiPublicRewardsConsentRoute: typeof ApiPublicRewardsConsentRoute
+  ApiPublicSplitCreateRoute: typeof ApiPublicSplitCreateRoute
   ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
   ApiPublicWhatsappReceiptRoute: typeof ApiPublicWhatsappReceiptRoute
   ApiSyncPosOrdersRoute: typeof ApiSyncPosOrdersRoute
@@ -494,6 +507,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRewardsConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/split-create': {
+      id: '/api/public/split-create'
+      path: '/api/public/split-create'
+      fullPath: '/api/public/split-create'
+      preLoaderRoute: typeof ApiPublicSplitCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/waiter-request': {
       id: '/api/public/waiter-request'
       path: '/api/public/waiter-request'
@@ -540,6 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicReceiptWhatsappRoute: ApiPublicReceiptWhatsappRoute,
   ApiPublicReviewLinkRoute: ApiPublicReviewLinkRoute,
   ApiPublicRewardsConsentRoute: ApiPublicRewardsConsentRoute,
+  ApiPublicSplitCreateRoute: ApiPublicSplitCreateRoute,
   ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
   ApiPublicWhatsappReceiptRoute: ApiPublicWhatsappReceiptRoute,
   ApiSyncPosOrdersRoute: ApiSyncPosOrdersRoute,
