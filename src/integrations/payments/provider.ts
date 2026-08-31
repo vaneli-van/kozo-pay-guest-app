@@ -233,19 +233,30 @@ export async function onBillSettled(billId: string, totalPesewas: number) {
     })
 
     // Close the table on the POS, only if this restaurant opted in.
+    // Odoo write-back (cloud POS: settle directly).
     const { data: creds } = await supabaseAdmin.from('pos_odoo_credentials')
       .select('base_url, db, username, api_key, active, writeback_enabled, klown_payment_method_id')
       .eq('restaurant_id', restaurantId).maybeSingle()
-    if (!creds?.active || !creds.writeback_enabled || !creds.klown_payment_method_id) return
+    if (creds?.active && creds.writeback_enabled && creds.klown_payment_method_id) {
+      const { settleTableOrder } = await import('@/integrations/pos/odoo.server')
+      const cfg = { base_url: creds.base_url, db: creds.db, username: creds.username || 'admin', api_key: creds.api_key }
+      const num = parseInt(table.label, 10)
+      const res = await settleTableOrder(cfg, creds.klown_payment_method_id, num, totalPesewas)
+      if (!res.ok) {
+        await supabaseAdmin.from('staff_notifications').insert({
+          restaurant_id: restaurantId, table_label: table.label, kind: 'settle_warning',
+          amount_pesewas: totalPesewas, message: `Auto-close skipped for table ${table.label} (${res.reason}) — settle on the POS`,
+        })
+      }
+    }
 
-    const { settleTableOrder } = await import('@/integrations/pos/odoo.server')
-    const cfg = { base_url: creds.base_url, db: creds.db, username: creds.username || 'admin', api_key: creds.api_key }
-    const num = parseInt(table.label, 10)
-    const res = await settleTableOrder(cfg, creds.klown_payment_method_id, num, totalPesewas)
-    if (!res.ok) {
-      await supabaseAdmin.from('staff_notifications').insert({
-        restaurant_id: restaurantId, table_label: table.label, kind: 'settle_warning',
-        amount_pesewas: totalPesewas, message: `Auto-close skipped for table ${table.label} (${res.reason}) — settle on the POS`,
+    // On-prem connector write-back (e.g. SambaPOS): queue a settle command the connector executes.
+    const { data: conn } = await supabaseAdmin.from('pos_connectors')
+      .select('id, writeback_enabled, active').eq('restaurant_id', restaurantId).eq('active', true).maybeSingle()
+    if (conn?.writeback_enabled) {
+      await supabaseAdmin.from('pos_commands').insert({
+        restaurant_id: restaurantId, kind: 'settle_ticket',
+        payload: { table_label: table.label, amount_pesewas: totalPesewas, bill_id: billId },
       })
     }
   } catch (e) {
