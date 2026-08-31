@@ -192,6 +192,34 @@ export default function App({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, sessionToken])
 
+  // Live split state — polled while the diner is on the split lobby.
+  useEffect(() => {
+    if (!sessionToken || s.screen !== 'split-lobby') return
+    let cancelled = false
+    const load = async () => {
+      const r = await POST('/api/public/split', { sessionToken })
+      if (cancelled) return
+      if (r?.ok) patch({ split: r.split ? { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares } : undefined })
+    }
+    load()
+    const id = window.setInterval(load, 3000)
+    return () => { cancelled = true; window.clearInterval(id) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.screen, sessionToken])
+
+  // Invite link: /s/<token>?claim=<shareToken> — auto-claim that share, then show the lobby.
+  useEffect(() => {
+    if (!sessionToken || typeof window === 'undefined') return
+    const claim = new URLSearchParams(window.location.search).get('claim')
+    if (!claim) return
+    window.history.replaceState({}, '', window.location.pathname)
+    POST('/api/public/split-claim', { sessionToken, shareToken: claim }).then((r) => {
+      if (r?.ok) patch({ claimedShareId: r.shareId })
+      goScreen('split-lobby')
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionToken])
+
   // Load the real menu once (categories, items, recommendations) and pick a default category.
   useEffect(() => {
     if (!sessionToken || s.menu) return
@@ -209,6 +237,7 @@ export default function App({
     const preTip = s.screen === 'pay' || s.screen === 'split' || s.screen === 'split-share' || s.screen === 'tip'
     POST('/api/public/quote', {
       sessionToken,
+      shareId: s.claimedShareId,
       mode: s.shareMode ?? 'full',
       people: s.people,
       customAmountPesewas: s.customAmountPesewas,
