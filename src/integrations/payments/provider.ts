@@ -188,13 +188,25 @@ export async function amountPaidForBill(billId: string): Promise<number> {
 // Authoritative capture. Idempotent by provider_ref — a repeat callback never double-applies.
 export async function applyProviderCallback(providerRef: string, outcome: 'captured' | 'failed', failureReason?: string) {
   const { data: attempt } = await supabaseAdmin
-    .from('payment_attempts').select('id,status,session_id,bill_id,amount_pesewas').eq('provider_ref', providerRef).maybeSingle()
+    .from('payment_attempts').select('id,status,session_id,bill_id,amount_pesewas,split_share_id').eq('provider_ref', providerRef).maybeSingle()
   if (!attempt) return { ok: false as const, reason: 'unknown_ref' }
   if (attempt.status === 'captured' || attempt.status === 'failed')
     return { ok: true as const, idempotent: true, status: attempt.status }
   const status = outcome === 'captured' ? 'captured' : 'failed'
   await supabaseAdmin.from('payment_attempts')
     .update({ status, failure_reason: failureReason ?? null, updated_at: new Date().toISOString() }).eq('id', attempt.id)
+  if (status === 'captured' && attempt.split_share_id) {
+    await supabaseAdmin.from('bill_split_shares')
+      .update({ status: 'paid', payment_attempt_id: attempt.id }).eq('id', attempt.split_share_id)
+    const { data: share } = await supabaseAdmin.from('bill_split_shares')
+      .select('split_id').eq('id', attempt.split_share_id).maybeSingle()
+    if (share?.split_id) {
+      const { data: shares } = await supabaseAdmin.from('bill_split_shares')
+        .select('status').eq('split_id', share.split_id)
+      if ((shares ?? []).length > 0 && (shares ?? []).every((x: any) => x.status === 'paid'))
+        await supabaseAdmin.from('bill_splits').update({ status: 'settled' }).eq('id', share.split_id)
+    }
+  }
   if (status === 'captured' && attempt.bill_id) {
     const { data: bill } = await supabaseAdmin.from('bills').select('id,total_pesewas').eq('id', attempt.bill_id).maybeSingle()
     if (bill) {
@@ -208,6 +220,7 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
   await supabaseAdmin.from('audit_events').insert({ session_id: attempt.session_id, type: `payment.${status}`, data: { providerRef } })
   return { ok: true as const, status }
 }
+
 
 
 // ── On full payment: alert the floor and (if enabled) close the table on the POS ──

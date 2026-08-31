@@ -20,15 +20,30 @@ export const Route = createFileRoute('/api/public/quote')({
         if (!bill) return json({ ok: false, reason: 'no_bill' })
         const { amountPaidForBill } = await import('@/integrations/payments/provider')
         const amountPaidPesewas = await amountPaidForBill(bill.id)
+        let shareBasePesewas: number | undefined
+        let splitShareId: string | undefined
+        if (typeof body.shareId === 'string') {
+          const { data: sh } = await supabaseAdmin.from('bill_split_shares')
+            .select('id,amount_pesewas,status,split_id').eq('id', body.shareId).maybeSingle()
+          if (!sh) return json({ ok: false, reason: 'invalid_share' })
+          if (sh.status === 'paid') return json({ ok: false, reason: 'share_paid' })
+          const { data: sp } = await supabaseAdmin.from('bill_splits')
+            .select('bill_id,status').eq('id', sh.split_id).maybeSingle()
+          if (!sp || sp.status !== 'open' || sp.bill_id !== bill.id) return json({ ok: false, reason: 'invalid_share' })
+          shareBasePesewas = sh.amount_pesewas
+          splitShareId = sh.id
+        }
+        void splitShareId
         try {
           const quote = computeQuote({
             totalPesewas: bill.totalPesewas, amountPaidPesewas,
-            mode: (body.mode as ShareMode) ?? 'full',
+            mode: shareBasePesewas != null ? 'custom' : ((body.mode as ShareMode) ?? 'full'),
             people: typeof body.people === 'number' ? body.people : undefined,
-            customAmountPesewas: typeof body.customAmountPesewas === 'number' ? body.customAmountPesewas : undefined,
+            customAmountPesewas: shareBasePesewas != null ? shareBasePesewas : (typeof body.customAmountPesewas === 'number' ? body.customAmountPesewas : undefined),
             tipPesewas: typeof body.tipPesewas === 'number' ? body.tipPesewas : undefined,
             tipPercent: typeof body.tipPercent === 'number' ? body.tipPercent : undefined,
           })
+
           return json({ ok: true, quote })
         } catch (e) { if (e instanceof QuoteError) return json({ ok: false, reason: e.reason }); throw e }
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }

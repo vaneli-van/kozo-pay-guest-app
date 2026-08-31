@@ -28,13 +28,27 @@ export const Route = createFileRoute('/api/public/payment-init')({
         const { amountPaidForBill, paymentProvider } = await import('@/integrations/payments/provider')
         const amountPaidPesewas = await amountPaidForBill(bill.id)
 
+        let shareBasePesewas: number | undefined
+        let splitShareId: string | undefined
+        if (typeof body.shareId === 'string') {
+          const { data: sh } = await supabaseAdmin.from('bill_split_shares')
+            .select('id,amount_pesewas,status,split_id').eq('id', body.shareId).maybeSingle()
+          if (!sh) return json({ ok: false, reason: 'invalid_share' })
+          if (sh.status === 'paid') return json({ ok: false, reason: 'share_paid' })
+          const { data: sp } = await supabaseAdmin.from('bill_splits')
+            .select('bill_id,status').eq('id', sh.split_id).maybeSingle()
+          if (!sp || sp.status !== 'open' || sp.bill_id !== bill.id) return json({ ok: false, reason: 'invalid_share' })
+          shareBasePesewas = sh.amount_pesewas
+          splitShareId = sh.id
+        }
+
         let quote
         try {
           quote = computeQuote({
             totalPesewas: bill.totalPesewas, amountPaidPesewas,
-            mode: (body.mode as ShareMode) ?? 'full',
+            mode: shareBasePesewas != null ? 'custom' : ((body.mode as ShareMode) ?? 'full'),
             people: typeof body.people === 'number' ? body.people : undefined,
-            customAmountPesewas: typeof body.customAmountPesewas === 'number' ? body.customAmountPesewas : undefined,
+            customAmountPesewas: shareBasePesewas != null ? shareBasePesewas : (typeof body.customAmountPesewas === 'number' ? body.customAmountPesewas : undefined),
             tipPesewas: typeof body.tipPesewas === 'number' ? body.tipPesewas : undefined,
             tipPercent: typeof body.tipPercent === 'number' ? body.tipPercent : undefined,
           })
@@ -45,8 +59,10 @@ export const Route = createFileRoute('/api/public/payment-init')({
         // Amounts are SERVER-computed; client totals are never trusted. MoMo number / PIN / card / CVV are never received or stored.
         const { data: attempt, error } = await supabaseAdmin.from('payment_attempts').insert({
           session_id: session.id, bill_id: bill.id, idempotency_key: idempotencyKey, provider, method,
-          share_mode: (body.mode as string) ?? 'full', amount_pesewas: quote.sharePesewas, tip_pesewas: quote.tipPesewas, total_pesewas: quote.grandTotalPesewas, status: 'initiated',
+          split_share_id: splitShareId ?? null,
+          share_mode: shareBasePesewas != null ? 'share' : ((body.mode as string) ?? 'full'), amount_pesewas: quote.sharePesewas, tip_pesewas: quote.tipPesewas, total_pesewas: quote.grandTotalPesewas, status: 'initiated',
         }).select('id').single()
+
         if (error || !attempt) {
           const { data: raced } = await supabaseAdmin.from('payment_attempts').select('id,status,amount_pesewas,tip_pesewas,total_pesewas,provider_ref').eq('session_id', session.id).eq('idempotency_key', idempotencyKey).maybeSingle()
           if (raced) return json({ ok: true, paymentRef: raced.id, providerRef: raced.provider_ref, status: raced.status, amountPesewas: raced.amount_pesewas, tipPesewas: raced.tip_pesewas, totalPesewas: raced.total_pesewas, idempotent: true })
