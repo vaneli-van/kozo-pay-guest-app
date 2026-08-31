@@ -244,6 +244,177 @@ export type Database = {
           },
         ]
       }
+      bill_split_item_assignments: {
+        Row: {
+          bill_item_id: string
+          created_at: string
+          id: string
+          share_id: string | null
+          split_id: string
+          weight: number
+        }
+        Insert: {
+          bill_item_id: string
+          created_at?: string
+          id?: string
+          share_id?: string | null
+          split_id: string
+          weight?: number
+        }
+        Update: {
+          bill_item_id?: string
+          created_at?: string
+          id?: string
+          share_id?: string | null
+          split_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_split_item_assignments_bill_item_id_fkey"
+            columns: ["bill_item_id"]
+            isOneToOne: false
+            referencedRelation: "bill_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_split_item_assignments_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "bill_split_shares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_split_item_assignments_split_id_fkey"
+            columns: ["split_id"]
+            isOneToOne: false
+            referencedRelation: "bill_splits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bill_split_shares: {
+        Row: {
+          amount_pesewas: number
+          claimed_by_name: string | null
+          claimed_by_session: string | null
+          created_at: string
+          id: string
+          label: string | null
+          payment_attempt_id: string | null
+          position: number
+          share_token: string
+          split_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_pesewas: number
+          claimed_by_name?: string | null
+          claimed_by_session?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          payment_attempt_id?: string | null
+          position: number
+          share_token: string
+          split_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_pesewas?: number
+          claimed_by_name?: string | null
+          claimed_by_session?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          payment_attempt_id?: string | null
+          position?: number
+          share_token?: string
+          split_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_split_shares_claimed_by_session_fkey"
+            columns: ["claimed_by_session"]
+            isOneToOne: false
+            referencedRelation: "dining_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_split_shares_payment_attempt_id_fkey"
+            columns: ["payment_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_split_shares_payment_attempt_id_fkey"
+            columns: ["payment_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "payment_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_split_shares_split_id_fkey"
+            columns: ["split_id"]
+            isOneToOne: false
+            referencedRelation: "bill_splits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bill_splits: {
+        Row: {
+          bill_id: string
+          created_at: string
+          created_by_session: string | null
+          id: string
+          mode: string
+          status: string
+          total_pesewas: number
+          updated_at: string
+        }
+        Insert: {
+          bill_id: string
+          created_at?: string
+          created_by_session?: string | null
+          id?: string
+          mode: string
+          status?: string
+          total_pesewas: number
+          updated_at?: string
+        }
+        Update: {
+          bill_id?: string
+          created_at?: string
+          created_by_session?: string | null
+          id?: string
+          mode?: string
+          status?: string
+          total_pesewas?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_splits_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_splits_created_by_session_fkey"
+            columns: ["created_by_session"]
+            isOneToOne: false
+            referencedRelation: "dining_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bills: {
         Row: {
           created_at: string
@@ -809,6 +980,7 @@ export type Database = {
           provider_ref: string | null
           session_id: string
           share_mode: string | null
+          split_share_id: string | null
           status: string
           tip_pesewas: number
           total_pesewas: number
@@ -826,6 +998,7 @@ export type Database = {
           provider_ref?: string | null
           session_id: string
           share_mode?: string | null
+          split_share_id?: string | null
           status?: string
           tip_pesewas?: number
           total_pesewas: number
@@ -843,6 +1016,7 @@ export type Database = {
           provider_ref?: string | null
           session_id?: string
           share_mode?: string | null
+          split_share_id?: string | null
           status?: string
           tip_pesewas?: number
           total_pesewas?: number
@@ -861,6 +1035,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "dining_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_attempts_split_share_id_fkey"
+            columns: ["split_share_id"]
+            isOneToOne: false
+            referencedRelation: "bill_split_shares"
             referencedColumns: ["id"]
           },
         ]
@@ -2560,6 +2741,31 @@ export type Database = {
         Returns: undefined
       }
       can_bootstrap: { Args: { p_email: string }; Returns: boolean }
+      create_bill_split: {
+        Args: {
+          p_bill: string
+          p_mode: string
+          p_session: string
+          p_shares: Json
+          p_total: number
+        }
+        Returns: {
+          bill_id: string
+          created_at: string
+          created_by_session: string | null
+          id: string
+          mode: string
+          status: string
+          total_pesewas: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bill_splits"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_pos_connector: {
         Args: { p_name: string; p_provider?: string; p_restaurant_id: string }
         Returns: string
