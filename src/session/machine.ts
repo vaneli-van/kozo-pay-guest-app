@@ -13,6 +13,7 @@ export type State = {
   waiter: boolean
   navigator: boolean
   tableLabel?: string
+  restaurantName?: string
   // payment + post-payment context (populated at runtime; all optional)
   shareMode?: ShareMode
   customAmountPesewas?: number
