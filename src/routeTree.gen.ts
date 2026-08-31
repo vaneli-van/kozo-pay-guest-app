@@ -32,6 +32,7 @@ import { Route as ApiPublicReviewLinkRouteImport } from './routes/api/public/rev
 import { Route as ApiPublicRewardsConsentRouteImport } from './routes/api/public/rewards-consent'
 import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
 import { Route as ApiPublicWhatsappReceiptRouteImport } from './routes/api/public/whatsapp-receipt'
+import { Route as ApiSyncPosOrdersRouteImport } from './routes/api/sync/pos-orders'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -151,6 +152,11 @@ const ApiPublicWhatsappReceiptRoute =
     path: '/api/public/whatsapp-receipt',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiSyncPosOrdersRoute = ApiSyncPosOrdersRouteImport.update({
+  id: '/api/sync/pos-orders',
+  path: '/api/sync/pos-orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
+  '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
+  '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
+  '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
+    | '/api/sync/pos-orders'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
+    | '/api/sync/pos-orders'
   id:
     | '__root__'
     | '/'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/api/public/rewards-consent'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
+    | '/api/sync/pos-orders'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -330,6 +342,7 @@ export interface RootRouteChildren {
   ApiPublicRewardsConsentRoute: typeof ApiPublicRewardsConsentRoute
   ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
   ApiPublicWhatsappReceiptRoute: typeof ApiPublicWhatsappReceiptRoute
+  ApiSyncPosOrdersRoute: typeof ApiSyncPosOrdersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -495,6 +508,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappReceiptRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/sync/pos-orders': {
+      id: '/api/sync/pos-orders'
+      path: '/api/sync/pos-orders'
+      fullPath: '/api/sync/pos-orders'
+      preLoaderRoute: typeof ApiSyncPosOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -522,6 +542,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicRewardsConsentRoute: ApiPublicRewardsConsentRoute,
   ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
   ApiPublicWhatsappReceiptRoute: ApiPublicWhatsappReceiptRoute,
+  ApiSyncPosOrdersRoute: ApiSyncPosOrdersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
