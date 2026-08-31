@@ -27,7 +27,7 @@ export type State = {
 
   sessionToken?: string
   splitId?: string
-  splitError?: string
+  splitError?: string | undefined
   claimedShareId?: string | undefined
   split?: {
     id: string; mode: string; totalPesewas: number; status: string
