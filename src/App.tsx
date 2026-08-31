@@ -244,7 +244,7 @@ export default function App({
       tipPercent: preTip ? 0 : (s.tipPercent ?? s.tip),
     }).then((r) => { if (r?.ok && r.quote) patch({ quote: r.quote }) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, sessionToken])
+  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, s.claimedShareId, sessionToken])
 
   // Initiate the payment server-side (idempotent) when the diner commits — amounts are computed on the server.
   useEffect(() => {
@@ -254,6 +254,7 @@ export default function App({
       const callbackUrl = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : undefined
       POST('/api/public/payment-init', {
         sessionToken,
+        shareId: s.claimedShareId,
         idempotencyKey: idemRef.current,
         mode: s.shareMode ?? 'full',
         people: s.people,
