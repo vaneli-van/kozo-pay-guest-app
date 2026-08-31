@@ -31,6 +31,7 @@ import { Route as ApiPublicReceiptWhatsappRouteImport } from './routes/api/publi
 import { Route as ApiPublicReviewLinkRouteImport } from './routes/api/public/review-link'
 import { Route as ApiPublicRewardsConsentRouteImport } from './routes/api/public/rewards-consent'
 import { Route as ApiPublicSplitRouteImport } from './routes/api/public/split'
+import { Route as ApiPublicSplitCancelRouteImport } from './routes/api/public/split-cancel'
 import { Route as ApiPublicSplitClaimRouteImport } from './routes/api/public/split-claim'
 import { Route as ApiPublicSplitCreateRouteImport } from './routes/api/public/split-create'
 import { Route as ApiPublicSplitReleaseRouteImport } from './routes/api/public/split-release'
@@ -150,6 +151,11 @@ const ApiPublicSplitRoute = ApiPublicSplitRouteImport.update({
   path: '/api/public/split',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSplitCancelRoute = ApiPublicSplitCancelRouteImport.update({
+  id: '/api/public/split-cancel',
+  path: '/api/public/split-cancel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSplitClaimRoute = ApiPublicSplitClaimRouteImport.update({
   id: '/api/public/split-claim',
   path: '/api/public/split-claim',
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/split': typeof ApiPublicSplitRoute
+  '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/split': typeof ApiPublicSplitRoute
+  '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/split': typeof ApiPublicSplitRoute
+  '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/split'
+    | '/api/public/split-cancel'
     | '/api/public/split-claim'
     | '/api/public/split-create'
     | '/api/public/split-release'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/split'
+    | '/api/public/split-cancel'
     | '/api/public/split-claim'
     | '/api/public/split-create'
     | '/api/public/split-release'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/split'
+    | '/api/public/split-cancel'
     | '/api/public/split-claim'
     | '/api/public/split-create'
     | '/api/public/split-release'
@@ -389,6 +401,7 @@ export interface RootRouteChildren {
   ApiPublicReviewLinkRoute: typeof ApiPublicReviewLinkRoute
   ApiPublicRewardsConsentRoute: typeof ApiPublicRewardsConsentRoute
   ApiPublicSplitRoute: typeof ApiPublicSplitRoute
+  ApiPublicSplitCancelRoute: typeof ApiPublicSplitCancelRoute
   ApiPublicSplitClaimRoute: typeof ApiPublicSplitClaimRoute
   ApiPublicSplitCreateRoute: typeof ApiPublicSplitCreateRoute
   ApiPublicSplitReleaseRoute: typeof ApiPublicSplitReleaseRoute
@@ -553,6 +566,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSplitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/split-cancel': {
+      id: '/api/public/split-cancel'
+      path: '/api/public/split-cancel'
+      fullPath: '/api/public/split-cancel'
+      preLoaderRoute: typeof ApiPublicSplitCancelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/split-claim': {
       id: '/api/public/split-claim'
       path: '/api/public/split-claim'
@@ -621,6 +641,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicReviewLinkRoute: ApiPublicReviewLinkRoute,
   ApiPublicRewardsConsentRoute: ApiPublicRewardsConsentRoute,
   ApiPublicSplitRoute: ApiPublicSplitRoute,
+  ApiPublicSplitCancelRoute: ApiPublicSplitCancelRoute,
   ApiPublicSplitClaimRoute: ApiPublicSplitClaimRoute,
   ApiPublicSplitCreateRoute: ApiPublicSplitCreateRoute,
   ApiPublicSplitReleaseRoute: ApiPublicSplitReleaseRoute,
