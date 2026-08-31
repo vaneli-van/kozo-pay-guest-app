@@ -199,9 +199,57 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
     const { data: bill } = await supabaseAdmin.from('bills').select('id,total_pesewas').eq('id', attempt.bill_id).maybeSingle()
     if (bill) {
       const paid = await amountPaidForBill(bill.id)
-      if (paid >= bill.total_pesewas) await supabaseAdmin.from('bills').update({ status: 'settled' }).eq('id', bill.id)
+      if (paid >= bill.total_pesewas) {
+        await supabaseAdmin.from('bills').update({ status: 'settled' }).eq('id', bill.id)
+        await onBillSettled(bill.id, bill.total_pesewas)
+      }
     }
   }
   await supabaseAdmin.from('audit_events').insert({ session_id: attempt.session_id, type: `payment.${status}`, data: { providerRef } })
   return { ok: true as const, status }
+}
+
+
+// ── On full payment: alert the floor and (if enabled) close the table on the POS ──
+// Read-only-safe by default: the Odoo write only happens when the restaurant has
+// writeback_enabled = true AND a Klown payment method configured.
+export async function onBillSettled(billId: string, totalPesewas: number) {
+  try {
+    const { data: bill } = await supabaseAdmin.from('bills').select('table_id').eq('id', billId).maybeSingle()
+    if (!bill?.table_id) return
+    const { data: table } = await supabaseAdmin.from('restaurant_tables').select('label,branch_id').eq('id', bill.table_id).maybeSingle()
+    if (!table) return
+    const { data: branch } = await supabaseAdmin.from('branches').select('restaurant_id').eq('id', table.branch_id).maybeSingle()
+    const restaurantId = branch?.restaurant_id
+    if (!restaurantId) return
+
+    // Floor alert (admin subscribes to this table via realtime).
+    await supabaseAdmin.from('staff_notifications').insert({
+      restaurant_id: restaurantId,
+      table_label: table.label,
+      kind: 'payment',
+      amount_pesewas: totalPesewas,
+      message: `Table ${table.label} paid via Klown`,
+    })
+
+    // Close the table on the POS, only if this restaurant opted in.
+    const { data: creds } = await supabaseAdmin.from('pos_odoo_credentials')
+      .select('base_url, db, username, api_key, active, writeback_enabled, klown_payment_method_id')
+      .eq('restaurant_id', restaurantId).maybeSingle()
+    if (!creds?.active || !creds.writeback_enabled || !creds.klown_payment_method_id) return
+
+    const { settleTableOrder } = await import('@/integrations/pos/odoo.server')
+    const cfg = { base_url: creds.base_url, db: creds.db, username: creds.username || 'admin', api_key: creds.api_key }
+    const num = parseInt(table.label, 10)
+    const res = await settleTableOrder(cfg, creds.klown_payment_method_id, num, totalPesewas)
+    if (!res.ok) {
+      await supabaseAdmin.from('staff_notifications').insert({
+        restaurant_id: restaurantId, table_label: table.label, kind: 'settle_warning',
+        amount_pesewas: totalPesewas, message: `Auto-close skipped for table ${table.label} (${res.reason}) — settle on the POS`,
+      })
+    }
+  } catch (e) {
+    // Never let settlement failure break payment capture; the money is already taken.
+    try { await supabaseAdmin.from('audit_events').insert({ type: 'pos.settle_error', data: { billId, message: String(e) } }) } catch {}
+  }
 }

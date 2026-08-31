@@ -41,3 +41,29 @@ export async function testConnection(cfg: OdooConfig): Promise<{ ok: boolean; me
     return { ok: false, message: String(e) }
   }
 }
+
+// ── Write helpers (used only for settlement; gated per-restaurant in the caller) ──
+export async function createRecord(cfg: OdooConfig, model: string, values: Record<string, unknown>): Promise<number> {
+  const u = await uid(cfg)
+  return (await rpc(cfg, 'object', 'execute_kw', [cfg.db, u, cfg.api_key, model, 'create', [values]])) as number
+}
+export async function writeRecord(cfg: OdooConfig, model: string, ids: number[], values: Record<string, unknown>): Promise<boolean> {
+  const u = await uid(cfg)
+  return (await rpc(cfg, 'object', 'execute_kw', [cfg.db, u, cfg.api_key, model, 'write', [ids, values]])) as boolean
+}
+
+// Close a table's open (draft) order on the POS by registering a Klown payment and marking it paid.
+// Read-safe until called; callers must check writeback_enabled + a valid payment method id first.
+export async function settleTableOrder(cfg: OdooConfig, paymentMethodId: number, tableNumber: number, amountPesewas: number) {
+  const tables = await searchRead(cfg, 'restaurant.table', [['table_number', '=', tableNumber]], ['id'])
+  const tableIds = tables.map((t: any) => t.id)
+  if (!tableIds.length) return { ok: false as const, reason: 'no_table' }
+  const orders = await searchRead(cfg, 'pos.order', [['state', '=', 'draft'], ['table_id', 'in', tableIds]], ['id', 'amount_total', 'amount_paid'])
+  if (!orders.length) return { ok: false as const, reason: 'no_open_order' }
+  const order = orders.sort((a: any, b: any) => b.id - a.id)[0]
+  const amount = Math.round(amountPesewas) / 100
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+  await createRecord(cfg, 'pos.payment', { pos_order_id: order.id, payment_method_id: paymentMethodId, amount, payment_date: now })
+  await writeRecord(cfg, 'pos.order', [order.id], { state: 'paid', amount_paid: order.amount_total })
+  return { ok: true as const, orderId: order.id }
+}
