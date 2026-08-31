@@ -272,7 +272,7 @@ export default function App({
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, s.paymentRef, sessionToken])
+  }, [s.screen, s.paymentRef, s.claimedShareId, sessionToken])
 
   // Poll payment status while processing — success is reached only when the server confirms capture.
   useEffect(() => {
