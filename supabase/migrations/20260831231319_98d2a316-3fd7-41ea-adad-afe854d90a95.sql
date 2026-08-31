@@ -1,0 +1,2 @@
+revoke execute on function public.create_bill_split(uuid, uuid, text, integer, jsonb) from public, anon, authenticated;
+grant execute on function public.create_bill_split(uuid, uuid, text, integer, jsonb) to service_role;
