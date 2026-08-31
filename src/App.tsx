@@ -33,6 +33,8 @@ export default function App({
   const [hydrated, setHydrated] = useState(false)
   const idemRef = useRef<string>('')
 
+  useEffect(() => { if (sessionToken && s.sessionToken !== sessionToken) patch({ sessionToken }) }, [sessionToken])
+
   const patch = (value: Partial<State>) => dispatch({ type: 'patch', value })
   const goScreen = (screen: Screen) => {
     if (typeof window !== 'undefined') window.history.pushState({ screen }, '', window.location.pathname)
@@ -52,11 +54,27 @@ export default function App({
     // Going back into the checkout means starting a fresh charge — drop the old attempt
     // so a retry (or a changed amount/method) initiates a new, idempotent payment.
     const target: string | null = action.type === 'screen' ? action.value : action.type === 'patch-go' ? action.to : null
-    if (target && ['pay', 'split', 'split-share', 'tip', 'review', 'method', 'momo', 'authorise'].includes(target) && s.paymentRef) {
+    if (target && ['pay', 'split', 'split-share', 'split-lobby', 'tip', 'review', 'method', 'momo', 'authorise'].includes(target) && s.paymentRef) {
       idemRef.current = ''
       patch({ paymentRef: undefined })
     }
     switch (action.type) {
+      case 'split-create': {
+        if (!sessionToken) return
+        patch({ splitError: undefined })
+        POST('/api/public/split-create', { sessionToken, mode: action.mode, partySize: action.people, amounts: action.amounts }).then((r) => {
+          if (r?.ok) { patch({ splitId: r.splitId }); goScreen('split-lobby') }
+          else if (r?.reason === 'split_exists') goScreen('split-lobby')
+          else patch({ splitError: r?.reason === 'shares_do_not_sum' ? 'Shares must add up to the bill total.' : r?.reason === 'already_paying' ? 'Payment has already started on this bill.' : 'Could not start the split. Please try again.' })
+        })
+        return
+      }
+      case 'split-claim':
+        if (sessionToken) POST('/api/public/split-claim', { sessionToken, shareId: action.shareId }).then((r) => { if (r?.ok) patch({ claimedShareId: r.shareId }) })
+        return
+      case 'split-release':
+        if (sessionToken) POST('/api/public/split-release', { sessionToken, shareId: action.shareId }).then(() => patch({ claimedShareId: undefined }))
+        return
       case 'waiter':
         if (sessionToken) POST('/api/public/waiter-request', { sessionToken, kind: action.kind ?? 'assistance' })
         break
@@ -157,7 +175,7 @@ export default function App({
 
   // Live bill from the POS — refreshed whenever the diner is on a bill/payment screen.
   useEffect(() => {
-    const billScreens = ['welcome', 'bill', 'bill-ready', 'waiting-bill', 'full-check', 'pay', 'split', 'split-share', 'tip', 'review', 'method']
+    const billScreens = ['welcome', 'bill', 'bill-ready', 'waiting-bill', 'full-check', 'pay', 'split', 'split-share', 'split-lobby', 'tip', 'review', 'method']
     if (!sessionToken || !billScreens.includes(s.screen)) return
     let cancelled = false
     const load = async () => {
@@ -173,6 +191,34 @@ export default function App({
     return () => { cancelled = true; window.clearInterval(id) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, sessionToken])
+
+  // Live split state — polled while the diner is on the split lobby.
+  useEffect(() => {
+    if (!sessionToken || s.screen !== 'split-lobby') return
+    let cancelled = false
+    const load = async () => {
+      const r = await POST('/api/public/split', { sessionToken })
+      if (cancelled) return
+      if (r?.ok) patch({ split: r.split ? { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares } : undefined })
+    }
+    load()
+    const id = window.setInterval(load, 3000)
+    return () => { cancelled = true; window.clearInterval(id) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.screen, sessionToken])
+
+  // Invite link: /s/<token>?claim=<shareToken> — auto-claim that share, then show the lobby.
+  useEffect(() => {
+    if (!sessionToken || typeof window === 'undefined') return
+    const claim = new URLSearchParams(window.location.search).get('claim')
+    if (!claim) return
+    window.history.replaceState({}, '', window.location.pathname)
+    POST('/api/public/split-claim', { sessionToken, shareToken: claim }).then((r) => {
+      if (r?.ok) patch({ claimedShareId: r.shareId })
+      goScreen('split-lobby')
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionToken])
 
   // Load the real menu once (categories, items, recommendations) and pick a default category.
   useEffect(() => {
@@ -191,13 +237,14 @@ export default function App({
     const preTip = s.screen === 'pay' || s.screen === 'split' || s.screen === 'split-share' || s.screen === 'tip'
     POST('/api/public/quote', {
       sessionToken,
+      shareId: s.claimedShareId,
       mode: s.shareMode ?? 'full',
       people: s.people,
       customAmountPesewas: s.customAmountPesewas,
       tipPercent: preTip ? 0 : (s.tipPercent ?? s.tip),
     }).then((r) => { if (r?.ok && r.quote) patch({ quote: r.quote }) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, sessionToken])
+  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, s.claimedShareId, sessionToken])
 
   // Initiate the payment server-side (idempotent) when the diner commits — amounts are computed on the server.
   useEffect(() => {
@@ -207,6 +254,7 @@ export default function App({
       const callbackUrl = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : undefined
       POST('/api/public/payment-init', {
         sessionToken,
+        shareId: s.claimedShareId,
         idempotencyKey: idemRef.current,
         mode: s.shareMode ?? 'full',
         people: s.people,
@@ -224,7 +272,7 @@ export default function App({
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, s.paymentRef, sessionToken])
+  }, [s.screen, s.paymentRef, s.claimedShareId, sessionToken])
 
   // Poll payment status while processing — success is reached only when the server confirms capture.
   useEffect(() => {
