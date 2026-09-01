@@ -1801,25 +1801,43 @@ export type Database = {
       }
       restaurants: {
         Row: {
+          accent_color: string | null
           city: string
           created_at: string
           google_place_id: string | null
+          hero_url: string | null
           id: string
+          logo_url: string | null
           name: string
+          tagline_bottom: string | null
+          tagline_top: string | null
+          welcome_copy: string | null
         }
         Insert: {
+          accent_color?: string | null
           city: string
           created_at?: string
           google_place_id?: string | null
+          hero_url?: string | null
           id?: string
+          logo_url?: string | null
           name: string
+          tagline_bottom?: string | null
+          tagline_top?: string | null
+          welcome_copy?: string | null
         }
         Update: {
+          accent_color?: string | null
           city?: string
           created_at?: string
           google_place_id?: string | null
+          hero_url?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
+          tagline_bottom?: string | null
+          tagline_top?: string | null
+          welcome_copy?: string | null
         }
         Relationships: []
       }
