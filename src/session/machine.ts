@@ -14,6 +14,13 @@ export type State = {
   navigator: boolean
   tableLabel?: string
   restaurantName?: string
+  // per-restaurant branding (all optional; null/absent => Klown defaults)
+  logoUrl?: string
+  heroUrl?: string
+  accentColor?: string
+  taglineTop?: string
+  taglineBottom?: string
+  welcomeCopy?: string
   // payment + post-payment context (populated at runtime; all optional)
   shareMode?: ShareMode
   customAmountPesewas?: number
