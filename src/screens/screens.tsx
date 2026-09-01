@@ -41,7 +41,69 @@ export function Recommendation({ s, dispatch }: any) { const recs = s?.menu?.rec
 
 export function Pay({ s, dispatch }: any) { const due = s?.quote?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0; return <section><Back dispatch={dispatch} to="recommendation" /><p className="eyebrow">SETTLE UP</p><h1>How would you<br /><em>like to pay?</em></h1><div className="pay-total"><span>Your share</span><strong>{pes(due)}</strong></div><button className="choice" onClick={() => dispatch({ type: 'patch-go', value: { shareMode: 'full' }, to: 'tip' })}><span className="choice-icon"><CreditCard /></span><span><b>Pay the full bill</b><small>One simple payment</small></span><ChevronRight /></button><button className="choice" onClick={() => dispatch(go('split'))}><span className="choice-icon"><Users /></span><span><b>Split the bill</b><small>Everyone pays their share</small></span><ChevronRight /></button></section> }
 
-export function Split({ s, dispatch }: any) { const [people, setPeople] = useState(s?.people ?? 2); const [mode, setMode] = useState<'even' | 'custom' | 'invite'>('even'); const due = s?.quote?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0; const custom = Math.round(due / Math.max(2, people)); return <section><Back dispatch={dispatch} to="pay" /><p className="eyebrow">SPLIT THE BILL</p><h1>Make it <em>easy.</em></h1><p className="muted">Choose how everyone at the table can settle their share.</p><div className="split-modes"><button className={mode === 'even' ? 'selected' : ''} onClick={() => setMode('even')}>Even split<small>Everyone pays the same</small></button><button className={mode === 'custom' ? 'selected' : ''} onClick={() => setMode('custom')}>Custom split<small>Choose what you owe</small></button><button className={mode === 'invite' ? 'selected' : ''} onClick={() => setMode('invite')}>Invite others<small>Share a payment link</small></button></div>{mode !== 'invite' && <><div className="stepper"><button aria-label="Remove person" onClick={() => setPeople(Math.max(2, people - 1))}><Minus /></button><strong>{people}</strong><button aria-label="Add person" onClick={() => setPeople(people + 1)}><Plus /></button></div><div className="split-share"><span>{mode === 'custom' ? 'Your custom share' : 'Each person pays'}</span><b>{pes(mode === 'custom' ? custom : Math.round(due / people))}</b></div></>}<Action onClick={() => dispatch({ type: 'patch-go', value: { shareMode: mode, people, customAmountPesewas: mode === 'custom' ? custom : undefined }, to: 'split-share' })}>{mode === 'invite' ? 'Create invite' : 'Continue'}</Action></section> }
+export function Split({ s, dispatch }: any) {
+  const due = s?.bill?.totalPesewas ?? s?.quote?.remainingPesewas ?? 0
+  const [mode, setMode] = useState<'even' | 'amounts'>('even')
+  const [people, setPeople] = useState(s?.people ?? 2)
+  const [rows, setRows] = useState<{ label: string; amount: string }[]>([{ label: '', amount: '' }, { label: '', amount: '' }])
+  const assigned = rows.reduce((n, r) => n + Math.round((parseFloat(r.amount) || 0) * 100), 0)
+  const reconciled = assigned === due && rows.every((r) => (parseFloat(r.amount) || 0) > 0)
+  const setRow = (i: number, k: 'label' | 'amount', v: string) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
+  return <section><Back dispatch={dispatch} to="pay" /><p className="eyebrow">SPLIT THE BILL</p><h1>Make it <em>easy.</em></h1><p className="muted">Bill total {pes(due)}. Choose how to split it.</p>
+    <div className="split-modes">
+      <button className={mode === 'even' ? 'selected' : ''} onClick={() => setMode('even')}>Even split<small>Everyone pays the same</small></button>
+      <button className={mode === 'amounts' ? 'selected' : ''} onClick={() => setMode('amounts')}>By amount<small>Set each share</small></button>
+    </div>
+    {mode === 'even' ? (<>
+      <div className="stepper"><button aria-label="Fewer people" onClick={() => setPeople(Math.max(2, people - 1))}><Minus /></button><strong>{people}</strong><button aria-label="More people" onClick={() => setPeople(people + 1)}><Plus /></button></div>
+      <div className="split-share"><span>Each person pays about</span><b>{pes(Math.floor(due / Math.max(2, people)))}</b></div>
+    </>) : (<>
+      <div className="amount-rows">{rows.map((r, i) => (
+        <div className="amount-row" key={i}>
+          <input placeholder={`Name ${i + 1}`} value={r.label} onChange={(e) => setRow(i, 'label', e.target.value)} />
+          <input placeholder="0.00" inputMode="decimal" value={r.amount} onChange={(e) => setRow(i, 'amount', e.target.value)} />
+          {rows.length > 2 && <button className="row-x" aria-label="Remove share" onClick={() => setRows(rows.filter((_, j) => j !== i))}><X /></button>}
+        </div>))}
+      </div>
+      <button className="text-link" onClick={() => setRows([...rows, { label: '', amount: '' }])}>+ Add a share</button>
+      <div className="split-share"><span>Assigned</span><b>{pes(assigned)} / {pes(due)}</b></div>
+    </>)}
+    {s?.splitError && <div className="error"><X />{s.splitError}</div>}
+    <Action onClick={() => dispatch(mode === 'even'
+      ? { type: 'split-create', mode: 'even', people }
+      : reconciled ? { type: 'split-create', mode: 'amounts', amounts: rows.map((r) => ({ label: r.label, amount: Math.round((parseFloat(r.amount) || 0) * 100) })) } : { type: 'noop' })}>
+      {mode === 'amounts' && !reconciled ? `Assign ${pes(Math.max(0, due - assigned))} more` : 'Start split'}</Action>
+  </section>
+}
+
+export function SplitLobby({ s, dispatch }: any) {
+  const split = s?.split
+  const base = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
+  const invite = (tok: string) => `${base}?claim=${tok}`
+  const copyInvite = (tok: string) => { try { navigator.clipboard?.writeText(invite(tok)) } catch {} }
+  const waInvite = (tok: string, amt: number) => { try { window.open(`https://wa.me/?text=${encodeURIComponent(`Your share of the bill is ${pes(amt)}. Tap to pay: ${invite(tok)}`)}`, '_blank', 'noopener') } catch {} }
+  if (!split) return <Center eyebrow="SPLIT" title={'Setting up<br /><em>the split…</em>'} copy="One moment."><div className="loader" /></Center>
+  const paid = split.paidPesewas ?? 0, total = split.totalPesewas ?? 0
+  const done = total > 0 && paid >= total
+  return <section><Back dispatch={dispatch} to="pay" /><p className="eyebrow">SPLIT THE BILL · TABLE {s?.tableLabel ?? ''}</p><h1>Everyone pays<br /><em>their share.</em></h1>
+    <div className="split-lobby">{(split.shares ?? []).map((sh: any) => (
+      <div className={`share-row ${sh.status}`} key={sh.id}>
+        <span className="share-name">{sh.claimedByName || sh.label}<small>{sh.status === 'paid' ? 'Paid' : sh.status === 'claimed' ? (sh.mine ? 'You' : 'Claimed') : 'Open'}</small></span>
+        <b>{pes(sh.amountPesewas)}</b>
+        <div className="share-actions">
+          {sh.status === 'unclaimed' && <button onClick={() => dispatch({ type: 'split-claim', shareId: sh.id })}>Claim</button>}
+          {sh.status === 'unclaimed' && <button className="ghost" onClick={() => copyInvite(sh.shareToken)}>Invite</button>}
+          {sh.status === 'claimed' && sh.mine && <button onClick={() => dispatch({ type: 'patch-go', value: { claimedShareId: sh.id }, to: 'tip' })}>Pay</button>}
+          {sh.status === 'claimed' && sh.mine && <button className="ghost" onClick={() => dispatch({ type: 'split-release', shareId: sh.id })}>Release</button>}
+          {sh.status === 'claimed' && !sh.mine && <button className="ghost" onClick={() => waInvite(sh.shareToken, sh.amountPesewas)}>Remind</button>}
+          {sh.status === 'paid' && <Check />}
+        </div>
+      </div>))}
+    </div>
+    <div className="split-progress"><span>{pes(paid)} of {pes(total)} settled</span><div className="bar"><i style={{ width: `${total ? Math.min(100, Math.round((paid / total) * 100)) : 0}%` }} /></div></div>
+    {done && <div className="notice-card"><Check /><span>Every share is in — thank you.</span></div>}
+  </section>
+}
 
 export function Tip({ s, dispatch }: any) { const share = s?.quote?.sharePesewas ?? s?.bill?.totalPesewas ?? 0; const chosen = s?.tipPercent ?? 10; return <section><Back dispatch={dispatch} to="pay" /><p className="eyebrow">A LITTLE EXTRA</p><h1>Leave a<br /><em>tip?</em></h1><p className="muted">100% goes directly to the {s?.restaurantName || ''} team.</p><div className="tip-grid">{[0, 5, 10, 15].map(n => <button className={n === chosen ? 'selected' : ''} key={n} onClick={() => dispatch({ type: 'patch-go', value: { tipPercent: n }, to: 'review' })}>{n === 0 ? 'No tip' : `${n}%`}<small>{n ? pes(Math.round(share * n / 100)) : ''}</small></button>)}</div><Action onClick={() => dispatch({ type: 'patch-go', value: { tipPercent: chosen }, to: 'review' })}>Review payment</Action></section> }
 
@@ -98,4 +160,4 @@ export function Handoff({ dispatch }: any) { return <div className="review-page"
 
 export function BillIssue({ s, dispatch }: any) { const reasons = ['An item looks wrong', 'I was charged twice', "This isn't our table's bill", 'Something else']; return <section><Back dispatch={dispatch} to="bill" /><p className="eyebrow">BILL SUPPORT</p><h1>What looks<br /><em>off?</em></h1><p className="muted">Tell us what to check and a {s?.restaurantName || ''} team member will come over. Your bill is never changed from your phone.</p><div className="sheet-options">{reasons.map((r) => <button key={r} onClick={() => dispatch({ type: 'dispute', note: r })}><Info /><span><b>{r}</b></span><ChevronRight /></button>)}</div></section> }
 
-export const map: Record<string, any> = { connect: Connect, welcome: Welcome, empty: Empty, menu: Menu, category: Category, dish: Dish, waiter: Waiter, 'waiter-notified': WaiterNotified, 'waiting-bill': WaitingBill, 'bill-ready': (p: any) => <Bill {...p} ready />, bill: Bill, 'bill-issue': BillIssue, 'full-check': FullCheck, recommendation: Recommendation, pay: Pay, split: Split, 'split-share': (p: any) => <SplitShare {...p} />, tip: Tip, review: Review, method: Method, momo: Momo, otp: PaymentOtp, authorise: Authorise, processing: Processing, 'payment-error': (p: any) => <Momo {...p} error />, success: Success, 'receipt-choice': ReceiptChoice, phone: Phone, 'otp-rewards': OtpRewards, name: Name, rewards: Rewards, 'guest-receipt': GuestReceipt, feedback: Feedback, 'review-handoff': ReviewHandoff, complete: Complete }
+export const map: Record<string, any> = { connect: Connect, welcome: Welcome, empty: Empty, menu: Menu, category: Category, dish: Dish, waiter: Waiter, 'waiter-notified': WaiterNotified, 'waiting-bill': WaitingBill, 'bill-ready': (p: any) => <Bill {...p} ready />, bill: Bill, 'bill-issue': BillIssue, 'full-check': FullCheck, recommendation: Recommendation, pay: Pay, split: Split, 'split-share': (p: any) => <SplitShare {...p} />, 'split-lobby': (p: any) => <SplitLobby {...p} />, tip: Tip, review: Review, method: Method, momo: Momo, otp: PaymentOtp, authorise: Authorise, processing: Processing, 'payment-error': (p: any) => <Momo {...p} error />, success: Success, 'receipt-choice': ReceiptChoice, phone: Phone, 'otp-rewards': OtpRewards, name: Name, rewards: Rewards, 'guest-receipt': GuestReceipt, feedback: Feedback, 'review-handoff': ReviewHandoff, complete: Complete }
