@@ -134,19 +134,17 @@ export default function App({
       case 'feedback': {
         const rating = action.value?.rating ?? 5
         if (sessionToken) {
-          POST('/api/public/feedback', { sessionToken, rating }).then(async (r) => {
-            if (r?.sentiment === 'positive') {
-              const rl = await POST('/api/public/review-link', { sessionToken })
-              if (rl?.url) {
-                patch({ reviewUrl: rl.url })
-                goScreen('review-handoff')
-                return
-              }
+          POST('/api/public/feedback', { sessionToken, rating }).then(async () => {
+            const rl = await POST('/api/public/review-link', { sessionToken })
+            if (rl?.url) {
+              patch({ reviewUrl: rl.url })
+              goScreen('review-handoff')
+              return
             }
             goScreen('complete')
           })
         } else {
-          goScreen(rating >= 4 ? 'review-handoff' : 'complete')
+          goScreen('complete')
         }
         return
       }
