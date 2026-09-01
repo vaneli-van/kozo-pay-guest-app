@@ -3,8 +3,13 @@ import { ArrowLeft, ChevronRight, ReceiptText, Send, Utensils } from 'lucide-rea
 import { go, type State } from '../session/machine'
 import { money } from '../lib/format'
 
+export function accentStyle(accentColor?: string) {
+  return { ['--accent' as any]: accentColor || '#f3c744' } as React.CSSProperties
+}
+
 export function Shell({ children, s, dispatch }: { children: React.ReactNode; s: State; dispatch: React.Dispatch<any> }) {
-  return <><main className="app-shell"><div className="topline"><img className="wordmark-logo" src="/klown-logo.png" alt="Klown" /><span className="table-pill">TABLE {s?.tableLabel ?? '07'} <span className="dot" /></span></div>{children}</main><nav className="bottom-nav"><button onClick={() => dispatch(go('menu'))}><Utensils />Menu</button><button onClick={() => dispatch(go(s.hasOrder ? 'bill' : 'empty'))}><ReceiptText />Bill</button><button onClick={() => dispatch(go('waiter'))}><Send />Waiter</button></nav></>
+  const style = accentStyle(s?.accentColor)
+  return <><main className="app-shell" style={style}><div className="topline"><img className="wordmark-logo" src={s?.logoUrl || '/klown-logo.png'} alt={s?.restaurantName || 'Klown'} /><span className="table-pill">TABLE {s?.tableLabel ?? '07'} <span className="dot" /></span></div>{children}</main><nav className="bottom-nav" style={style}><button onClick={() => dispatch(go('menu'))}><Utensils />Menu</button><button onClick={() => dispatch(go(s.hasOrder ? 'bill' : 'empty'))}><ReceiptText />Bill</button><button onClick={() => dispatch(go('waiter'))}><Send />Waiter</button></nav></>
 }
 
 export function Back({ dispatch, to = 'menu' }: any) { return <button className="back" onClick={() => dispatch(go(to))}><ArrowLeft />Back</button> }
