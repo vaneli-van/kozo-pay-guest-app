@@ -112,9 +112,10 @@ export const Route = createFileRoute('/api/public/whatsapp-receipt')({
         if (!mediaUrl) return json({ ok: false, reason: 'error', message: 'no_media_url' })
 
         // --- Twilio ---
+        const waFrom = from.startsWith('whatsapp:') ? from : `whatsapp:${from}`
         const body = new URLSearchParams({
           To: `whatsapp:${e164}`,
-          From: from,
+          From: waFrom,
           Body: `Your Kozo receipt ${receipt.receipt_number} — total GH${'\u20B5'}${ghs(receipt.total_paid_pesewas ?? totalPaid)}. Thank you!`,
           MediaUrl: mediaUrl,
         })
