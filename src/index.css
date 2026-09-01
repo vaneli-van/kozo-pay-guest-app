@@ -18,3 +18,4 @@
 .split-progress{margin:12px 0}
 .split-progress .bar{height:6px;background:var(--soft);margin-top:6px}
 .split-progress .bar i{display:block;height:100%;background:var(--accent)}
+.receipt-error{color:#b00020;font-size:12px;margin-top:10px}

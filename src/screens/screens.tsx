@@ -136,7 +136,25 @@ export function Success({ s, dispatch }: any) {
 }
 
 
-export function ReceiptChoice({ s, dispatch }: any) { return <section><p className="eyebrow">{(s?.restaurantName || '').toUpperCase()} · RECEIPT {s?.receiptNumber ?? '#2841'}</p><h1>Keep a little<br /><em>memory.</em></h1><div className="receipt-card"><div className="receipt-head"><span>{s?.restaurantName || ''}</span><b>PAID</b></div><p>Tuesday, 26 August 2026 · 9:16 PM</p><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div><Action onClick={() => dispatch(go('phone'))}>Save receipt & earn rewards</Action><button className="outline-button" onClick={() => dispatch(go('guest-receipt'))}>Continue as guest</button></section> }
+export function DownloadReceiptButton({ s }: any) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | undefined>(undefined)
+  const onClick = () => {
+    if (busy) return
+    setErr(undefined); setBusy(true)
+    const win = typeof window !== 'undefined' ? window.open('', '_blank') : null
+    fetch('/api/public/receipt-pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionToken: s?.sessionToken }) })
+      .then((r) => r.json()).catch(() => null)
+      .then((r) => {
+        setBusy(false)
+        if (r?.ok && r.url) { if (win) win.location.href = r.url; else if (typeof window !== 'undefined') window.location.href = r.url }
+        else { try { win?.close() } catch { /* noop */ } setErr('Could not prepare the receipt. Please try again.') }
+      })
+  }
+  return <><button className="outline-button" onClick={onClick} disabled={busy}>{busy ? 'Preparing receipt…' : 'Download / print receipt'}</button>{err && <p className="muted receipt-error">{err}</p>}</>
+}
+
+export function ReceiptChoice({ s, dispatch }: any) { return <section><p className="eyebrow">{(s?.restaurantName || '').toUpperCase()} · RECEIPT {s?.receiptNumber ?? '#2841'}</p><h1>Keep a little<br /><em>memory.</em></h1><div className="receipt-card"><div className="receipt-head"><span>{s?.restaurantName || ''}</span><b>PAID</b></div><p>Tuesday, 26 August 2026 · 9:16 PM</p><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div><Action onClick={() => dispatch(go('phone'))}>Save receipt & earn rewards</Action><button className="outline-button" onClick={() => dispatch(go('guest-receipt'))}>Continue as guest</button><DownloadReceiptButton s={s} /></section> }
 
 export function Phone({ s, dispatch }: any) { const [phone, setPhone] = useState(''); return <section><Back dispatch={dispatch} to="receipt-choice" /><p className="eyebrow">OPTIONAL · REWARDS</p><h1>Where should we<br /><em>send it?</em></h1><p className="muted">We&apos;ll send your receipt straight to this number on WhatsApp, and collect {s?.restaurantName || ''} rewards. No account or sign-in needed.</p><label className="field-label">Phone number<input value={phone} onChange={e => setPhone(e.target.value)} placeholder="024 000 0000" inputMode="tel" /></label><Action onClick={() => dispatch({ type: 'otp-send', value: { phone } })}>Send receipt to WhatsApp</Action></section> }
 
@@ -146,7 +164,7 @@ export function Name({ s, dispatch }: any) { const [name, setName] = useState(''
 
 export function Rewards({ s, dispatch }: any) { return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow="REWARDS SAVED" title={'See you<br /><em>again.</em>'} copy={`Your receipt is saved and 120 ${s?.restaurantName || ''} points have been added.`} icon="★"><Action onClick={() => dispatch(go('feedback'))}>Share feedback</Action></Center> }
 
-export function GuestReceipt({ s, dispatch }: any) { return <section><p className="eyebrow">GUEST RECEIPT · {s?.receiptNumber ?? '#2841'}</p><h1>All <em>done.</em></h1><div className="receipt-card"><div className="receipt-head"><span>{s?.restaurantName || ''}</span><b>PAID</b></div><p>Your receipt is available for this session.</p><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div><Action onClick={() => dispatch(go('feedback'))}>Continue</Action></section> }
+export function GuestReceipt({ s, dispatch }: any) { return <section><p className="eyebrow">GUEST RECEIPT · {s?.receiptNumber ?? '#2841'}</p><h1>All <em>done.</em></h1><div className="receipt-card"><div className="receipt-head"><span>{s?.restaurantName || ''}</span><b>PAID</b></div><p>Your receipt is available for this session.</p><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div><DownloadReceiptButton s={s} /><Action onClick={() => dispatch(go('feedback'))}>Continue</Action></section> }
 
 export function Feedback({ s, dispatch }: any) { return <section className="center-screen"><Heart className="heart" /><p className="eyebrow">ONE LAST THING</p><h1>How was your<br /><em>{s?.restaurantName || 'your'} moment?</em></h1><div className="stars">{[1,2,3,4,5].map(i => <button key={i} onClick={() => dispatch({ type: 'feedback', value: { rating: i } })}><Star /></button>)}</div><p className="muted">Tap a star to share how it felt.</p><button className="text-link" onClick={() => dispatch(go('complete'))}>Maybe later</button></section> }
 
