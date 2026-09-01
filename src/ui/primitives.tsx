@@ -16,6 +16,6 @@ export function Back({ dispatch, to = 'menu' }: any) { return <button className=
 
 export function Action({ children, onClick, secondary = false }: any) { return <button className={`action ${secondary ? 'secondary' : ''}`} onClick={onClick}>{children}<ChevronRight /></button> }
 
-export function Center({ eyebrow, title, copy, children, icon = 'K' }: any) { return <section className="center-screen"><div className="brand-mark"><img src="/klown-logo.png" alt="Klown" /></div><p className="eyebrow">{eyebrow}</p><h1 dangerouslySetInnerHTML={{ __html: title }} /><p className="muted">{copy}</p>{children}</section> }
+export function Center({ eyebrow, title, copy, children, icon = 'K', logoUrl, alt }: any) { return <section className="center-screen"><div className="brand-mark"><img src={logoUrl || '/klown-logo.png'} alt={alt || 'Klown'} /></div><p className="eyebrow">{eyebrow}</p><h1 dangerouslySetInnerHTML={{ __html: title }} /><p className="muted">{copy}</p>{children}</section> }
 
 export function BillRow({ name, qty, price }: any) { return <div className="bill-row"><span><small>{qty} ×</small>{name}</span><b>{money(price)}</b></div> }
