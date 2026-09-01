@@ -56,7 +56,7 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
             .maybeSingle()
           const { data: restaurant } = await supabase
             .from('restaurants')
-            .select('id,name,city,google_place_id')
+            .select('id,name,city,google_place_id,logo_url,hero_url,accent_color,tagline_top,tagline_bottom,welcome_copy')
             .eq('id', branch!.restaurant_id)
             .maybeSingle()
 
