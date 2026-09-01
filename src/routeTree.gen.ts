@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as ApiConnectorCommandsRouteImport } from './routes/api/connector/commands'
+import { Route as ApiConnectorSyncRouteImport } from './routes/api/connector/sync'
 import { Route as ApiMockPayCallbackRouteImport } from './routes/api/mock/pay-callback'
 import { Route as ApiPublicBillRouteImport } from './routes/api/public/bill'
 import { Route as ApiPublicBillDisputeRouteImport } from './routes/api/public/bill-dispute'
@@ -47,6 +49,16 @@ const IndexRoute = IndexRouteImport.update({
 const STokenRoute = STokenRouteImport.update({
   id: '/s/$token',
   path: '/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiConnectorCommandsRoute = ApiConnectorCommandsRouteImport.update({
+  id: '/api/connector/commands',
+  path: '/api/connector/commands',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiConnectorSyncRoute = ApiConnectorSyncRouteImport.update({
+  id: '/api/connector/sync',
+  path: '/api/connector/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMockPayCallbackRoute = ApiMockPayCallbackRouteImport.update({
@@ -191,6 +203,8 @@ const ApiSyncPosOrdersRoute = ApiSyncPosOrdersRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/connector/commands': typeof ApiConnectorCommandsRoute
+  '/api/connector/sync': typeof ApiConnectorSyncRoute
   '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
@@ -222,6 +236,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/connector/commands': typeof ApiConnectorCommandsRoute
+  '/api/connector/sync': typeof ApiConnectorSyncRoute
   '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
@@ -254,6 +270,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/s/$token': typeof STokenRoute
+  '/api/connector/commands': typeof ApiConnectorCommandsRoute
+  '/api/connector/sync': typeof ApiConnectorSyncRoute
   '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
@@ -287,6 +305,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/s/$token'
+    | '/api/connector/commands'
+    | '/api/connector/sync'
     | '/api/mock/pay-callback'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
@@ -318,6 +338,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/s/$token'
+    | '/api/connector/commands'
+    | '/api/connector/sync'
     | '/api/mock/pay-callback'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
@@ -349,6 +371,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/s/$token'
+    | '/api/connector/commands'
+    | '/api/connector/sync'
     | '/api/mock/pay-callback'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
@@ -381,6 +405,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   STokenRoute: typeof STokenRoute
+  ApiConnectorCommandsRoute: typeof ApiConnectorCommandsRoute
+  ApiConnectorSyncRoute: typeof ApiConnectorSyncRoute
   ApiMockPayCallbackRoute: typeof ApiMockPayCallbackRoute
   ApiPublicBillRoute: typeof ApiPublicBillRoute
   ApiPublicBillDisputeRoute: typeof ApiPublicBillDisputeRoute
@@ -424,6 +450,20 @@ declare module '@tanstack/react-router' {
       path: '/s/$token'
       fullPath: '/s/$token'
       preLoaderRoute: typeof STokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/connector/commands': {
+      id: '/api/connector/commands'
+      path: '/api/connector/commands'
+      fullPath: '/api/connector/commands'
+      preLoaderRoute: typeof ApiConnectorCommandsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/connector/sync': {
+      id: '/api/connector/sync'
+      path: '/api/connector/sync'
+      fullPath: '/api/connector/sync'
+      preLoaderRoute: typeof ApiConnectorSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mock/pay-callback': {
@@ -621,6 +661,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   STokenRoute: STokenRoute,
+  ApiConnectorCommandsRoute: ApiConnectorCommandsRoute,
+  ApiConnectorSyncRoute: ApiConnectorSyncRoute,
   ApiMockPayCallbackRoute: ApiMockPayCallbackRoute,
   ApiPublicBillRoute: ApiPublicBillRoute,
   ApiPublicBillDisputeRoute: ApiPublicBillDisputeRoute,
