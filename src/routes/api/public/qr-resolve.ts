@@ -56,7 +56,7 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
             .maybeSingle()
           const { data: restaurant } = await supabase
             .from('restaurants')
-            .select('id,name,city,google_place_id')
+            .select('id,name,city,google_place_id,logo_url,hero_url,accent_color,tagline_top,tagline_bottom,welcome_copy')
             .eq('id', branch!.restaurant_id)
             .maybeSingle()
 
@@ -107,7 +107,16 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
           return json({
             ok: true,
             sessionToken: session!['session_token'],
-            restaurant: { name: restaurant!.name, city: restaurant!.city },
+            restaurant: {
+              name: restaurant!.name,
+              city: restaurant!.city,
+              logoUrl: (restaurant as any)!.logo_url ?? null,
+              heroUrl: (restaurant as any)!.hero_url ?? null,
+              accentColor: (restaurant as any)!.accent_color ?? null,
+              taglineTop: (restaurant as any)!.tagline_top ?? null,
+              taglineBottom: (restaurant as any)!.tagline_bottom ?? null,
+              welcomeCopy: (restaurant as any)!.welcome_copy ?? null,
+            },
             branch: { name: branch!.name },
             table: { label: table.label },
             sessionStatus: session!['status'],
