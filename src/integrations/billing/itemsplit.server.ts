@@ -78,3 +78,52 @@ export async function recomputeItemSplit(supabaseAdmin: Admin, splitId: string):
     }
   }
 }
+
+// Shared payload for every items-mode endpoint, so the client can patch state in one call.
+export async function itemsSplitPayload(supabaseAdmin: Admin, split: any, sessionId: string) {
+  const { data: lines } = await supabaseAdmin.from('bill_items')
+    .select('id,name,qty,line_total_pesewas,sort').eq('bill_id', split.bill_id).order('sort')
+  const { data: shares } = await supabaseAdmin.from('bill_split_shares')
+    .select('id,position,label,amount_pesewas,status,claimed_by_session,claimed_by_name,share_token')
+    .eq('split_id', split.id).order('position')
+  const { data: assigns } = await supabaseAdmin.from('bill_split_item_assignments')
+    .select('bill_item_id,share_id,weight').eq('split_id', split.id)
+  const { amountPaidForBill } = await import('@/integrations/payments/provider')
+  const paid = await amountPaidForBill(split.bill_id)
+
+  const shareById = new Map<string, any>((shares ?? []).map((s: any) => [s.id, s]))
+  const items = (lines ?? []).map((l: any) => {
+    const takers = (assigns ?? [])
+      .filter((a: any) => a.bill_item_id === l.id && shareById.has(a.share_id))
+      .map((a: any) => {
+        const s = shareById.get(a.share_id)
+        return { shareId: a.share_id, name: s.claimed_by_name || s.label, units: Math.trunc(a.weight ?? 0), paid: s.status === 'paid' }
+      })
+    const used = takers.reduce((n: number, t: any) => n + t.units, 0)
+    return {
+      billItemId: l.id, name: l.name, qty: l.qty, lineTotalPesewas: l.line_total_pesewas,
+      unitsFree: Math.max(0, Math.trunc(l.qty ?? 0) - used), takers,
+    }
+  })
+
+  const mine = (shares ?? []).find((s: any) => s.claimed_by_session === sessionId) ?? null
+  const unpaidSum = (shares ?? []).filter((s: any) => s.status !== 'paid')
+    .reduce((n: number, s: any) => n + Math.trunc(s.amount_pesewas ?? 0), 0)
+  const total = Math.trunc(split.total_pesewas ?? 0)
+
+  return {
+    ok: true,
+    split: { id: split.id, mode: split.mode, totalPesewas: total, status: split.status },
+    paidPesewas: paid,
+    remainingPesewas: Math.max(0, total - paid),
+    items,
+    shares: (shares ?? []).map((s: any) => ({
+      id: s.id, position: s.position, label: s.label, amountPesewas: s.amount_pesewas,
+      status: s.status, claimedByName: s.claimed_by_name, mine: s.claimed_by_session === sessionId,
+      shareToken: s.share_token,
+    })),
+    myShareId: mine?.id ?? null,
+    myShareAmountPesewas: mine ? Math.trunc(mine.amount_pesewas ?? 0) : null,
+    unassignedPesewas: Math.max(0, total - paid - unpaidSum),
+  }
+}
