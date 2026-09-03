@@ -14,6 +14,7 @@ import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as ApiConnectorCommandsRouteImport } from './routes/api/connector/commands'
 import { Route as ApiConnectorSyncRouteImport } from './routes/api/connector/sync'
 import { Route as ApiMockPayCallbackRouteImport } from './routes/api/mock/pay-callback'
+import { Route as ApiPublicAssignRemainingRouteImport } from './routes/api/public/assign-remaining'
 import { Route as ApiPublicBillRouteImport } from './routes/api/public/bill'
 import { Route as ApiPublicBillDisputeRouteImport } from './routes/api/public/bill-dispute'
 import { Route as ApiPublicFeedbackRouteImport } from './routes/api/public/feedback'
@@ -29,14 +30,17 @@ import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/publi
 import { Route as ApiPublicQrResolveRouteImport } from './routes/api/public/qr-resolve'
 import { Route as ApiPublicQuoteRouteImport } from './routes/api/public/quote'
 import { Route as ApiPublicReceiptRouteImport } from './routes/api/public/receipt'
+import { Route as ApiPublicReceiptPdfRouteImport } from './routes/api/public/receipt-pdf'
 import { Route as ApiPublicReceiptWhatsappRouteImport } from './routes/api/public/receipt-whatsapp'
 import { Route as ApiPublicReviewLinkRouteImport } from './routes/api/public/review-link'
 import { Route as ApiPublicRewardsConsentRouteImport } from './routes/api/public/rewards-consent'
 import { Route as ApiPublicSplitRouteImport } from './routes/api/public/split'
+import { Route as ApiPublicSplitAssignRouteImport } from './routes/api/public/split-assign'
 import { Route as ApiPublicSplitCancelRouteImport } from './routes/api/public/split-cancel'
 import { Route as ApiPublicSplitClaimRouteImport } from './routes/api/public/split-claim'
 import { Route as ApiPublicSplitCreateRouteImport } from './routes/api/public/split-create'
 import { Route as ApiPublicSplitReleaseRouteImport } from './routes/api/public/split-release'
+import { Route as ApiPublicSplitUnassignRouteImport } from './routes/api/public/split-unassign'
 import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
 import { Route as ApiPublicWhatsappReceiptRouteImport } from './routes/api/public/whatsapp-receipt'
 import { Route as ApiSyncPosOrdersRouteImport } from './routes/api/sync/pos-orders'
@@ -66,6 +70,12 @@ const ApiMockPayCallbackRoute = ApiMockPayCallbackRouteImport.update({
   path: '/api/mock/pay-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAssignRemainingRoute =
+  ApiPublicAssignRemainingRouteImport.update({
+    id: '/api/public/assign-remaining',
+    path: '/api/public/assign-remaining',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBillRoute = ApiPublicBillRouteImport.update({
   id: '/api/public/bill',
   path: '/api/public/bill',
@@ -142,6 +152,11 @@ const ApiPublicReceiptRoute = ApiPublicReceiptRouteImport.update({
   path: '/api/public/receipt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicReceiptPdfRoute = ApiPublicReceiptPdfRouteImport.update({
+  id: '/api/public/receipt-pdf',
+  path: '/api/public/receipt-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicReceiptWhatsappRoute =
   ApiPublicReceiptWhatsappRouteImport.update({
     id: '/api/public/receipt-whatsapp',
@@ -163,6 +178,11 @@ const ApiPublicSplitRoute = ApiPublicSplitRouteImport.update({
   path: '/api/public/split',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSplitAssignRoute = ApiPublicSplitAssignRouteImport.update({
+  id: '/api/public/split-assign',
+  path: '/api/public/split-assign',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSplitCancelRoute = ApiPublicSplitCancelRouteImport.update({
   id: '/api/public/split-cancel',
   path: '/api/public/split-cancel',
@@ -181,6 +201,11 @@ const ApiPublicSplitCreateRoute = ApiPublicSplitCreateRouteImport.update({
 const ApiPublicSplitReleaseRoute = ApiPublicSplitReleaseRouteImport.update({
   id: '/api/public/split-release',
   path: '/api/public/split-release',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSplitUnassignRoute = ApiPublicSplitUnassignRouteImport.update({
+  id: '/api/public/split-unassign',
+  path: '/api/public/split-unassign',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWaiterRequestRoute = ApiPublicWaiterRequestRouteImport.update({
@@ -206,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/api/connector/commands': typeof ApiConnectorCommandsRoute
   '/api/connector/sync': typeof ApiConnectorSyncRoute
   '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
+  '/api/public/assign-remaining': typeof ApiPublicAssignRemainingRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/feedback': typeof ApiPublicFeedbackRoute
@@ -221,14 +247,17 @@ export interface FileRoutesByFullPath {
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/receipt-pdf': typeof ApiPublicReceiptPdfRoute
   '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/split': typeof ApiPublicSplitRoute
+  '/api/public/split-assign': typeof ApiPublicSplitAssignRoute
   '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
+  '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
@@ -239,6 +268,7 @@ export interface FileRoutesByTo {
   '/api/connector/commands': typeof ApiConnectorCommandsRoute
   '/api/connector/sync': typeof ApiConnectorSyncRoute
   '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
+  '/api/public/assign-remaining': typeof ApiPublicAssignRemainingRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/feedback': typeof ApiPublicFeedbackRoute
@@ -254,14 +284,17 @@ export interface FileRoutesByTo {
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/receipt-pdf': typeof ApiPublicReceiptPdfRoute
   '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/split': typeof ApiPublicSplitRoute
+  '/api/public/split-assign': typeof ApiPublicSplitAssignRoute
   '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
+  '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
@@ -273,6 +306,7 @@ export interface FileRoutesById {
   '/api/connector/commands': typeof ApiConnectorCommandsRoute
   '/api/connector/sync': typeof ApiConnectorSyncRoute
   '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
+  '/api/public/assign-remaining': typeof ApiPublicAssignRemainingRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/feedback': typeof ApiPublicFeedbackRoute
@@ -288,14 +322,17 @@ export interface FileRoutesById {
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/receipt-pdf': typeof ApiPublicReceiptPdfRoute
   '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
   '/api/public/rewards-consent': typeof ApiPublicRewardsConsentRoute
   '/api/public/split': typeof ApiPublicSplitRoute
+  '/api/public/split-assign': typeof ApiPublicSplitAssignRoute
   '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
+  '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
@@ -308,6 +345,7 @@ export interface FileRouteTypes {
     | '/api/connector/commands'
     | '/api/connector/sync'
     | '/api/mock/pay-callback'
+    | '/api/public/assign-remaining'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
     | '/api/public/feedback'
@@ -323,14 +361,17 @@ export interface FileRouteTypes {
     | '/api/public/qr-resolve'
     | '/api/public/quote'
     | '/api/public/receipt'
+    | '/api/public/receipt-pdf'
     | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/split'
+    | '/api/public/split-assign'
     | '/api/public/split-cancel'
     | '/api/public/split-claim'
     | '/api/public/split-create'
     | '/api/public/split-release'
+    | '/api/public/split-unassign'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/sync/pos-orders'
@@ -341,6 +382,7 @@ export interface FileRouteTypes {
     | '/api/connector/commands'
     | '/api/connector/sync'
     | '/api/mock/pay-callback'
+    | '/api/public/assign-remaining'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
     | '/api/public/feedback'
@@ -356,14 +398,17 @@ export interface FileRouteTypes {
     | '/api/public/qr-resolve'
     | '/api/public/quote'
     | '/api/public/receipt'
+    | '/api/public/receipt-pdf'
     | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/split'
+    | '/api/public/split-assign'
     | '/api/public/split-cancel'
     | '/api/public/split-claim'
     | '/api/public/split-create'
     | '/api/public/split-release'
+    | '/api/public/split-unassign'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/sync/pos-orders'
@@ -374,6 +419,7 @@ export interface FileRouteTypes {
     | '/api/connector/commands'
     | '/api/connector/sync'
     | '/api/mock/pay-callback'
+    | '/api/public/assign-remaining'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
     | '/api/public/feedback'
@@ -389,14 +435,17 @@ export interface FileRouteTypes {
     | '/api/public/qr-resolve'
     | '/api/public/quote'
     | '/api/public/receipt'
+    | '/api/public/receipt-pdf'
     | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
     | '/api/public/rewards-consent'
     | '/api/public/split'
+    | '/api/public/split-assign'
     | '/api/public/split-cancel'
     | '/api/public/split-claim'
     | '/api/public/split-create'
     | '/api/public/split-release'
+    | '/api/public/split-unassign'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/sync/pos-orders'
@@ -408,6 +457,7 @@ export interface RootRouteChildren {
   ApiConnectorCommandsRoute: typeof ApiConnectorCommandsRoute
   ApiConnectorSyncRoute: typeof ApiConnectorSyncRoute
   ApiMockPayCallbackRoute: typeof ApiMockPayCallbackRoute
+  ApiPublicAssignRemainingRoute: typeof ApiPublicAssignRemainingRoute
   ApiPublicBillRoute: typeof ApiPublicBillRoute
   ApiPublicBillDisputeRoute: typeof ApiPublicBillDisputeRoute
   ApiPublicFeedbackRoute: typeof ApiPublicFeedbackRoute
@@ -423,14 +473,17 @@ export interface RootRouteChildren {
   ApiPublicQrResolveRoute: typeof ApiPublicQrResolveRoute
   ApiPublicQuoteRoute: typeof ApiPublicQuoteRoute
   ApiPublicReceiptRoute: typeof ApiPublicReceiptRoute
+  ApiPublicReceiptPdfRoute: typeof ApiPublicReceiptPdfRoute
   ApiPublicReceiptWhatsappRoute: typeof ApiPublicReceiptWhatsappRoute
   ApiPublicReviewLinkRoute: typeof ApiPublicReviewLinkRoute
   ApiPublicRewardsConsentRoute: typeof ApiPublicRewardsConsentRoute
   ApiPublicSplitRoute: typeof ApiPublicSplitRoute
+  ApiPublicSplitAssignRoute: typeof ApiPublicSplitAssignRoute
   ApiPublicSplitCancelRoute: typeof ApiPublicSplitCancelRoute
   ApiPublicSplitClaimRoute: typeof ApiPublicSplitClaimRoute
   ApiPublicSplitCreateRoute: typeof ApiPublicSplitCreateRoute
   ApiPublicSplitReleaseRoute: typeof ApiPublicSplitReleaseRoute
+  ApiPublicSplitUnassignRoute: typeof ApiPublicSplitUnassignRoute
   ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
   ApiPublicWhatsappReceiptRoute: typeof ApiPublicWhatsappReceiptRoute
   ApiSyncPosOrdersRoute: typeof ApiSyncPosOrdersRoute
@@ -471,6 +524,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mock/pay-callback'
       fullPath: '/api/mock/pay-callback'
       preLoaderRoute: typeof ApiMockPayCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/assign-remaining': {
+      id: '/api/public/assign-remaining'
+      path: '/api/public/assign-remaining'
+      fullPath: '/api/public/assign-remaining'
+      preLoaderRoute: typeof ApiPublicAssignRemainingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/bill': {
@@ -578,6 +638,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicReceiptRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/receipt-pdf': {
+      id: '/api/public/receipt-pdf'
+      path: '/api/public/receipt-pdf'
+      fullPath: '/api/public/receipt-pdf'
+      preLoaderRoute: typeof ApiPublicReceiptPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/receipt-whatsapp': {
       id: '/api/public/receipt-whatsapp'
       path: '/api/public/receipt-whatsapp'
@@ -606,6 +673,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSplitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/split-assign': {
+      id: '/api/public/split-assign'
+      path: '/api/public/split-assign'
+      fullPath: '/api/public/split-assign'
+      preLoaderRoute: typeof ApiPublicSplitAssignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/split-cancel': {
       id: '/api/public/split-cancel'
       path: '/api/public/split-cancel'
@@ -632,6 +706,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/split-release'
       fullPath: '/api/public/split-release'
       preLoaderRoute: typeof ApiPublicSplitReleaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/split-unassign': {
+      id: '/api/public/split-unassign'
+      path: '/api/public/split-unassign'
+      fullPath: '/api/public/split-unassign'
+      preLoaderRoute: typeof ApiPublicSplitUnassignRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/waiter-request': {
@@ -664,6 +745,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiConnectorCommandsRoute: ApiConnectorCommandsRoute,
   ApiConnectorSyncRoute: ApiConnectorSyncRoute,
   ApiMockPayCallbackRoute: ApiMockPayCallbackRoute,
+  ApiPublicAssignRemainingRoute: ApiPublicAssignRemainingRoute,
   ApiPublicBillRoute: ApiPublicBillRoute,
   ApiPublicBillDisputeRoute: ApiPublicBillDisputeRoute,
   ApiPublicFeedbackRoute: ApiPublicFeedbackRoute,
@@ -679,14 +761,17 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicQrResolveRoute: ApiPublicQrResolveRoute,
   ApiPublicQuoteRoute: ApiPublicQuoteRoute,
   ApiPublicReceiptRoute: ApiPublicReceiptRoute,
+  ApiPublicReceiptPdfRoute: ApiPublicReceiptPdfRoute,
   ApiPublicReceiptWhatsappRoute: ApiPublicReceiptWhatsappRoute,
   ApiPublicReviewLinkRoute: ApiPublicReviewLinkRoute,
   ApiPublicRewardsConsentRoute: ApiPublicRewardsConsentRoute,
   ApiPublicSplitRoute: ApiPublicSplitRoute,
+  ApiPublicSplitAssignRoute: ApiPublicSplitAssignRoute,
   ApiPublicSplitCancelRoute: ApiPublicSplitCancelRoute,
   ApiPublicSplitClaimRoute: ApiPublicSplitClaimRoute,
   ApiPublicSplitCreateRoute: ApiPublicSplitCreateRoute,
   ApiPublicSplitReleaseRoute: ApiPublicSplitReleaseRoute,
+  ApiPublicSplitUnassignRoute: ApiPublicSplitUnassignRoute,
   ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
   ApiPublicWhatsappReceiptRoute: ApiPublicWhatsappReceiptRoute,
   ApiSyncPosOrdersRoute: ApiSyncPosOrdersRoute,

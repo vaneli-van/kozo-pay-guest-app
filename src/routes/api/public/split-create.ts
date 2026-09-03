@@ -13,7 +13,7 @@ export const Route = createFileRoute('/api/public/split-create')({
         const sessionToken = body.sessionToken
         const mode = body.mode
         if (typeof sessionToken !== 'string') return json({ ok: false, reason: 'invalid_session' })
-        if (mode !== 'even' && mode !== 'amounts') return json({ ok: false, reason: 'invalid_mode' })
+        if (mode !== 'even' && mode !== 'amounts' && mode !== 'items') return json({ ok: false, reason: 'invalid_mode' })
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,table_id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
@@ -25,6 +25,18 @@ export const Route = createFileRoute('/api/public/split-create')({
         if (paid > 0) return json({ ok: false, reason: 'already_paying' })
         const total = Math.trunc(bill.totalPesewas)
         if (total <= 0) return json({ ok: false, reason: 'nothing_due' })
+        // Items mode: no shares up front — diners create their own share as they pick items.
+        if (mode === 'items') {
+          const { data: created, error: insErr } = await supabaseAdmin.from('bill_splits').insert({
+            bill_id: bill.id, mode: 'items', total_pesewas: total, status: 'open', created_by_session: session.id,
+          }).select('id').single()
+          if (insErr || !created) {
+            if (insErr && /uq_bill_splits_open|duplicate key/.test(insErr.message)) return json({ ok: false, reason: 'split_exists' })
+            return json({ ok: false, reason: 'error' })
+          }
+          return json({ ok: true, splitId: created.id, mode: 'items', totalPesewas: total })
+        }
+
 
         let shares: { label: string; amount_pesewas: number; token: string }[]
         if (mode === 'even') {

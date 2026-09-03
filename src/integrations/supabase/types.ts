@@ -1046,6 +1046,288 @@ export type Database = {
           },
         ]
       }
+      payout_accounts: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          branch: string | null
+          created_at: string
+          destination_type: string
+          id: string
+          is_default: boolean
+          masked: string | null
+          provider: string | null
+          restaurant_id: string
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          branch?: string | null
+          created_at?: string
+          destination_type: string
+          id?: string
+          is_default?: boolean
+          masked?: string | null
+          provider?: string | null
+          restaurant_id: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          branch?: string | null
+          created_at?: string
+          destination_type?: string
+          id?: string
+          is_default?: boolean
+          masked?: string | null
+          provider?: string | null
+          restaurant_id?: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_settings: {
+        Row: {
+          available_pesewas: number
+          min_payout_pesewas: number
+          payout_fee_pesewas: number
+          pending_pesewas: number
+          restaurant_id: string
+          schedule: string
+          updated_at: string
+        }
+        Insert: {
+          available_pesewas?: number
+          min_payout_pesewas?: number
+          payout_fee_pesewas?: number
+          pending_pesewas?: number
+          restaurant_id: string
+          schedule?: string
+          updated_at?: string
+        }
+        Update: {
+          available_pesewas?: number
+          min_payout_pesewas?: number
+          payout_fee_pesewas?: number
+          pending_pesewas?: number
+          restaurant_id?: string
+          schedule?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payouts: {
+        Row: {
+          amount_pesewas: number
+          created_at: string
+          destination: string | null
+          id: string
+          paid_at: string | null
+          reference: string
+          restaurant_id: string
+          scheduled_for: string | null
+          status: string
+        }
+        Insert: {
+          amount_pesewas: number
+          created_at?: string
+          destination?: string | null
+          id?: string
+          paid_at?: string | null
+          reference: string
+          restaurant_id: string
+          scheduled_for?: string | null
+          status?: string
+        }
+        Update: {
+          amount_pesewas?: number
+          created_at?: string
+          destination?: string | null
+          id?: string
+          paid_at?: string | null
+          reference?: string
+          restaurant_id?: string
+          scheduled_for?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_commands: {
         Row: {
           created_at: string
@@ -1742,6 +2024,105 @@ export type Database = {
           },
         ]
       }
+      restaurant_support_tickets: {
+        Row: {
+          body: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          priority: string
+          ref: string
+          restaurant_id: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          priority?: string
+          ref: string
+          restaurant_id: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          priority?: string
+          ref?: string
+          restaurant_id?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_tables: {
         Row: {
           branch_id: string
@@ -1795,6 +2176,171 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_user_invites: {
+        Row: {
+          created_at: string
+          email: string
+          name: string | null
+          restaurant_id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          name?: string | null
+          restaurant_id: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          name?: string | null
+          restaurant_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_user_invites_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_user_invites_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_user_invites_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_user_invites_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_user_invites_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_user_invites_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_user_invites_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_user_invites_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          restaurant_id: string
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          restaurant_id: string
+          role?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          restaurant_id?: string
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_users_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_users_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_users_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_users_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_users_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_users_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_users_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_users_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
         ]
@@ -2796,6 +3342,46 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { uid: string }; Returns: boolean }
+      owner_branding: { Args: never; Returns: Json }
+      owner_context: { Args: never; Returns: Json }
+      owner_create_ticket: {
+        Args: {
+          p_body: string
+          p_category: string
+          p_priority: string
+          p_subject: string
+        }
+        Returns: Json
+      }
+      owner_integrations: { Args: never; Returns: Json }
+      owner_payments_summary: { Args: { p_days?: number }; Returns: Json }
+      owner_payouts: { Args: never; Returns: Json }
+      owner_primary_restaurant: { Args: never; Returns: string }
+      owner_recent_payments: { Args: { p_limit?: number }; Returns: Json }
+      owner_restaurant_ids: { Args: never; Returns: string[] }
+      owner_save_bank: {
+        Args: {
+          p_account_name: string
+          p_account_number: string
+          p_branch: string
+          p_destination_type: string
+          p_provider: string
+        }
+        Returns: Json
+      }
+      owner_save_branding: {
+        Args: {
+          p_accent_color: string
+          p_hero_url: string
+          p_logo_url: string
+          p_tagline_bottom: string
+          p_tagline_top: string
+          p_welcome_copy: string
+        }
+        Returns: Json
+      }
+      owner_set_schedule: { Args: { p_schedule: string }; Returns: Json }
+      owner_tickets: { Args: never; Returns: Json }
       promote_staff: {
         Args: {
           p_email: string
@@ -2811,6 +3397,18 @@ export type Database = {
           p_db: string
           p_restaurant_id: string
           p_username: string
+        }
+        Returns: undefined
+      }
+      save_restaurant_branding: {
+        Args: {
+          p_accent_color: string
+          p_hero_url: string
+          p_logo_url: string
+          p_restaurant_id: string
+          p_tagline_bottom: string
+          p_tagline_top: string
+          p_welcome_copy: string
         }
         Returns: undefined
       }
@@ -2850,12 +3448,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2879,11 +3477,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2904,11 +3502,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2929,11 +3527,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2946,11 +3544,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

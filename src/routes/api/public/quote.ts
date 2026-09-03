@@ -23,13 +23,22 @@ export const Route = createFileRoute('/api/public/quote')({
         let shareBasePesewas: number | undefined
         let splitShareId: string | undefined
         if (typeof body.shareId === 'string') {
-          const { data: sh } = await supabaseAdmin.from('bill_split_shares')
+          let { data: sh } = await supabaseAdmin.from('bill_split_shares')
             .select('id,amount_pesewas,status,split_id').eq('id', body.shareId).maybeSingle()
           if (!sh) return json({ ok: false, reason: 'invalid_share' })
           if (sh.status === 'paid') return json({ ok: false, reason: 'share_paid' })
           const { data: sp } = await supabaseAdmin.from('bill_splits')
-            .select('bill_id,status').eq('id', sh.split_id).maybeSingle()
+            .select('bill_id,status,mode').eq('id', sh.split_id).maybeSingle()
           if (!sp || sp.status !== 'open' || sp.bill_id !== bill.id) return json({ ok: false, reason: 'invalid_share' })
+          if (sp.mode === 'items') {
+            // Item amounts move as diners pick — recompute so we charge the current figure.
+            const { recomputeItemSplit } = await import('@/integrations/billing/itemsplit.server')
+            await recomputeItemSplit(supabaseAdmin, sh.split_id)
+            const refreshed = await supabaseAdmin.from('bill_split_shares')
+              .select('id,amount_pesewas,status,split_id').eq('id', body.shareId).maybeSingle()
+            if (!refreshed.data) return json({ ok: false, reason: 'invalid_share' })
+            sh = refreshed.data
+          }
           shareBasePesewas = sh.amount_pesewas
           splitShareId = sh.id
         }
