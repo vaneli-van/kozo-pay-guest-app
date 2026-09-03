@@ -13,7 +13,7 @@ export const Route = createFileRoute('/api/public/split-create')({
         const sessionToken = body.sessionToken
         const mode = body.mode
         if (typeof sessionToken !== 'string') return json({ ok: false, reason: 'invalid_session' })
-        if (mode !== 'even' && mode !== 'amounts') return json({ ok: false, reason: 'invalid_mode' })
+        if (mode !== 'even' && mode !== 'amounts' && mode !== 'items') return json({ ok: false, reason: 'invalid_mode' })
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,table_id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })

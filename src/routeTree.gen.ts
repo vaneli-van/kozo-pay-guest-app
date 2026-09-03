@@ -14,6 +14,7 @@ import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as ApiConnectorCommandsRouteImport } from './routes/api/connector/commands'
 import { Route as ApiConnectorSyncRouteImport } from './routes/api/connector/sync'
 import { Route as ApiMockPayCallbackRouteImport } from './routes/api/mock/pay-callback'
+import { Route as ApiPublicAssignRemainingRouteImport } from './routes/api/public/assign-remaining'
 import { Route as ApiPublicBillRouteImport } from './routes/api/public/bill'
 import { Route as ApiPublicBillDisputeRouteImport } from './routes/api/public/bill-dispute'
 import { Route as ApiPublicFeedbackRouteImport } from './routes/api/public/feedback'
@@ -69,6 +70,12 @@ const ApiMockPayCallbackRoute = ApiMockPayCallbackRouteImport.update({
   path: '/api/mock/pay-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAssignRemainingRoute =
+  ApiPublicAssignRemainingRouteImport.update({
+    id: '/api/public/assign-remaining',
+    path: '/api/public/assign-remaining',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBillRoute = ApiPublicBillRouteImport.update({
   id: '/api/public/bill',
   path: '/api/public/bill',
@@ -224,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/api/connector/commands': typeof ApiConnectorCommandsRoute
   '/api/connector/sync': typeof ApiConnectorSyncRoute
   '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
+  '/api/public/assign-remaining': typeof ApiPublicAssignRemainingRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/feedback': typeof ApiPublicFeedbackRoute
@@ -260,6 +268,7 @@ export interface FileRoutesByTo {
   '/api/connector/commands': typeof ApiConnectorCommandsRoute
   '/api/connector/sync': typeof ApiConnectorSyncRoute
   '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
+  '/api/public/assign-remaining': typeof ApiPublicAssignRemainingRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/feedback': typeof ApiPublicFeedbackRoute
@@ -297,6 +306,7 @@ export interface FileRoutesById {
   '/api/connector/commands': typeof ApiConnectorCommandsRoute
   '/api/connector/sync': typeof ApiConnectorSyncRoute
   '/api/mock/pay-callback': typeof ApiMockPayCallbackRoute
+  '/api/public/assign-remaining': typeof ApiPublicAssignRemainingRoute
   '/api/public/bill': typeof ApiPublicBillRoute
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/feedback': typeof ApiPublicFeedbackRoute
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/api/connector/commands'
     | '/api/connector/sync'
     | '/api/mock/pay-callback'
+    | '/api/public/assign-remaining'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
     | '/api/public/feedback'
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/api/connector/commands'
     | '/api/connector/sync'
     | '/api/mock/pay-callback'
+    | '/api/public/assign-remaining'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
     | '/api/public/feedback'
@@ -407,6 +419,7 @@ export interface FileRouteTypes {
     | '/api/connector/commands'
     | '/api/connector/sync'
     | '/api/mock/pay-callback'
+    | '/api/public/assign-remaining'
     | '/api/public/bill'
     | '/api/public/bill-dispute'
     | '/api/public/feedback'
@@ -444,6 +457,7 @@ export interface RootRouteChildren {
   ApiConnectorCommandsRoute: typeof ApiConnectorCommandsRoute
   ApiConnectorSyncRoute: typeof ApiConnectorSyncRoute
   ApiMockPayCallbackRoute: typeof ApiMockPayCallbackRoute
+  ApiPublicAssignRemainingRoute: typeof ApiPublicAssignRemainingRoute
   ApiPublicBillRoute: typeof ApiPublicBillRoute
   ApiPublicBillDisputeRoute: typeof ApiPublicBillDisputeRoute
   ApiPublicFeedbackRoute: typeof ApiPublicFeedbackRoute
@@ -510,6 +524,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mock/pay-callback'
       fullPath: '/api/mock/pay-callback'
       preLoaderRoute: typeof ApiMockPayCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/assign-remaining': {
+      id: '/api/public/assign-remaining'
+      path: '/api/public/assign-remaining'
+      fullPath: '/api/public/assign-remaining'
+      preLoaderRoute: typeof ApiPublicAssignRemainingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/bill': {
@@ -724,6 +745,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiConnectorCommandsRoute: ApiConnectorCommandsRoute,
   ApiConnectorSyncRoute: ApiConnectorSyncRoute,
   ApiMockPayCallbackRoute: ApiMockPayCallbackRoute,
+  ApiPublicAssignRemainingRoute: ApiPublicAssignRemainingRoute,
   ApiPublicBillRoute: ApiPublicBillRoute,
   ApiPublicBillDisputeRoute: ApiPublicBillDisputeRoute,
   ApiPublicFeedbackRoute: ApiPublicFeedbackRoute,
