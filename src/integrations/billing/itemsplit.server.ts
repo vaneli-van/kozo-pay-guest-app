@@ -127,3 +127,37 @@ export async function itemsSplitPayload(supabaseAdmin: Admin, split: any, sessio
     unassignedPesewas: Math.max(0, total - paid - unpaidSum),
   }
 }
+
+// Resolve the OPEN items split for a session's table, confirming it matches the active bill.
+export async function resolveOpenItemsSplit(supabaseAdmin: Admin, session: { id: string; table_id: string }) {
+  const { posProvider } = await import('@/integrations/pos/provider')
+  const bill = await posProvider.getActiveBillForTable(session.table_id)
+  if (!bill) return { error: 'no_bill' as const }
+  const { data: split } = await supabaseAdmin.from('bill_splits')
+    .select('id,mode,total_pesewas,status,bill_id')
+    .eq('bill_id', bill.id).eq('status', 'open').eq('mode', 'items')
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (!split) return { error: 'no_split' as const }
+  return { split, bill }
+}
+
+// Find or create the caller's (non-paid) share on an items split.
+export async function ensureMyShare(supabaseAdmin: Admin, splitId: string, sessionId: string, name?: string) {
+  const { data: existing } = await supabaseAdmin.from('bill_split_shares')
+    .select('id,status').eq('split_id', splitId).eq('claimed_by_session', sessionId)
+    .order('position').limit(1).maybeSingle()
+  if (existing) return existing
+  const { data: rows } = await supabaseAdmin.from('bill_split_shares')
+    .select('position').eq('split_id', splitId).order('position', { ascending: false }).limit(1)
+  const position = ((rows ?? [])[0]?.position ?? 0) + 1
+  const bytes = new Uint8Array(24)
+  crypto.getRandomValues(bytes)
+  const token = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+  const label = (typeof name === 'string' && name.trim()) ? name.trim() : 'Guest'
+  const { data: created } = await supabaseAdmin.from('bill_split_shares').insert({
+    split_id: splitId, position, label, amount_pesewas: 0, status: 'claimed',
+    claimed_by_session: sessionId, claimed_by_name: (typeof name === 'string' && name.trim()) ? name.trim() : null,
+    share_token: token,
+  }).select('id,status').single()
+  return created
+}
