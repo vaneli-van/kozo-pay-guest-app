@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Check, ChevronRight, Clock3, CreditCard, Heart, Info, Minus, Plus, QrCode, RotateCcw, Search, Send, Star, Users, X } from 'lucide-react'
 import { go, screens, type Screen } from '../session/machine'
 import { money } from '../lib/format'
 import { Back, Action, Center, BillRow } from '../ui/primitives'
 import { openState } from '../lib/hours'
+import { injectStudioFonts } from '../lib/studioFonts'
 
 const pes = (v?: number | null) => money((v ?? 0) / 100)
 // Real photo when the item has one; a neutral plate otherwise — never the wrong dish's image.
@@ -255,13 +256,18 @@ function StudioMenu({ s, dispatch }: any) {
       heading: th.colors?.heading || '#171717',
       price: th.colors?.price || '#171717',
     },
-    layout: { item_photos: th.layout?.item_photos || 'small' },
+    layout: { item_photos: th.layout?.item_photos || 'small', align: th.layout?.align || 'left', price_style: th.layout?.price_style || 'symbol' },
   }
   const oc = openState(dig.hours)
   const [active, setActive] = useState<string | null>(sections[0]?.id ?? null)
   const sec = sections.find((x: any) => x.id === active) ?? sections[0]
-  const priceOf = (it: any) =>
-    it?.price_display && String(it.price_display).trim() ? String(it.price_display).trim() : it?.price_pesewas != null ? pes(it.price_pesewas) : ''
+  const priceOf = (it: any) => {
+    if (it?.price_display && String(it.price_display).trim()) return String(it.price_display).trim()
+    if (it?.price_pesewas == null) return ''
+    if (t.layout.price_style === 'plain') return (it.price_pesewas / 100).toLocaleString('en-GH', { maximumFractionDigits: 2 })
+    return pes(it.price_pesewas)
+  }
+  useEffect(() => { injectStudioFonts(t.fonts) }, [th])
 
   if (!sections.length) {
     return (
@@ -290,13 +296,7 @@ function StudioMenu({ s, dispatch }: any) {
           ))}
         </div>
       )}
-      <header className="page-header">
-        <div>
-          <p className="eyebrow" style={{ color: t.colors.accent }}>{(s?.restaurantName || '').toUpperCase()} · TABLE {s?.tableLabel ?? ''}</p>
-          <h1 style={{ fontFamily: t.fonts.title, color: t.colors.heading }}>What are you<br /><em>in the mood for?</em></h1>
-        </div>
-        <button className="icon-button" style={{ borderColor: t.colors.accent }}><Search /></button>
-      </header>
+      {s?.tableLabel && <div style={{ textAlign: 'center', marginBottom: 14, fontSize: 11, letterSpacing: '.1em', color: t.colors.accent, fontWeight: 700 }}>TABLE {s.tableLabel}</div>}
       <div className="tabs">
         {sections.map((x: any) => (
           <button key={x.id} className={x.id === sec?.id ? 'active' : ''} onClick={() => setActive(x.id)}
@@ -304,13 +304,21 @@ function StudioMenu({ s, dispatch }: any) {
         ))}
       </div>
       <div className="menu-group">
-        <div className="section-label" style={{ fontFamily: t.fonts.heading, color: t.colors.heading }}>{(sec?.name || '').toUpperCase()} <span>{(sec?.items ?? []).length} items</span></div>
+        {t.layout.align === 'center' ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '4px 0 16px' }}>
+            <div style={{ flex: 1, height: 1, background: t.colors.ink, opacity: 0.85 }} />
+            <h2 style={{ margin: 0, fontFamily: t.fonts.heading, color: t.colors.heading, fontSize: 18, fontWeight: 700, letterSpacing: '.18em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{sec?.name || ''}</h2>
+            <div style={{ flex: 1, height: 1, background: t.colors.ink, opacity: 0.85 }} />
+          </div>
+        ) : (
+          <div className="section-label" style={{ fontFamily: t.fonts.heading, color: t.colors.heading }}>{(sec?.name || '').toUpperCase()} <span>{(sec?.items ?? []).length} items</span></div>
+        )}
         {(sec?.items ?? []).map((it: any) => (
           <div className="dish-row" key={it.id} style={{ opacity: it.sold_out || it.available === false ? 0.5 : 1, cursor: 'default' }}>
             {t.layout.item_photos !== 'none' && it.image_url && <img src={it.image_url} alt={it.name} onError={imgFallback} />}
             <span>
               <strong style={{ fontFamily: t.fonts.item, color: t.colors.ink }}>{it.name}{it.sold_out ? ' · Sold out' : ''}</strong>
-              {it.description && <small style={{ fontFamily: t.fonts.body }}>{it.description}</small>}
+              {it.description && <small style={{ fontFamily: t.fonts.body, color: '#8e8a8a' }}>{it.description}</small>}
             </span>
             <b style={{ color: t.colors.price, fontFamily: t.fonts.item }}>{priceOf(it)}</b>
           </div>

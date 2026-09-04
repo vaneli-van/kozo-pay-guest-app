@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { openState } from '../lib/hours'
+import { injectStudioFonts } from '../lib/studioFonts'
 
 export const Route = createFileRoute('/m/$slug')({ component: PublicMenu })
 
@@ -70,7 +71,7 @@ function PublicMenu() {
         heading: th.colors?.heading || '#171717',
         price: th.colors?.price || '#171717',
       },
-      layout: { item_photos: th.layout?.item_photos || 'small' },
+      layout: { item_photos: th.layout?.item_photos || 'small', align: th.layout?.align || 'left', price_style: th.layout?.price_style || 'symbol' },
     }),
     [data],
   )
@@ -82,8 +83,13 @@ function PublicMenu() {
 
   const sections = data?.sections ?? []
   const sec = sections.find((x) => x.id === active) ?? sections[0]
-  const priceOf = (it: any) =>
-    it?.price_display && String(it.price_display).trim() ? String(it.price_display).trim() : fmtPrice(it?.price_pesewas, currency)
+  const priceOf = (it: any) => {
+    if (it?.price_display && String(it.price_display).trim()) return String(it.price_display).trim()
+    if (it?.price_pesewas == null) return ''
+    if (t.layout.price_style === 'plain') return (it.price_pesewas / 100).toLocaleString('en-GH', { maximumFractionDigits: 2 })
+    return fmtPrice(it.price_pesewas, currency)
+  }
+  useEffect(() => { injectStudioFonts(t.fonts) }, [data])
 
   const imgFallback = (e: any) => {
     if (e?.currentTarget) e.currentTarget.style.display = 'none'
@@ -179,9 +185,17 @@ function PublicMenu() {
               ))}
             </div>
             <div className="menu-group">
-              <div className="section-label" style={{ fontFamily: t.fonts.heading, color: t.colors.heading }}>
-                {(sec?.name || '').toUpperCase()} <span>{(sec?.items ?? []).length} items</span>
-              </div>
+              {t.layout.align === 'center' ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '4px 0 16px' }}>
+                  <div style={{ flex: 1, height: 1, background: t.colors.ink, opacity: 0.85 }} />
+                  <h2 style={{ margin: 0, fontFamily: t.fonts.heading, color: t.colors.heading, fontSize: 18, fontWeight: 700, letterSpacing: '.18em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{sec?.name || ''}</h2>
+                  <div style={{ flex: 1, height: 1, background: t.colors.ink, opacity: 0.85 }} />
+                </div>
+              ) : (
+                <div className="section-label" style={{ fontFamily: t.fonts.heading, color: t.colors.heading }}>
+                  {(sec?.name || '').toUpperCase()} <span>{(sec?.items ?? []).length} items</span>
+                </div>
+              )}
               {(sec?.items ?? []).map((it: any) => (
                 <div className="dish-row" key={it.id} style={{ opacity: it.sold_out || it.available === false ? 0.5 : 1, cursor: 'default' }}>
                   {t.layout.item_photos !== 'none' && it.image_url && <img src={it.image_url} alt={it.name} onError={imgFallback} />}
