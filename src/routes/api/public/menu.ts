@@ -39,7 +39,7 @@ export const Route = createFileRoute('/api/public/menu')({
               const menus: any[] = []
               for (const studio of sms) {
                 const { data: theme } = await supabase.from('studio_themes').select('tokens,template_name').eq('menu_id', studio.id).maybeSingle()
-                const { data: dig } = await supabase.from('studio_digital_settings').select('biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert,hours').eq('menu_id', studio.id).maybeSingle()
+                const { data: dig } = await supabase.from('studio_digital_settings').select('biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert,hours,rec_name,rec_note,rec_price_pesewas,rec_image_url').eq('menu_id', studio.id).maybeSingle()
                 const { data: secs } = await supabase.from('studio_sections').select('id,name,sort').eq('menu_id', studio.id).eq('visible', true).order('sort')
                 const secIds = (secs ?? []).map((x: any) => x.id)
                 const { data: its } = secIds.length

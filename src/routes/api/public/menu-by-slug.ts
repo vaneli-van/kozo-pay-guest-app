@@ -22,7 +22,7 @@ export const Route = createFileRoute('/api/public/menu-by-slug')({
 
           const { data: dig } = await supabase
             .from('studio_digital_settings')
-            .select('menu_id,biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert,hours,published')
+            .select('menu_id,biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert,hours,rec_name,rec_note,rec_price_pesewas,rec_image_url,published')
             .eq('public_slug', slug)
             .maybeSingle()
           if (!dig || !dig.published) return json({ ok: false, reason: 'not_found' })

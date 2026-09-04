@@ -11,6 +11,26 @@ const POST = (url: string, body: unknown): Promise<any> =>
 // Paystack's checkout sends X-Frame-Options: SAMEORIGIN, so it cannot load inside an
 // embedded preview iframe. Navigate the top-level window when we're framed; if the
 // browser blocks cross-origin top navigation, fall back to opening a new tab.
+function optimisticUnits(split: any, billItemId: string, units: number) {
+  const myId = split?.myShareId
+  if (!myId) return split
+  const myName = (split.shares || []).find((sh: any) => sh.mine)?.name || 'You'
+  const items = (split.items || []).map((it: any) => {
+    if (it.billItemId !== billItemId) return it
+    let takers = (it.takers || []).filter((t: any) => t.shareId !== myId)
+    const clamped = Math.max(0, Math.min(units, it.qty))
+    if (clamped > 0) takers = [...takers, { shareId: myId, name: myName, units: clamped, paid: false }]
+    const used = takers.reduce((a: number, t: any) => a + (t.units || 0), 0)
+    return { ...it, takers, unitsFree: Math.max(0, it.qty - used) }
+  })
+  const myAmount = items.reduce((a: number, it: any) => {
+    const u = (it.takers || []).find((t: any) => t.shareId === myId)?.units || 0
+    const unit = it.qty > 0 ? it.lineTotalPesewas / it.qty : it.lineTotalPesewas
+    return a + u * unit
+  }, 0)
+  return { ...split, items, myShareAmountPesewas: Math.round(myAmount) }
+}
+
 function openCheckout(url: string) {
   if (typeof window === 'undefined') return
   const framed = window.top !== window.self
@@ -75,10 +95,16 @@ export default function App({
         return
       }
       case 'split-assign':
-        if (sessionToken) POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name }).then(applyItemsSplit)
+        if (sessionToken) {
+          if (s.split?.myShareId) patch({ split: optimisticUnits(s.split, action.billItemId, action.units) })
+          POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name }).then(applyItemsSplit)
+        }
         return
       case 'split-unassign':
-        if (sessionToken) POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId }).then(applyItemsSplit)
+        if (sessionToken) {
+          if (s.split?.myShareId) patch({ split: optimisticUnits(s.split, action.billItemId, 0) })
+          POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId }).then(applyItemsSplit)
+        }
         return
       case 'assign-remaining':
         if (sessionToken) POST('/api/public/assign-remaining', { sessionToken, name: action.name }).then(applyItemsSplit)
