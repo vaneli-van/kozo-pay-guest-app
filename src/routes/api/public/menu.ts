@@ -29,7 +29,30 @@ export const Route = createFileRoute('/api/public/menu')({
 
           const { data: table } = await supabase.from('restaurant_tables').select('branch_id').eq('id', session.table_id).maybeSingle()
           const branchId = table!.branch_id
+          const { data: branch } = await supabase.from('branches').select('restaurant_id').eq('id', branchId).maybeSingle()
+          const restaurantId = branch?.restaurant_id
 
+          // A published (live) Menu Studio menu takes over the diner menu, themed.
+          if (restaurantId) {
+            const { data: sm } = await supabase.from('studio_menus').select('id,currency').eq('restaurant_id', restaurantId).eq('status', 'live').order('updated_at', { ascending: false }).limit(1)
+            const studio = sm?.[0]
+            if (studio) {
+              const { data: theme } = await supabase.from('studio_themes').select('tokens,template_name').eq('menu_id', studio.id).maybeSingle()
+              const { data: secs } = await supabase.from('studio_sections').select('id,name,sort').eq('menu_id', studio.id).eq('visible', true).order('sort')
+              const secIds = (secs ?? []).map((x: any) => x.id)
+              const { data: its } = secIds.length
+                ? await supabase.from('studio_items').select('id,section_id,name,description,price_pesewas,price_display,image_url,tags,available,sold_out,sort').in('section_id', secIds).eq('visible', true).order('sort')
+                : { data: [] }
+              const bySec: Record<string, any[]> = {}
+              for (const it of its ?? []) { (bySec[it.section_id] ||= []).push(it) }
+              const sections = (secs ?? [])
+                .map((x: any) => ({ id: x.id, name: x.name, items: bySec[x.id] ?? [] }))
+                .filter((x: any) => x.items.length > 0)
+              return json({ ok: true, source: 'studio', currency: studio.currency ?? 'GHS', theme: theme?.tokens ?? null, template: theme?.template_name ?? null, sections })
+            }
+          }
+
+          // Fallback: the POS-synced menu (menu_categories / menu_items).
           const { data: categories } = await supabase.from('menu_categories').select('id,name,sort').eq('branch_id', branchId).order('sort')
           const catIds = (categories ?? []).map((c) => c.id)
           const { data: items } = catIds.length
@@ -37,7 +60,7 @@ export const Route = createFileRoute('/api/public/menu')({
             : { data: [] }
           const { data: recommendations } = await supabase.from('recommendations').select('id,item_id,kind,title,subtitle,sort').eq('branch_id', branchId).order('sort')
 
-          return json({ ok: true, categories: categories ?? [], items: items ?? [], recommendations: recommendations ?? [] })
+          return json({ ok: true, source: 'pos', categories: categories ?? [], items: items ?? [], recommendations: recommendations ?? [] })
         } catch (e) {
           return json({ ok: false, reason: 'error', message: String(e) })
         }

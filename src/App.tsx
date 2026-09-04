@@ -236,7 +236,7 @@ export default function App({
   useEffect(() => {
     if (!sessionToken || s.menu) return
     POST('/api/public/menu', { sessionToken }).then((r) => {
-      if (r?.ok) patch({ menu: { categories: r.categories ?? [], items: r.items ?? [], recommendations: r.recommendations ?? [] }, activeCategoryId: s.activeCategoryId ?? (r.categories?.[0]?.id) })
+      if (r?.ok) patch({ menu: { source: r.source ?? 'pos', categories: r.categories ?? [], items: r.items ?? [], recommendations: r.recommendations ?? [], sections: r.sections ?? [], theme: r.theme ?? null, currency: r.currency ?? 'GHS' }, activeCategoryId: s.activeCategoryId ?? (r.categories?.[0]?.id) })
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionToken, s.menu])

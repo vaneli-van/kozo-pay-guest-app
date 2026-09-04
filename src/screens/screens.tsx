@@ -21,7 +21,7 @@ export function Welcome({ s, dispatch }: any) { return <section className="welco
 
 export function Empty({ s, dispatch }: any) { return <section><Back dispatch={dispatch} to="welcome" /><p className="eyebrow">{s?.tableLabel ? `TABLE ${s.tableLabel} · READY WHEN YOU ARE` : 'READY WHEN YOU ARE'}</p><h1>Your table,<br /><em>your pace.</em></h1><p className="muted">Nothing has been added yet. Browse the menu, or call someone over if you need a recommendation.</p><div className="empty-card"><QrCode /><strong>No order yet</strong><span>Your bill will appear here once the first order is placed.</span></div><Action onClick={() => dispatch(go('menu'))}>Explore the menu</Action><button className="waiter-link" onClick={() => dispatch(go('waiter'))}><Send />Ask for a recommendation</button></section> }
 
-export function Menu({ s, dispatch }: any) { const [group, setGroup] = useState('Food'); const cats = s?.menu?.categories ?? []; const allItems = s?.menu?.items ?? []; const rec = (s?.menu?.recommendations ?? [])[0]; const GROUPS: [string, (n: number) => boolean][] = [['Food', (n) => n < 100], ['Drinks', (n) => n >= 200 && n < 300], ['Spirits', (n) => n >= 300 && n < 400], ['Wine', (n) => n >= 400]]; const test = (GROUPS.find((g) => g[0] === group) ?? GROUPS[0]!)[1]; const groupCats = cats.filter((c: any) => test(c.sort)); return <section><header className="page-header"><div><p className="eyebrow">{(s?.restaurantName || '').toUpperCase()} · TABLE {s?.tableLabel ?? ''}</p><h1>What are you<br /><em>in the mood for?</em></h1></div><button className="icon-button"><Search /></button></header><div className="tabs">{GROUPS.map(([key]) => <button key={key} className={key === group ? 'active' : ''} onClick={() => setGroup(key)}>{key}</button>)}</div>{rec && <div className="recommend"><div><p className="eyebrow">CHEF'S NOTE</p><h2>{rec.title}</h2><p>{rec.subtitle}</p></div><Star /></div>}{groupCats.map((c: any) => { const items = allItems.filter((i: any) => i.category_id === c.id); return <div className="menu-group" key={c.id}><div className="section-label">{c.name.toUpperCase()} <span>{items.length} items</span></div>{items.map((i: any) => <button className="dish-row" key={i.id} onClick={() => dispatch({ type: 'patch-go', value: { selectedItem: i, dish: i.name }, to: 'dish' })}><img src={menuImg(i)} alt={i.name} onError={imgFallback} /><span><strong>{i.name}</strong><small>{i.tags?.sub ?? (i.tags?.signature ? 'Chef’s signature' : `${s?.restaurantName || 'the'} kitchen`)}</small></span><b>{pes(i.price_pesewas)}</b><ChevronRight /></button>)}</div> })}<Action secondary onClick={() => dispatch(go('bill'))}>View live bill</Action></section> }
+export function Menu({ s, dispatch }: any) { if (s?.menu?.source === 'studio') return <StudioMenu s={s} dispatch={dispatch} />; const [group, setGroup] = useState('Food'); const cats = s?.menu?.categories ?? []; const allItems = s?.menu?.items ?? []; const rec = (s?.menu?.recommendations ?? [])[0]; const GROUPS: [string, (n: number) => boolean][] = [['Food', (n) => n < 100], ['Drinks', (n) => n >= 200 && n < 300], ['Spirits', (n) => n >= 300 && n < 400], ['Wine', (n) => n >= 400]]; const test = (GROUPS.find((g) => g[0] === group) ?? GROUPS[0]!)[1]; const groupCats = cats.filter((c: any) => test(c.sort)); return <section><header className="page-header"><div><p className="eyebrow">{(s?.restaurantName || '').toUpperCase()} · TABLE {s?.tableLabel ?? ''}</p><h1>What are you<br /><em>in the mood for?</em></h1></div><button className="icon-button"><Search /></button></header><div className="tabs">{GROUPS.map(([key]) => <button key={key} className={key === group ? 'active' : ''} onClick={() => setGroup(key)}>{key}</button>)}</div>{rec && <div className="recommend"><div><p className="eyebrow">CHEF'S NOTE</p><h2>{rec.title}</h2><p>{rec.subtitle}</p></div><Star /></div>}{groupCats.map((c: any) => { const items = allItems.filter((i: any) => i.category_id === c.id); return <div className="menu-group" key={c.id}><div className="section-label">{c.name.toUpperCase()} <span>{items.length} items</span></div>{items.map((i: any) => <button className="dish-row" key={i.id} onClick={() => dispatch({ type: 'patch-go', value: { selectedItem: i, dish: i.name }, to: 'dish' })}><img src={menuImg(i)} alt={i.name} onError={imgFallback} /><span><strong>{i.name}</strong><small>{i.tags?.sub ?? (i.tags?.signature ? 'Chef’s signature' : `${s?.restaurantName || 'the'} kitchen`)}</small></span><b>{pes(i.price_pesewas)}</b><ChevronRight /></button>)}</div> })}<Action secondary onClick={() => dispatch(go('bill'))}>View live bill</Action></section> }
 
 export function Category({ s, dispatch }: any) { const cats = s?.menu?.categories ?? []; const activeId = s?.activeCategoryId ?? cats[0]?.id; const cat = cats.find((c: any) => c.id === activeId); const shown = (s?.menu?.items ?? []).filter((i: any) => i.category_id === activeId); return <section><Back dispatch={dispatch} to="menu" /><p className="eyebrow">{(s?.restaurantName || '').toUpperCase()} MENU</p><h1>{cat?.name ?? 'Menu'}</h1><p className="muted">A little something for everyone at the table.</p><div className="section-label">ALL {(cat?.name ?? 'ITEMS').toUpperCase()}</div><div className="simple-list">{shown.map((i: any) => <p key={i.id} onClick={() => dispatch({ type: 'patch-go', value: { selectedItem: i, dish: i.name }, to: 'dish' })}>{i.name} <b>{pes(i.price_pesewas)}</b></p>)}</div></section> }
 
@@ -231,3 +231,70 @@ export function Handoff({ dispatch }: any) { return <div className="review-page"
 export function BillIssue({ s, dispatch }: any) { const reasons = ['An item looks wrong', 'I was charged twice', "This isn't our table's bill", 'Something else']; return <section><Back dispatch={dispatch} to="bill" /><p className="eyebrow">BILL SUPPORT</p><h1>What looks<br /><em>off?</em></h1><p className="muted">Tell us what to check and a {s?.restaurantName || ''} team member will come over. Your bill is never changed from your phone.</p><div className="sheet-options">{reasons.map((r) => <button key={r} onClick={() => dispatch({ type: 'dispute', note: r })}><Info /><span><b>{r}</b></span><ChevronRight /></button>)}</div></section> }
 
 export const map: Record<string, any> = { connect: Connect, welcome: Welcome, empty: Empty, menu: Menu, category: Category, dish: Dish, waiter: Waiter, 'waiter-notified': WaiterNotified, 'waiting-bill': WaitingBill, 'bill-ready': (p: any) => <Bill {...p} ready />, bill: Bill, 'bill-issue': BillIssue, 'full-check': FullCheck, recommendation: Recommendation, pay: Pay, split: Split, 'split-share': (p: any) => <SplitShare {...p} />, 'split-lobby': (p: any) => <SplitLobby {...p} />, 'split-items': (p: any) => <SplitItems {...p} />, tip: Tip, review: Review, method: Method, momo: Momo, otp: PaymentOtp, authorise: Authorise, processing: Processing, 'payment-error': (p: any) => <Momo {...p} error />, success: Success, 'receipt-choice': ReceiptChoice, phone: Phone, 'otp-rewards': OtpRewards, name: Name, rewards: Rewards, 'guest-receipt': GuestReceipt, feedback: Feedback, 'review-handoff': ReviewHandoff, complete: Complete }
+
+// Diner render for a published Menu Studio menu (themed). Display-only; bill/pay unchanged.
+function StudioMenu({ s, dispatch }: any) {
+  const sections = s?.menu?.sections ?? []
+  const th = s?.menu?.theme || {}
+  const t = {
+    fonts: {
+      title: th.fonts?.title || 'Georgia, serif',
+      heading: th.fonts?.heading || 'Georgia, serif',
+      item: th.fonts?.item || '"Helvetica Neue", Arial, sans-serif',
+      body: th.fonts?.body || 'Arial, sans-serif',
+    },
+    colors: {
+      ink: th.colors?.ink || '#171717',
+      paper: th.colors?.paper || '#f7f5f0',
+      accent: th.colors?.accent || '#f3c744',
+      heading: th.colors?.heading || '#171717',
+      price: th.colors?.price || '#171717',
+    },
+    layout: { item_photos: th.layout?.item_photos || 'small' },
+  }
+  const [active, setActive] = useState<string | null>(sections[0]?.id ?? null)
+  const sec = sections.find((x: any) => x.id === active) ?? sections[0]
+  const priceOf = (it: any) =>
+    it?.price_display && String(it.price_display).trim() ? String(it.price_display).trim() : it?.price_pesewas != null ? pes(it.price_pesewas) : ''
+
+  if (!sections.length) {
+    return (
+      <section>
+        <header className="page-header"><div><p className="eyebrow">{(s?.restaurantName || '').toUpperCase()} · TABLE {s?.tableLabel ?? ''}</p><h1>Menu<br /><em>coming soon.</em></h1></div></header>
+        <Action secondary onClick={() => dispatch(go('bill'))}>View live bill</Action>
+      </section>
+    )
+  }
+
+  return (
+    <section className="studio-menu" style={{ background: t.colors.paper, color: t.colors.ink, fontFamily: t.fonts.body, margin: '-22px -20px 0', padding: '22px 20px', minHeight: 'calc(100dvh - 60px)' }}>
+      <header className="page-header">
+        <div>
+          <p className="eyebrow" style={{ color: t.colors.accent }}>{(s?.restaurantName || '').toUpperCase()} · TABLE {s?.tableLabel ?? ''}</p>
+          <h1 style={{ fontFamily: t.fonts.title, color: t.colors.heading }}>What are you<br /><em>in the mood for?</em></h1>
+        </div>
+        <button className="icon-button" style={{ borderColor: t.colors.accent }}><Search /></button>
+      </header>
+      <div className="tabs">
+        {sections.map((x: any) => (
+          <button key={x.id} className={x.id === sec?.id ? 'active' : ''} onClick={() => setActive(x.id)}
+            style={x.id === sec?.id ? { color: t.colors.heading, borderBottomColor: t.colors.accent, fontFamily: t.fonts.item } : { fontFamily: t.fonts.item }}>{x.name}</button>
+        ))}
+      </div>
+      <div className="menu-group">
+        <div className="section-label" style={{ fontFamily: t.fonts.heading, color: t.colors.heading }}>{(sec?.name || '').toUpperCase()} <span>{(sec?.items ?? []).length} items</span></div>
+        {(sec?.items ?? []).map((it: any) => (
+          <div className="dish-row" key={it.id} style={{ opacity: it.sold_out || it.available === false ? 0.5 : 1, cursor: 'default' }}>
+            {t.layout.item_photos !== 'none' && it.image_url && <img src={it.image_url} alt={it.name} onError={imgFallback} />}
+            <span>
+              <strong style={{ fontFamily: t.fonts.item, color: t.colors.ink }}>{it.name}{it.sold_out ? ' · Sold out' : ''}</strong>
+              {it.description && <small style={{ fontFamily: t.fonts.body }}>{it.description}</small>}
+            </span>
+            <b style={{ color: t.colors.price, fontFamily: t.fonts.item }}>{priceOf(it)}</b>
+          </div>
+        ))}
+      </div>
+      <Action secondary onClick={() => dispatch(go('bill'))}>View live bill</Action>
+    </section>
+  )
+}
