@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ArrowLeft, ChevronRight, ReceiptText, Send, Utensils } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ReceiptText, Utensils } from 'lucide-react'
 import { go, type State } from '../session/machine'
 import { money } from '../lib/format'
 
@@ -9,7 +9,7 @@ export function accentStyle(accentColor?: string) {
 
 export function Shell({ children, s, dispatch }: { children: React.ReactNode; s: State; dispatch: React.Dispatch<any> }) {
   const style = accentStyle(s?.accentColor)
-  return <><main className="app-shell" style={style}><div className="topline"><img className="wordmark-logo" src={s?.logoUrl || '/klown-logo.png'} alt={s?.restaurantName || 'Klown'} /><span className="table-pill">TABLE {s?.tableLabel ?? '07'} <span className="dot" /></span></div>{children}</main><nav className="bottom-nav" style={style}><button onClick={() => dispatch(go('menu'))}><Utensils />Menu</button><button onClick={() => dispatch(go(s.hasOrder ? 'bill' : 'empty'))}><ReceiptText />Bill</button><button onClick={() => dispatch(go('waiter'))}><Send />Waiter</button></nav></>
+  return <><main className="app-shell" style={style}><div className="topline"><img className="wordmark-logo" src={s?.logoUrl || '/klown-logo.png'} alt={s?.restaurantName || 'Klown'} /><span className="table-pill">TABLE {s?.tableLabel ?? '07'} <span className="dot" /></span></div>{children}</main><nav className="bottom-nav" style={style}><button onClick={() => dispatch(go('menu'))}><Utensils />Menu</button><button onClick={() => dispatch(go(s.hasOrder ? 'bill' : 'empty'))}><ReceiptText />Bill</button></nav></>
 }
 
 export function Back({ dispatch, to = 'menu' }: any) { return <button className="back" onClick={() => dispatch(go(to))}><ArrowLeft />Back</button> }
