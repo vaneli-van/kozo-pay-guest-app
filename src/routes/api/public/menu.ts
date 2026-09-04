@@ -38,6 +38,7 @@ export const Route = createFileRoute('/api/public/menu')({
             const studio = sm?.[0]
             if (studio) {
               const { data: theme } = await supabase.from('studio_themes').select('tokens,template_name').eq('menu_id', studio.id).maybeSingle()
+              const { data: dig } = await supabase.from('studio_digital_settings').select('biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert').eq('menu_id', studio.id).maybeSingle()
               const { data: secs } = await supabase.from('studio_sections').select('id,name,sort').eq('menu_id', studio.id).eq('visible', true).order('sort')
               const secIds = (secs ?? []).map((x: any) => x.id)
               const { data: its } = secIds.length
@@ -48,7 +49,7 @@ export const Route = createFileRoute('/api/public/menu')({
               const sections = (secs ?? [])
                 .map((x: any) => ({ id: x.id, name: x.name, items: bySec[x.id] ?? [] }))
                 .filter((x: any) => x.items.length > 0)
-              return json({ ok: true, source: 'studio', currency: studio.currency ?? 'GHS', theme: theme?.tokens ?? null, template: theme?.template_name ?? null, sections })
+              return json({ ok: true, source: 'studio', currency: studio.currency ?? 'GHS', theme: theme?.tokens ?? null, template: theme?.template_name ?? null, digital: dig ?? null, sections })
             }
           }
 

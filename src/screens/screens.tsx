@@ -235,6 +235,7 @@ export const map: Record<string, any> = { connect: Connect, welcome: Welcome, em
 // Diner render for a published Menu Studio menu (themed). Display-only; bill/pay unchanged.
 function StudioMenu({ s, dispatch }: any) {
   const sections = s?.menu?.sections ?? []
+  const dig = s?.menu?.digital || {}
   const th = s?.menu?.theme || {}
   const t = {
     fonts: {
@@ -268,6 +269,10 @@ function StudioMenu({ s, dispatch }: any) {
 
   return (
     <section className="studio-menu" style={{ background: t.colors.paper, color: t.colors.ink, fontFamily: t.fonts.body, margin: '-22px -20px 0', padding: '22px 20px', minHeight: 'calc(100dvh - 60px)' }}>
+      {dig.welcome_alert && <div style={{ background: dig.banner_bg || t.colors.accent, color: '#fff', margin: '-22px -20px 14px', padding: '9px 20px', fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textAlign: 'center' }}>{dig.welcome_alert}</div>}
+      {dig.banner_url && <div style={{ height: 150, margin: (dig.welcome_alert ? '0' : '-22px') + ' -20px 14px', backgroundImage: `url(${dig.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />}
+      {!dig.banner_url && dig.logo_url && <div style={{ textAlign: 'center', marginBottom: 12 }}><img src={dig.logo_url} alt={dig.biz_name || ''} style={{ height: 54, objectFit: 'contain' }} /></div>}
+      {(dig.biz_name || dig.info || dig.phone || dig.link_url) && <div style={{ textAlign: 'center', marginBottom: 16 }}>{dig.biz_name && <div style={{ fontFamily: t.fonts.title, fontSize: 18, color: t.colors.heading }}>{dig.biz_name}</div>}{dig.info && <div style={{ opacity: .75, fontSize: 12, marginTop: 2 }}>{dig.info}</div>}{(dig.phone || dig.link_url) && <div style={{ opacity: .75, fontSize: 12, marginTop: 2 }}>{dig.phone}{dig.phone && dig.link_url ? ' · ' : ''}{dig.link_url && <a href={dig.link_url} target="_blank" rel="noopener noreferrer" style={{ color: t.colors.accent }}>{dig.link_text || 'Website'}</a>}</div>}</div>}
       <header className="page-header">
         <div>
           <p className="eyebrow" style={{ color: t.colors.accent }}>{(s?.restaurantName || '').toUpperCase()} · TABLE {s?.tableLabel ?? ''}</p>
