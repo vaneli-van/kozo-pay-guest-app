@@ -126,7 +126,7 @@ function PublicMenu() {
         )}
         {!dig.banner_url && dig.logo_url && (
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <img src={dig.logo_url} alt={dig.biz_name || ''} style={{ height: 54, objectFit: 'contain' }} onError={imgFallback} />
+            <img src={dig.logo_url} alt={dig.biz_name || ''} style={{ height: 96, width: 'auto', objectFit: 'contain', display: 'block', margin: '0 auto' }} onError={imgFallback} />
           </div>
         )}
         {(dig.biz_name || dig.info || dig.phone || dig.link_url) && (
