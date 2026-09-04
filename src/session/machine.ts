@@ -1,5 +1,5 @@
 export type Screen =
-  | 'connect' | 'welcome' | 'empty' | 'menu' | 'category' | 'dish' | 'waiter' | 'waiter-notified' | 'waiting-bill' | 'bill-ready' | 'bill' | 'bill-issue' | 'full-check' | 'recommendation' | 'pay' | 'split' | 'split-share' | 'split-lobby' | 'tip' | 'review' | 'method' | 'momo' | 'otp' | 'authorise' | 'processing' | 'payment-error' | 'success' | 'receipt-choice' | 'phone' | 'otp-rewards' | 'name' | 'rewards' | 'guest-receipt' | 'feedback' | 'review-handoff' | 'complete'
+  | 'connect' | 'welcome' | 'empty' | 'menu' | 'category' | 'dish' | 'waiter' | 'waiter-notified' | 'waiting-bill' | 'bill-ready' | 'bill' | 'bill-issue' | 'full-check' | 'recommendation' | 'pay' | 'split' | 'split-share' | 'split-lobby' | 'split-items' | 'tip' | 'review' | 'method' | 'momo' | 'otp' | 'authorise' | 'processing' | 'payment-error' | 'success' | 'receipt-choice' | 'phone' | 'otp-rewards' | 'name' | 'rewards' | 'guest-receipt' | 'feedback' | 'review-handoff' | 'complete'
 
 export type ShareMode = 'full' | 'even' | 'custom' | 'invite'
 
@@ -40,6 +40,11 @@ export type State = {
     id: string; mode: string; totalPesewas: number; status: string
     paidPesewas: number; remainingPesewas: number
     shares: { id: string; position: number; label: string; amountPesewas: number; status: string; claimedByName?: string | null; mine?: boolean; shareToken: string }[]
+    // items mode (mode === 'items') only
+    items?: { billItemId: string; name: string; qty: number; lineTotalPesewas: number; unitsFree: number; takers: { shareId: string; name: string; units: number; paid: boolean }[] }[]
+    myShareId?: string | null
+    myShareAmountPesewas?: number | null
+    unassignedPesewas?: number
   } | undefined
 
   receiptNumber?: string
