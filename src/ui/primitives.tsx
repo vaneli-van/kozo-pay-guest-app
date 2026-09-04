@@ -9,7 +9,7 @@ export function accentStyle(accentColor?: string) {
 
 export function Shell({ children, s, dispatch }: { children: React.ReactNode; s: State; dispatch: React.Dispatch<any> }) {
   const style = accentStyle(s?.accentColor)
-  return <><main className="app-shell" style={style}><div className="topline"><img className="wordmark-logo" src={s?.logoUrl || '/klown-logo.png'} alt={s?.restaurantName || 'Klown'} /><span className="table-pill">TABLE {s?.tableLabel ?? '07'} <span className="dot" /></span></div>{children}</main><nav className="bottom-nav" style={style}><button onClick={() => dispatch(go('menu'))}><Utensils />Menu</button><button onClick={() => dispatch(go(s.hasOrder ? 'bill' : 'empty'))}><ReceiptText />Bill</button></nav></>
+  return <><main className="app-shell" style={style}>{!(s?.screen === 'menu' && s?.menu?.source === 'studio') && <div className="topline"><img className="wordmark-logo" src={s?.logoUrl || '/klown-logo.png'} alt={s?.restaurantName || 'Klown'} /><span className="table-pill">TABLE {s?.tableLabel ?? '07'} <span className="dot" /></span></div>}{children}</main><nav className="bottom-nav" style={style}><button onClick={() => dispatch(go('menu'))}><Utensils />Menu</button><button onClick={() => dispatch(go(s.hasOrder ? 'bill' : 'empty'))}><ReceiptText />Bill</button></nav></>
 }
 
 export function Back({ dispatch, to = 'menu' }: any) { return <button className="back" onClick={() => dispatch(go(to))}><ArrowLeft />Back</button> }

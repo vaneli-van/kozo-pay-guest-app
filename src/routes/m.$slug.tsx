@@ -26,6 +26,7 @@ function PublicMenu() {
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading')
   const [data, setData] = useState<MenuData | null>(null)
   const [active, setActive] = useState<string | null>(null)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -82,7 +83,6 @@ function PublicMenu() {
   }, [data])
 
   const sections = data?.sections ?? []
-  const sec = sections.find((x) => x.id === active) ?? sections[0]
   const priceOf = (it: any) => {
     if (it?.price_display && String(it.price_display).trim()) return String(it.price_display).trim()
     if (it?.price_pesewas == null) return ''
@@ -90,6 +90,21 @@ function PublicMenu() {
     return fmtPrice(it.price_pesewas, currency)
   }
   useEffect(() => { injectStudioFonts(t.fonts) }, [data])
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 150)
+    window.addEventListener('scroll', onScroll, { passive: true }); onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  useEffect(() => {
+    if (!(data?.sections?.length)) return
+    const obs = new IntersectionObserver((entries) => {
+      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+      if (vis) setActive((vis.target as HTMLElement).dataset.sid || null)
+    }, { rootMargin: '-30% 0px -55% 0px', threshold: 0 })
+    ;(data!.sections || []).forEach((x: any) => { const el = document.getElementById('sec-' + x.id); if (el) obs.observe(el) })
+    return () => obs.disconnect()
+  }, [data])
+  const jump = (id: string) => { const el = document.getElementById('sec-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 
   const imgFallback = (e: any) => {
     if (e?.currentTarget) e.currentTarget.style.display = 'none'
@@ -117,6 +132,14 @@ function PublicMenu() {
 
   return (
     <div style={{ ...frame, background: t.colors.paper, color: t.colors.ink }}>
+      <div style={{ position: 'fixed', top: 0, left: '50%', width: 'min(100%, 480px)', zIndex: 30, background: t.colors.paper, borderBottom: '1px solid rgba(0,0,0,0.08)', transform: scrolled ? 'translate(-50%, 0)' : 'translate(-50%, -110%)', transition: 'transform .22s ease', paddingTop: 8 }}>
+        <div style={{ padding: '0 20px 8px' }}><strong style={{ fontFamily: t.fonts.title, color: t.colors.heading, fontSize: 15 }}>{dig.biz_name || data.menu_name || 'Menu'}</strong></div>
+        <div className="tabs" style={{ margin: 0, padding: '0 20px' }}>
+          {sections.map((x: any) => (
+            <button key={x.id} className={x.id === active ? 'active' : ''} onClick={() => jump(x.id)} style={x.id === active ? { color: t.colors.heading, borderBottomColor: t.colors.accent, fontFamily: t.fonts.item } : { fontFamily: t.fonts.item }}>{x.name}</button>
+          ))}
+        </div>
+      </div>
       <div style={{ padding: '22px 20px', fontFamily: t.fonts.body }}>
         {dig.welcome_alert && (
           <div style={{ background: dig.banner_bg || t.colors.accent, color: '#fff', margin: '-22px -20px 14px', padding: '9px 20px', fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textAlign: 'center' }}>{dig.welcome_alert}</div>
@@ -126,7 +149,7 @@ function PublicMenu() {
         )}
         {!dig.banner_url && dig.logo_url && (
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <img src={dig.logo_url} alt={dig.biz_name || ''} style={{ height: 96, width: 'auto', objectFit: 'contain', display: 'block', margin: '0 auto' }} onError={imgFallback} />
+            <img src={dig.logo_url} alt={dig.biz_name || ''} style={{ height: 104, width: 'auto', objectFit: 'contain', display: 'block', margin: '0 auto' }} onError={imgFallback} />
           </div>
         )}
         {(dig.biz_name || dig.info || dig.phone || dig.link_url) && (
@@ -172,44 +195,35 @@ function PublicMenu() {
           <div style={{ textAlign: 'center', padding: '48px 0', color: '#8a857c' }}>This menu has no items yet.</div>
         ) : (
           <>
-            <div className="tabs">
-              {sections.map((x) => (
-                <button
-                  key={x.id}
-                  className={x.id === sec?.id ? 'active' : ''}
-                  onClick={() => setActive(x.id)}
-                  style={x.id === sec?.id ? { color: t.colors.heading, borderBottomColor: t.colors.accent, fontFamily: t.fonts.item } : { fontFamily: t.fonts.item }}
-                >
-                  {x.name}
-                </button>
+            <div className="tabs" style={{ margin: '8px 0 18px' }}>
+              {sections.map((x: any) => (
+                <button key={x.id} className={x.id === active ? 'active' : ''} onClick={() => jump(x.id)}
+                  style={x.id === active ? { color: t.colors.heading, borderBottomColor: t.colors.accent, fontFamily: t.fonts.item } : { fontFamily: t.fonts.item }}>{x.name}</button>
               ))}
             </div>
-            <div className="menu-group">
-              {t.layout.align === 'center' ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '4px 0 16px' }}>
-                  <div style={{ flex: 1, height: 1, background: t.colors.ink, opacity: 0.85 }} />
-                  <h2 style={{ margin: 0, fontFamily: t.fonts.heading, color: t.colors.heading, fontSize: 18, fontWeight: 700, letterSpacing: '.18em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{sec?.name || ''}</h2>
-                  <div style={{ flex: 1, height: 1, background: t.colors.ink, opacity: 0.85 }} />
-                </div>
-              ) : (
-                <div className="section-label" style={{ fontFamily: t.fonts.heading, color: t.colors.heading }}>
-                  {(sec?.name || '').toUpperCase()} <span>{(sec?.items ?? []).length} items</span>
-                </div>
-              )}
-              {(sec?.items ?? []).map((it: any) => (
-                <div className="dish-row" key={it.id} style={{ opacity: it.sold_out || it.available === false ? 0.5 : 1, cursor: 'default' }}>
-                  {t.layout.item_photos !== 'none' && it.image_url && <img src={it.image_url} alt={it.name} onError={imgFallback} />}
-                  <span>
-                    <strong style={{ fontFamily: t.fonts.item, color: t.colors.ink }}>
-                      {it.name}
-                      {it.sold_out ? ' · Sold out' : ''}
-                    </strong>
-                    {it.description && <small style={{ fontFamily: t.fonts.body }}>{it.description}</small>}
-                  </span>
-                  <b style={{ color: t.colors.price, fontFamily: t.fonts.item }}>{priceOf(it)}</b>
-                </div>
-              ))}
-            </div>
+            {sections.map((section: any) => (
+              <div className="menu-group" key={section.id} id={'sec-' + section.id} data-sid={section.id} style={{ scrollMarginTop: 78 }}>
+                {t.layout.align === 'center' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '20px 0 16px' }}>
+                    <div style={{ flex: 1, height: 1, background: t.colors.ink, opacity: 0.85 }} />
+                    <h2 style={{ margin: 0, fontFamily: t.fonts.heading, color: t.colors.heading, fontSize: 18, fontWeight: 700, letterSpacing: '.18em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{section.name || ''}</h2>
+                    <div style={{ flex: 1, height: 1, background: t.colors.ink, opacity: 0.85 }} />
+                  </div>
+                ) : (
+                  <div className="section-label" style={{ fontFamily: t.fonts.heading, color: t.colors.heading }}>{(section.name || '').toUpperCase()} <span>{(section.items ?? []).length} items</span></div>
+                )}
+                {(section.items ?? []).map((it: any) => (
+                  <div className="dish-row" key={it.id} style={{ opacity: it.sold_out || it.available === false ? 0.5 : 1, cursor: 'default' }}>
+                    {t.layout.item_photos !== 'none' && it.image_url && <img src={it.image_url} alt={it.name} onError={imgFallback} />}
+                    <span>
+                      <strong style={{ fontFamily: t.fonts.item, color: t.colors.ink }}>{it.name}{it.sold_out ? ' · Sold out' : ''}</strong>
+                      {it.description && <small style={{ fontFamily: t.fonts.body, color: '#8e8a8a' }}>{it.description}</small>}
+                    </span>
+                    <b style={{ color: t.colors.price, fontFamily: t.fonts.item }}>{priceOf(it)}</b>
+                  </div>
+                ))}
+              </div>
+            ))}
           </>
         )}
         <PoweredBy />
