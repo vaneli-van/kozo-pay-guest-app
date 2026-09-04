@@ -41,6 +41,10 @@ export default function App({
     dispatch(go(screen))
   }
 
+  const applyItemsSplit = (r: any) => {
+    if (r?.ok && r.split) patch({ split: { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas } })
+  }
+
   const checkStatusOnce = async (ref?: string) => {
     const paymentRef = ref ?? s.paymentRef
     if (!sessionToken || !paymentRef) return
@@ -54,7 +58,7 @@ export default function App({
     // Going back into the checkout means starting a fresh charge — drop the old attempt
     // so a retry (or a changed amount/method) initiates a new, idempotent payment.
     const target: string | null = action.type === 'screen' ? action.value : action.type === 'patch-go' ? action.to : null
-    if (target && ['pay', 'split', 'split-share', 'split-lobby', 'tip', 'review', 'method', 'momo', 'authorise'].includes(target) && s.paymentRef) {
+    if (target && ['pay', 'split', 'split-share', 'split-lobby', 'split-items', 'tip', 'review', 'method', 'momo', 'authorise'].includes(target) && s.paymentRef) {
       idemRef.current = ''
       patch({ paymentRef: undefined })
     }
@@ -62,13 +66,23 @@ export default function App({
       case 'split-create': {
         if (!sessionToken) return
         patch({ splitError: undefined })
+        const dest: Screen = action.mode === 'items' ? 'split-items' : 'split-lobby'
         POST('/api/public/split-create', { sessionToken, mode: action.mode, partySize: action.people, amounts: action.amounts }).then((r) => {
-          if (r?.ok) { patch({ splitId: r.splitId }); goScreen('split-lobby') }
-          else if (r?.reason === 'split_exists') goScreen('split-lobby')
+          if (r?.ok) { patch({ splitId: r.splitId }); goScreen(dest) }
+          else if (r?.reason === 'split_exists') goScreen(dest)
           else patch({ splitError: r?.reason === 'shares_do_not_sum' ? 'Shares must add up to the bill total.' : r?.reason === 'already_paying' ? 'Payment has already started on this bill.' : 'Could not start the split. Please try again.' })
         })
         return
       }
+      case 'split-assign':
+        if (sessionToken) POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name }).then(applyItemsSplit)
+        return
+      case 'split-unassign':
+        if (sessionToken) POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId }).then(applyItemsSplit)
+        return
+      case 'assign-remaining':
+        if (sessionToken) POST('/api/public/assign-remaining', { sessionToken, name: action.name }).then(applyItemsSplit)
+        return
       case 'split-claim':
         if (sessionToken) POST('/api/public/split-claim', { sessionToken, shareId: action.shareId }).then((r) => { if (r?.ok) patch({ claimedShareId: r.shareId }) })
         return
@@ -192,12 +206,12 @@ export default function App({
 
   // Live split state — polled while the diner is on the split lobby.
   useEffect(() => {
-    if (!sessionToken || s.screen !== 'split-lobby') return
+    if (!sessionToken || (s.screen !== 'split-lobby' && s.screen !== 'split-items')) return
     let cancelled = false
     const load = async () => {
       const r = await POST('/api/public/split', { sessionToken })
       if (cancelled) return
-      if (r?.ok) patch({ split: r.split ? { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares } : undefined })
+      if (r?.ok) patch({ split: r.split ? { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas } : undefined })
     }
     load()
     const id = window.setInterval(load, 3000)
