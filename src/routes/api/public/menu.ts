@@ -32,24 +32,30 @@ export const Route = createFileRoute('/api/public/menu')({
           const { data: branch } = await supabase.from('branches').select('restaurant_id').eq('id', branchId).maybeSingle()
           const restaurantId = branch?.restaurant_id
 
-          // A published (live) Menu Studio menu takes over the diner menu, themed.
+          // Published (live) Menu Studio menus take over the diner menu, themed. Supports multiple live menus.
           if (restaurantId) {
-            const { data: sm } = await supabase.from('studio_menus').select('id,currency').eq('restaurant_id', restaurantId).eq('status', 'live').order('updated_at', { ascending: false }).limit(1)
-            const studio = sm?.[0]
-            if (studio) {
-              const { data: theme } = await supabase.from('studio_themes').select('tokens,template_name').eq('menu_id', studio.id).maybeSingle()
-              const { data: dig } = await supabase.from('studio_digital_settings').select('biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert').eq('menu_id', studio.id).maybeSingle()
-              const { data: secs } = await supabase.from('studio_sections').select('id,name,sort').eq('menu_id', studio.id).eq('visible', true).order('sort')
-              const secIds = (secs ?? []).map((x: any) => x.id)
-              const { data: its } = secIds.length
-                ? await supabase.from('studio_items').select('id,section_id,name,description,price_pesewas,price_display,image_url,tags,available,sold_out,sort').in('section_id', secIds).eq('visible', true).order('sort')
-                : { data: [] }
-              const bySec: Record<string, any[]> = {}
-              for (const it of its ?? []) { (bySec[it.section_id] ||= []).push(it) }
-              const sections = (secs ?? [])
-                .map((x: any) => ({ id: x.id, name: x.name, items: bySec[x.id] ?? [] }))
-                .filter((x: any) => x.items.length > 0)
-              return json({ ok: true, source: 'studio', currency: studio.currency ?? 'GHS', theme: theme?.tokens ?? null, template: theme?.template_name ?? null, digital: dig ?? null, sections })
+            const { data: sms } = await supabase.from('studio_menus').select('id,name,currency').eq('restaurant_id', restaurantId).eq('status', 'live').order('updated_at', { ascending: false })
+            if (sms && sms.length) {
+              const menus: any[] = []
+              for (const studio of sms) {
+                const { data: theme } = await supabase.from('studio_themes').select('tokens,template_name').eq('menu_id', studio.id).maybeSingle()
+                const { data: dig } = await supabase.from('studio_digital_settings').select('biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert,hours').eq('menu_id', studio.id).maybeSingle()
+                const { data: secs } = await supabase.from('studio_sections').select('id,name,sort').eq('menu_id', studio.id).eq('visible', true).order('sort')
+                const secIds = (secs ?? []).map((x: any) => x.id)
+                const { data: its } = secIds.length
+                  ? await supabase.from('studio_items').select('id,section_id,name,description,price_pesewas,price_display,image_url,tags,available,sold_out,sort').in('section_id', secIds).eq('visible', true).order('sort')
+                  : { data: [] }
+                const bySec: Record<string, any[]> = {}
+                for (const it of its ?? []) { (bySec[it.section_id] ||= []).push(it) }
+                const sections = (secs ?? [])
+                  .map((x: any) => ({ id: x.id, name: x.name, items: bySec[x.id] ?? [] }))
+                  .filter((x: any) => x.items.length > 0)
+                if (sections.length) menus.push({ id: studio.id, name: studio.name, currency: studio.currency ?? 'GHS', theme: theme?.tokens ?? null, template: theme?.template_name ?? null, digital: dig ?? null, sections })
+              }
+              if (menus.length) {
+                const first = menus[0]
+                return json({ ok: true, source: 'studio', currency: first.currency, theme: first.theme, template: first.template, digital: first.digital, sections: first.sections, menus })
+              }
             }
           }
 

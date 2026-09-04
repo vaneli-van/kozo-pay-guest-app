@@ -3,6 +3,7 @@ import { Check, ChevronRight, Clock3, CreditCard, Heart, Info, Minus, Plus, QrCo
 import { go, screens, type Screen } from '../session/machine'
 import { money } from '../lib/format'
 import { Back, Action, Center, BillRow } from '../ui/primitives'
+import { openState } from '../lib/hours'
 
 const pes = (v?: number | null) => money((v ?? 0) / 100)
 // Real photo when the item has one; a neutral plate otherwise — never the wrong dish's image.
@@ -234,9 +235,12 @@ export const map: Record<string, any> = { connect: Connect, welcome: Welcome, em
 
 // Diner render for a published Menu Studio menu (themed). Display-only; bill/pay unchanged.
 function StudioMenu({ s, dispatch }: any) {
-  const sections = s?.menu?.sections ?? []
-  const dig = s?.menu?.digital || {}
-  const th = s?.menu?.theme || {}
+  const allMenus = s?.menu?.menus as any[] | undefined
+  const [mi, setMi] = useState(0)
+  const activeMenu = allMenus && allMenus[mi] ? allMenus[mi] : { sections: s?.menu?.sections ?? [], theme: s?.menu?.theme, digital: s?.menu?.digital }
+  const sections = activeMenu.sections ?? []
+  const dig = activeMenu.digital || {}
+  const th = activeMenu.theme || {}
   const t = {
     fonts: {
       title: th.fonts?.title || 'Georgia, serif',
@@ -253,6 +257,7 @@ function StudioMenu({ s, dispatch }: any) {
     },
     layout: { item_photos: th.layout?.item_photos || 'small' },
   }
+  const oc = openState(dig.hours)
   const [active, setActive] = useState<string | null>(sections[0]?.id ?? null)
   const sec = sections.find((x: any) => x.id === active) ?? sections[0]
   const priceOf = (it: any) =>
@@ -273,6 +278,18 @@ function StudioMenu({ s, dispatch }: any) {
       {dig.banner_url && <div style={{ height: 150, margin: (dig.welcome_alert ? '0' : '-22px') + ' -20px 14px', backgroundImage: `url(${dig.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />}
       {!dig.banner_url && dig.logo_url && <div style={{ textAlign: 'center', marginBottom: 12 }}><img src={dig.logo_url} alt={dig.biz_name || ''} style={{ height: 54, objectFit: 'contain' }} /></div>}
       {(dig.biz_name || dig.info || dig.phone || dig.link_url) && <div style={{ textAlign: 'center', marginBottom: 16 }}>{dig.biz_name && <div style={{ fontFamily: t.fonts.title, fontSize: 18, color: t.colors.heading }}>{dig.biz_name}</div>}{dig.info && <div style={{ opacity: .75, fontSize: 12, marginTop: 2 }}>{dig.info}</div>}{(dig.phone || dig.link_url) && <div style={{ opacity: .75, fontSize: 12, marginTop: 2 }}>{dig.phone}{dig.phone && dig.link_url ? ' · ' : ''}{dig.link_url && <a href={dig.link_url} target="_blank" rel="noopener noreferrer" style={{ color: t.colors.accent }}>{dig.link_text || 'Website'}</a>}</div>}</div>}
+      {oc && (
+        <div style={{ textAlign: 'center', marginBottom: 12 }}>
+          <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', padding: '3px 10px', borderRadius: 999, background: oc.open ? '#1c7c3a' : '#8a857c', color: '#fff' }}>{oc.open ? 'OPEN NOW' : 'CLOSED NOW'}</span>
+        </div>
+      )}
+      {allMenus && allMenus.length > 1 && (
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -20px 14px', padding: '0 20px' }}>
+          {allMenus.map((m: any, i: number) => (
+            <button key={m.id} onClick={() => setMi(i)} style={{ whiteSpace: 'nowrap', padding: '7px 14px', borderRadius: 999, border: '1px solid ' + (i === mi ? t.colors.accent : '#d8d2c6'), background: i === mi ? t.colors.accent : 'transparent', color: i === mi ? '#fff' : t.colors.ink, fontFamily: t.fonts.item, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{m.name}</button>
+          ))}
+        </div>
+      )}
       <header className="page-header">
         <div>
           <p className="eyebrow" style={{ color: t.colors.accent }}>{(s?.restaurantName || '').toUpperCase()} · TABLE {s?.tableLabel ?? ''}</p>

@@ -22,14 +22,14 @@ export const Route = createFileRoute('/api/public/menu-by-slug')({
 
           const { data: dig } = await supabase
             .from('studio_digital_settings')
-            .select('menu_id,biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert,published')
+            .select('menu_id,biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert,hours,published')
             .eq('public_slug', slug)
             .maybeSingle()
           if (!dig || !dig.published) return json({ ok: false, reason: 'not_found' })
 
           const { data: menu } = await supabase
             .from('studio_menus')
-            .select('id,name,currency,status')
+            .select('id,name,currency,status,restaurant_id')
             .eq('id', dig.menu_id)
             .maybeSingle()
           if (!menu || menu.status !== 'live') return json({ ok: false, reason: 'not_found' })
@@ -46,7 +46,19 @@ export const Route = createFileRoute('/api/public/menu-by-slug')({
             .map((x: any) => ({ id: x.id, name: x.name, items: bySec[x.id] ?? [] }))
             .filter((x: any) => x.items.length > 0)
 
-          return json({ ok: true, source: 'studio', menu_name: menu.name, currency: menu.currency ?? 'GHS', theme: theme?.tokens ?? null, template: theme?.template_name ?? null, digital: dig, sections })
+          // sibling live menus for this restaurant (for the public menu switcher)
+          let menus: { slug: string; name: string }[] = []
+          if (menu.restaurant_id) {
+            const { data: live } = await supabase.from('studio_menus').select('id,name').eq('restaurant_id', menu.restaurant_id).eq('status', 'live')
+            const liveIds = (live ?? []).map((m: any) => m.id)
+            const { data: digs } = liveIds.length
+              ? await supabase.from('studio_digital_settings').select('menu_id,public_slug,published').in('menu_id', liveIds)
+              : { data: [] }
+            const slugByMenu: Record<string, string> = {}
+            for (const d of digs ?? []) { if (d.published && d.public_slug) slugByMenu[d.menu_id] = d.public_slug }
+            menus = (live ?? []).filter((m: any) => slugByMenu[m.id]).map((m: any) => ({ slug: slugByMenu[m.id], name: m.name }))
+          }
+          return json({ ok: true, source: 'studio', menu_name: menu.name, currency: menu.currency ?? 'GHS', theme: theme?.tokens ?? null, template: theme?.template_name ?? null, digital: dig, sections, menus })
         } catch (e) {
           return json({ ok: false, reason: 'error', message: String(e) })
         }

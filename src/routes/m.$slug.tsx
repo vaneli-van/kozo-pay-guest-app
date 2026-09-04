@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
+import { openState } from '../lib/hours'
 
 export const Route = createFileRoute('/m/$slug')({ component: PublicMenu })
 
@@ -10,6 +11,7 @@ type MenuData = {
   theme?: any
   digital?: any
   sections?: { id: string; name: string; items: any[] }[]
+  menus?: { slug: string; name: string }[]
 }
 
 function fmtPrice(pesewas: number | null | undefined, currency: string) {
@@ -52,6 +54,7 @@ function PublicMenu() {
   const dig = data?.digital || {}
   const th = data?.theme || {}
   const currency = data?.currency || 'GHS'
+  const oc = openState(dig.hours)
   const t = useMemo(
     () => ({
       fonts: {
@@ -144,6 +147,21 @@ function PublicMenu() {
           </header>
         )}
 
+        {oc && (
+          <div style={{ textAlign: 'center', marginBottom: 12 }}>
+            <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', padding: '3px 10px', borderRadius: 999, background: oc.open ? '#1c7c3a' : '#8a857c', color: '#fff' }}>{oc.open ? 'OPEN NOW' : 'CLOSED NOW'}</span>
+          </div>
+        )}
+        {(data.menus?.length ?? 0) > 1 && (
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -20px 14px', padding: '0 20px' }}>
+            {data.menus!.map((m) => {
+              const on = m.slug === slug
+              return (
+                <a key={m.slug} href={`/m/${m.slug}`} style={{ whiteSpace: 'nowrap', textDecoration: 'none', padding: '7px 14px', borderRadius: 999, border: '1px solid ' + (on ? t.colors.accent : '#d8d2c6'), background: on ? t.colors.accent : 'transparent', color: on ? '#fff' : t.colors.ink, fontFamily: t.fonts.item, fontSize: 13, fontWeight: 600 }}>{m.name}</a>
+              )
+            })}
+          </div>
+        )}
         {sections.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 0', color: '#8a857c' }}>This menu has no items yet.</div>
         ) : (
