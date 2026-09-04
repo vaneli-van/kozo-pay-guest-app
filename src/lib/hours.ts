@@ -41,3 +41,23 @@ export function openState(hours: any): { open: boolean } | null {
     return null
   }
 }
+
+// A short human summary of opening hours for the welcome screen, or null if unknown.
+export function hoursLine(hours: any): string | null {
+  if (!hours || typeof hours !== 'object' || Array.isArray(hours)) return null
+  const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+  const has = days.filter((d) => hours[d] && hours[d].open && hours[d].close)
+  if (!has.length) return null
+  const to12 = (t: string) => {
+    const [H, M] = String(t).split(':').map(Number)
+    const ap = H < 12 ? 'am' : 'pm'
+    const h = (H % 12) || 12
+    return `${h}${M ? ':' + String(M).padStart(2, '0') : ''}${ap}`
+  }
+  const is24 = days.every((d) => hours[d] && hours[d].open === '00:00' && ['23:59', '00:00', '24:00'].includes(hours[d].close))
+  if (is24) return 'Open 24 hours, daily'
+  const norm = (d: string) => (hours[d] && hours[d].open && hours[d].close ? `${hours[d].open}-${hours[d].close}` : 'x')
+  const allSame = norm('mon') !== 'x' && days.every((d) => norm(d) === norm('mon'))
+  if (allSame) return `Open daily ${to12(hours.mon.open)}–${to12(hours.mon.close)}`
+  return null
+}

@@ -345,7 +345,7 @@ export default function App({
         // Keep the diner on whatever screen they were on, but let the freshly-resolved
         // table + order state win over a stale saved copy (order placed since last visit, etc.).
         const prev = JSON.parse(saved)
-        dispatch({ type: 'restore', value: { ...prev, hasOrder: initialState?.hasOrder ?? prev.hasOrder, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy } })
+        dispatch({ type: 'restore', value: { ...prev, screen: initialState?.hasOrder ? 'bill' : prev.screen, hasOrder: initialState?.hasOrder ?? prev.hasOrder, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy } })
       }
     } catch {}
     setHydrated(true)

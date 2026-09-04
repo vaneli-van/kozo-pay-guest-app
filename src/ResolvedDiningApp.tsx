@@ -25,5 +25,5 @@ function ResolvedInner({ token }: { token: string }) {
     ...(r.taglineBottom ? { taglineBottom: r.taglineBottom } : {}),
     ...(r.welcomeCopy ? { welcomeCopy: r.welcomeCopy } : {}),
   }
-  return <App initialState={{ screen: 'welcome', hasOrder: s.hasActiveBill, tableLabel: s.table.label, restaurantName: s.restaurant.name, ...branding }} storageKey={`klown-dining:${token}`} sessionToken={s.sessionToken} />
+  return <App initialState={{ screen: s.hasActiveBill ? 'bill' : 'welcome', hasOrder: s.hasActiveBill, tableLabel: s.table.label, restaurantName: s.restaurant.name, ...branding }} storageKey={`klown-dining:${token}`} sessionToken={s.sessionToken} />
 }
