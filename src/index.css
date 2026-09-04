@@ -19,3 +19,19 @@
 .split-progress .bar{height:6px;background:var(--soft);margin-top:6px}
 .split-progress .bar i{display:block;height:100%;background:var(--accent)}
 .receipt-error{color:#b00020;font-size:12px;margin-top:10px}
+.item-board{display:flex;flex-direction:column;margin:20px 0 4px;border-top:1px solid var(--line)}
+.item-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.item-row.dim{opacity:.45}
+.item-main{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.item-main strong{font-size:13px}
+.item-main small{color:var(--muted);font-size:11px}
+.item-take{border:1px solid var(--foreground);background:transparent;padding:8px 16px;font:inherit;font-size:12px;font-weight:700;min-width:64px;display:grid;place-items:center}
+.item-take.on{background:var(--accent)}
+.item-take svg{width:15px}
+.item-take:disabled{opacity:.4}
+.item-step{display:flex;align-items:center;gap:12px}
+.item-step button{border:1px solid var(--foreground);background:transparent;width:34px;height:34px;display:grid;place-items:center}
+.item-step button:disabled{opacity:.35}
+.item-step svg{width:15px}
+.item-step strong{font-size:16px;min-width:16px;text-align:center}
+.split-actions{display:flex;gap:18px;justify-content:center;margin-top:18px}

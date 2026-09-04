@@ -213,6 +213,7 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
       const paid = await amountPaidForBill(bill.id)
       if (paid >= bill.total_pesewas) {
         await supabaseAdmin.from('bills').update({ status: 'settled' }).eq('id', bill.id)
+        await supabaseAdmin.from('bill_splits').update({ status: 'settled' }).eq('bill_id', bill.id).eq('status', 'open')
         await onBillSettled(bill.id, bill.total_pesewas)
       }
     }
