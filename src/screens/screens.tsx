@@ -43,7 +43,7 @@ export function Pay({ s, dispatch }: any) { const due = s?.quote?.remainingPesew
 
 export function Split({ s, dispatch }: any) {
   const due = s?.bill?.totalPesewas ?? s?.quote?.remainingPesewas ?? 0
-  const [mode, setMode] = useState<'even' | 'amounts'>('even')
+  const [mode, setMode] = useState<'even' | 'amounts' | 'items'>('even')
   const [people, setPeople] = useState(s?.people ?? 2)
   const [rows, setRows] = useState<{ label: string; amount: string }[]>([{ label: '', amount: '' }, { label: '', amount: '' }])
   const assigned = rows.reduce((n, r) => n + Math.round((parseFloat(r.amount) || 0) * 100), 0)
@@ -53,11 +53,13 @@ export function Split({ s, dispatch }: any) {
     <div className="split-modes">
       <button className={mode === 'even' ? 'selected' : ''} onClick={() => setMode('even')}>Even split<small>Everyone pays the same</small></button>
       <button className={mode === 'amounts' ? 'selected' : ''} onClick={() => setMode('amounts')}>By amount<small>Set each share</small></button>
+      <button className={mode === 'items' ? 'selected' : ''} onClick={() => setMode('items')}>By item<small>Everyone pays for what they had</small></button>
     </div>
-    {mode === 'even' ? (<>
+    {mode === 'even' && (<>
       <div className="stepper"><button aria-label="Fewer people" onClick={() => setPeople(Math.max(2, people - 1))}><Minus /></button><strong>{people}</strong><button aria-label="More people" onClick={() => setPeople(people + 1)}><Plus /></button></div>
       <div className="split-share"><span>Each person pays about</span><b>{pes(Math.floor(due / Math.max(2, people)))}</b></div>
-    </>) : (<>
+    </>)}
+    {mode === 'amounts' && (<>
       <div className="amount-rows">{rows.map((r, i) => (
         <div className="amount-row" key={i}>
           <input placeholder={`Name ${i + 1}`} value={r.label} onChange={(e) => setRow(i, 'label', e.target.value)} />
@@ -68,11 +70,61 @@ export function Split({ s, dispatch }: any) {
       <button className="text-link" onClick={() => setRows([...rows, { label: '', amount: '' }])}>+ Add a share</button>
       <div className="split-share"><span>Assigned</span><b>{pes(assigned)} / {pes(due)}</b></div>
     </>)}
+    {mode === 'items' && (
+      <div className="notice-card"><Info /><span>Each person opens the bill, taps the items they had, and pays for just those. The table clears once every item is covered.</span></div>
+    )}
     {s?.splitError && <div className="error"><X />{s.splitError}</div>}
     <Action onClick={() => dispatch(mode === 'even'
       ? { type: 'split-create', mode: 'even', people }
+      : mode === 'items' ? { type: 'split-create', mode: 'items' }
       : reconciled ? { type: 'split-create', mode: 'amounts', amounts: rows.map((r) => ({ label: r.label, amount: Math.round((parseFloat(r.amount) || 0) * 100) })) } : { type: 'noop' })}>
-      {mode === 'amounts' && !reconciled ? `Assign ${pes(Math.max(0, due - assigned))} more` : 'Start split'}</Action>
+      {mode === 'amounts' && !reconciled ? `Assign ${pes(Math.max(0, due - assigned))} more` : mode === 'items' ? 'Start picking items' : 'Start split'}</Action>
+  </section>
+}
+
+export function SplitItems({ s, dispatch }: any) {
+  const split = s?.split
+  const base = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
+  const copyInvite = () => { try { navigator.clipboard?.writeText(base) } catch {} }
+  const waInvite = () => { try { window.open(`https://wa.me/?text=${encodeURIComponent(`Join our bill and pick your items: ${base}`)}`, '_blank', 'noopener') } catch {} }
+  if (!split || split.mode !== 'items') return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow="SPLIT BY ITEM" title={'Setting up<br /><em>the split…</em>'} copy="One moment."><div className="loader" /></Center>
+  const items = split.items ?? []
+  const myId = split.myShareId ?? null
+  const myAmount = split.myShareAmountPesewas ?? 0
+  const total = split.totalPesewas ?? 0
+  const paid = split.paidPesewas ?? 0
+  const unassigned = split.unassignedPesewas ?? 0
+  const iPaid = (split.shares ?? []).some((sh: any) => sh.mine && sh.status === 'paid')
+  const done = total > 0 && paid >= total
+  const myUnitsOn = (it: any) => (it.takers.find((t: any) => t.shareId === myId)?.units ?? 0)
+  return <section><Back dispatch={dispatch} to="pay" /><p className="eyebrow">CHOOSE YOUR ITEMS · TABLE {s?.tableLabel ?? ''}</p><h1>Pick what<br /><em>you had.</em></h1>
+    <p className="muted">Tap the items you ordered. Everyone at the table picks theirs, and the bill clears once it all adds up.</p>
+    <div className="item-board">{items.map((it: any) => {
+      const mine = myUnitsOn(it)
+      const others = it.takers.filter((t: any) => t.shareId !== myId)
+      const canAdd = it.unitsFree > 0 && !iPaid
+      const soldOut = it.unitsFree <= 0 && mine === 0
+      return <div className={`item-row${soldOut ? ' dim' : ''}`} key={it.billItemId}>
+        <div className="item-main">
+          <strong>{it.qty > 1 ? `${it.qty}× ` : ''}{it.name}</strong>
+          <small>{pes(it.lineTotalPesewas)}{others.length ? ` · ${others.map((t: any) => `${t.name}${t.units > 1 ? ` ×${t.units}` : ''}${t.paid ? ' ✓' : ''}`).join(', ')}` : ''}</small>
+        </div>
+        {it.qty > 1
+          ? <div className="item-step">
+              <button aria-label="Remove one" disabled={mine <= 0 || iPaid} onClick={() => dispatch({ type: 'split-assign', billItemId: it.billItemId, units: mine - 1 })}><Minus /></button>
+              <strong>{mine}</strong>
+              <button aria-label="Add one" disabled={!canAdd} onClick={() => dispatch({ type: 'split-assign', billItemId: it.billItemId, units: mine + 1 })}><Plus /></button>
+            </div>
+          : <button className={`item-take${mine > 0 ? ' on' : ''}`} disabled={mine === 0 && !canAdd} onClick={() => dispatch(mine > 0 ? { type: 'split-unassign', billItemId: it.billItemId } : { type: 'split-assign', billItemId: it.billItemId, units: 1 })}>{mine > 0 ? <Check /> : 'Take'}</button>}
+      </div>
+    })}</div>
+    <div className="split-share"><span>You&apos;re paying</span><b>{pes(myAmount)}</b></div>
+    <div className="split-progress"><span>{pes(paid)} of {pes(total)} settled{unassigned > 0 ? ` · ${pes(unassigned)} unassigned` : ''}</span><div className="bar"><i style={{ width: `${total ? Math.min(100, Math.round((paid / total) * 100)) : 0}%` }} /></div></div>
+    {unassigned > 0 && !iPaid && <button className="text-link" onClick={() => dispatch({ type: 'assign-remaining' })}>I&apos;ll cover the rest</button>}
+    {done ? <div className="notice-card"><Check /><span>Every item is in — thank you.</span></div>
+      : iPaid ? <div className="notice-card"><Check /><span>Your part is paid. Waiting on the rest of the table.</span></div>
+      : <Action onClick={() => { if (myId && myAmount > 0) dispatch({ type: 'patch-go', value: { claimedShareId: myId }, to: 'tip' }) }}>{myAmount > 0 ? `Pay my share · ${pes(myAmount)}` : 'Pick an item to pay'}</Action>}
+    <div className="split-actions"><button className="text-link" onClick={copyInvite}>Copy table link</button><button className="text-link" onClick={waInvite}>Invite on WhatsApp</button></div>
   </section>
 }
 
