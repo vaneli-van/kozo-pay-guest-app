@@ -54,6 +54,8 @@ export default function App({
   const idemRef = useRef<string>('')
 
   useEffect(() => { if (sessionToken && s.sessionToken !== sessionToken) patch({ sessionToken }) }, [sessionToken])
+  // A retry after a failed/declined attempt must not reuse the burned attempt or its idempotency key.
+  useEffect(() => { if (!s.paymentRef) idemRef.current = '' }, [s.paymentRef])
 
   const patch = (value: Partial<State>) => dispatch({ type: 'patch', value })
   const goScreen = (screen: Screen) => {
@@ -70,7 +72,7 @@ export default function App({
     if (!sessionToken || !paymentRef) return
     const r = await POST('/api/public/payment-status', { sessionToken, paymentRef })
     if (r?.status === 'captured') goScreen('success')
-    else if (r?.status === 'failed') goScreen('payment-error')
+    else if (r?.status === 'failed') { patch({ failureReason: r?.failureReason }); goScreen('payment-error') }
   }
 
   const navigate = (action: any) => {
@@ -303,7 +305,7 @@ export default function App({
         phone: s.momoNumber, // MoMo number — transaction-only, cleared once initiated
         callbackUrl,
       }).then((r) => {
-        if (!r?.ok) { goScreen('payment-error'); return }
+        if (!r?.ok) { patch({ failureReason: r?.failureReason ?? r?.message }); goScreen('payment-error'); return }
         if (r.paymentRef) patch({ paymentRef: r.paymentRef, momoNumber: undefined })
         if (r.redirectUrl) { openCheckout(r.redirectUrl); return } // card / hosted MoMo → Paystack page
         if (r.action === 'otp') goScreen('otp') // MoMo send_otp path
@@ -324,6 +326,7 @@ export default function App({
         goScreen('success')
       } else if (r?.status === 'failed') {
         window.clearInterval(id)
+        patch({ failureReason: r?.failureReason })
         goScreen('payment-error')
       } else if (n > 40) {
         window.clearInterval(id)
@@ -345,7 +348,7 @@ export default function App({
     POST('/api/public/payment-verify', { sessionToken, reference }).then((r) => {
       if (r?.paymentRef) patch({ paymentRef: r.paymentRef }) // poll by attempt id, not the gateway reference
       if (r?.status === 'captured') goScreen('success')
-      else if (r?.status === 'failed') goScreen('payment-error')
+      else if (r?.status === 'failed') { patch({ failureReason: r?.failureReason }); goScreen('payment-error') }
       // otherwise stay on processing — the polling effect continues via paymentRef
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -28,6 +28,7 @@ export type State = {
   method?: 'momo' | 'card'
   momoNumber?: string | undefined
   paymentRef?: string | undefined
+  failureReason?: string | undefined
   phone?: string
   waStatus?: 'sending' | 'sent' | 'error' | undefined
   waError?: string | undefined

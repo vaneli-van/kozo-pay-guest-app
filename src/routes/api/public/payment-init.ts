@@ -84,8 +84,9 @@ export const Route = createFileRoute('/api/public/payment-init')({
         try {
           init = await paymentProvider.initiate({ paymentAttemptId: attempt.id, provider, method: method ?? undefined, totalPesewas: quote.grandTotalPesewas, phone, callbackUrl })
         } catch (e) {
-          await supabaseAdmin.from('payment_attempts').update({ status: 'failed', failure_reason: 'gateway_error', updated_at: new Date().toISOString() }).eq('id', attempt.id)
-          return json({ ok: false, reason: 'gateway_error', message: String(e) })
+          const gatewayMsg = (e instanceof Error ? e.message : String(e)) || 'gateway_error'
+          await supabaseAdmin.from('payment_attempts').update({ status: 'failed', failure_reason: gatewayMsg, updated_at: new Date().toISOString() }).eq('id', attempt.id)
+          return json({ ok: false, reason: 'gateway_error', message: gatewayMsg, failureReason: gatewayMsg })
         }
         await supabaseAdmin.from('payment_attempts').update({ provider_ref: init.providerRef, status: 'pending', updated_at: new Date().toISOString() }).eq('id', attempt.id)
         await supabaseAdmin.from('audit_events').insert({ session_id: session.id, type: 'payment.initiated', data: { paymentRef: attempt.id, provider, total: quote.grandTotalPesewas } })

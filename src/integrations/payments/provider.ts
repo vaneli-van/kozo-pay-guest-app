@@ -126,15 +126,17 @@ export const paymentProvider: PaymentProvider = {
 
 // ── Paystack post-init helpers (verify, OTP, webhook signature) ───────────────
 // Verify is authoritative: it asks Paystack the real status of a reference.
-export async function verifyPaystackTransaction(reference: string): Promise<'captured' | 'failed' | 'pending'> {
+export type VerifyResult = { outcome: 'captured' | 'failed' | 'pending'; reason?: string }
+export async function verifyPaystackTransaction(reference: string): Promise<VerifyResult> {
   const res = await fetch(`${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`, {
     headers: { Authorization: `Bearer ${paystackSecret()}` },
   })
   const r = await res.json().catch(() => ({}))
   const st = r?.data?.status
-  if (st === 'success') return 'captured'
-  if (st === 'failed' || st === 'abandoned' || st === 'reversed') return 'failed'
-  return 'pending'
+  const reason = r?.data?.gateway_response || r?.data?.message || r?.message || undefined
+  if (st === 'success') return { outcome: 'captured' }
+  if (st === 'failed' || st === 'abandoned' || st === 'reversed') return { outcome: 'failed', reason: reason || st }
+  return { outcome: 'pending' }
 }
 
 // For MoMo transactions that come back as send_otp.

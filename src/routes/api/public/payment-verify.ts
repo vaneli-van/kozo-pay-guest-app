@@ -23,9 +23,9 @@ export const Route = createFileRoute('/api/public/payment-verify')({
 
         const { verifyPaystackTransaction, applyProviderCallback, isPaystackEnabled } = await import('@/integrations/payments/provider')
         if (!isPaystackEnabled()) return json({ ok: true, status: attempt.status, paymentRef: attempt.id })
-        const outcome = await verifyPaystackTransaction(attempt.provider_ref)
-        if (outcome === 'captured' || outcome === 'failed') await applyProviderCallback(attempt.provider_ref, outcome)
-        return json({ ok: true, status: outcome, paymentRef: attempt.id })
+        const { outcome, reason } = await verifyPaystackTransaction(attempt.provider_ref)
+        if (outcome === 'captured' || outcome === 'failed') await applyProviderCallback(attempt.provider_ref, outcome, reason)
+        return json({ ok: true, status: outcome, paymentRef: attempt.id, failureReason: outcome === 'failed' ? reason : undefined })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },
   } },

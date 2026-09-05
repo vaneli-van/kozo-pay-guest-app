@@ -24,9 +24,9 @@ export const Route = createFileRoute('/api/public/payment-status')({
           try {
             const { verifyPaystackTransaction, applyProviderCallback, isPaystackEnabled } = await import('@/integrations/payments/provider')
             if (isPaystackEnabled()) {
-              const outcome = await verifyPaystackTransaction(attempt.provider_ref)
+              const { outcome, reason } = await verifyPaystackTransaction(attempt.provider_ref)
               if (outcome === 'captured' || outcome === 'failed') {
-                await applyProviderCallback(attempt.provider_ref, outcome)
+                await applyProviderCallback(attempt.provider_ref, outcome, reason)
                 const { data: fresh } = await supabaseAdmin.from('payment_attempts').select('status,failure_reason').eq('id', attempt.id).maybeSingle()
                 if (fresh) { status = fresh.status; failureReason = fresh.failure_reason }
               }
