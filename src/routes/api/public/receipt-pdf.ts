@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { taxBreakdown } from '@/integrations/billing/tax'
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, 'Content-Type': 'application/json' } })
@@ -7,10 +8,12 @@ function receiptNumber(): string {
   const a = new Uint8Array(4); crypto.getRandomValues(a)
   return 'KZ-' + [...a].map((b) => b.toString(36)).join('').slice(0, 6).toUpperCase()
 }
-const ghs = (pesewas: number) => (pesewas / 100).toFixed(2)
+const ghs = (pesewas: number) => (pesewas / 100).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-// Diner-facing: build (or reuse) the receipt PDF for this session and return a signed URL
-// the client can open to view / save / print. Read-only w.r.t. the POS; no messaging.
+// Diner-facing: build (or reuse) an 80mm thermal-style receipt PDF for this session
+// and return a signed URL the client can open to view / save / print. It carries the
+// restaurant logo and the statutory levy breakdown (NHIL, GETFund, VAT, Tourism).
+// Read-only w.r.t. the POS; no messaging.
 export const Route = createFileRoute('/api/public/receipt-pdf')({
   server: { handlers: {
     OPTIONS: async () => new Response(null, { headers: cors }),
@@ -23,13 +26,14 @@ export const Route = createFileRoute('/api/public/receipt-pdf')({
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,table_id,status,expires_at,active_bill_id').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
 
-        const { data: caps } = await supabaseAdmin.from('payment_attempts').select('total_pesewas').eq('session_id', session.id).eq('status', 'captured')
+        const { data: caps } = await supabaseAdmin.from('payment_attempts').select('amount_pesewas,tip_pesewas,total_pesewas').eq('session_id', session.id).eq('status', 'captured')
         if (!caps || caps.length === 0) return json({ ok: false, reason: 'no_payment' })
-        const totalPaid = caps.reduce((s: number, r: { total_pesewas: number | null }) => s + (r.total_pesewas ?? 0), 0)
+        const totalPaid = caps.reduce((s: number, r: any) => s + (r.total_pesewas ?? 0), 0)
+        const tipPaid = caps.reduce((s: number, r: any) => s + (r.tip_pesewas ?? 0), 0)
 
-        const { data: table } = await supabaseAdmin.from('restaurant_tables').select('branch_id').eq('id', session.table_id).maybeSingle()
+        const { data: table } = await supabaseAdmin.from('restaurant_tables').select('branch_id,label').eq('id', session.table_id).maybeSingle()
         const { data: branch } = table ? await supabaseAdmin.from('branches').select('restaurant_id').eq('id', table.branch_id).maybeSingle() : { data: null }
-        const { data: restaurant } = branch ? await supabaseAdmin.from('restaurants').select('name,city').eq('id', branch.restaurant_id).maybeSingle() : { data: null }
+        const { data: restaurant } = branch ? await supabaseAdmin.from('restaurants').select('name,city,logo_url').eq('id', branch.restaurant_id).maybeSingle() : { data: null }
 
         let { data: receipt } = await supabaseAdmin.from('receipts').select('receipt_number,total_paid_pesewas,issued_at').eq('session_id', session.id).maybeSingle()
         if (!receipt) {
@@ -42,43 +46,142 @@ export const Route = createFileRoute('/api/public/receipt-pdf')({
         const { data: items } = session.active_bill_id
           ? await supabaseAdmin.from('bill_items').select('name,qty,line_total_pesewas,sort').eq('bill_id', session.active_bill_id).order('sort')
           : { data: [] }
+        const lines = (items ?? []).map((i: any) => ({ name: String(i.name ?? 'Item'), qty: i.qty ?? 1, amount: i.line_total_pesewas ?? 0 }))
+        const itemsTotal = lines.reduce((s, l) => s + l.amount, 0)
+        const tax = taxBreakdown(itemsTotal)
 
-        // --- PDF (A4, mirrors the WhatsApp receipt layout) ---
+        // ---- 80mm thermal-style PDF ----
         const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
         const pdf = await PDFDocument.create()
-        const page = pdf.addPage([595.28, 841.89])
-        const font = await pdf.embedFont(StandardFonts.Helvetica)
-        const bold = await pdf.embedFont(StandardFonts.HelveticaBold)
-        const black = rgb(0, 0, 0)
-        const L = 56
-        const R = 595.28 - 56
-        let y = 780
-        const draw = (t: string, size = 11, f = font) => { page.drawText(t, { x: L, y, size, font: f, color: black }) }
-        const drawRight = (t: string, size = 11, f = font) => { page.drawText(t, { x: R - f.widthOfTextAtSize(t, size), y, size, font: f, color: black }) }
+        const mono = await pdf.embedFont(StandardFonts.Courier)
+        const monoB = await pdf.embedFont(StandardFonts.CourierBold)
+        const black = rgb(0.06, 0.06, 0.06)
+        const grey = rgb(0.45, 0.45, 0.45)
 
-        draw((restaurant?.name ?? 'Kozo').toUpperCase(), 24, bold); y -= 18
-        draw(restaurant?.city ?? 'Accra', 11); y -= 30
-        draw('RECEIPT', 13, bold); y -= 18
-        draw(`Receipt number: ${receipt.receipt_number}`, 11); y -= 15
-        const issued = new Date(receipt.issued_at ?? Date.now())
-        draw(`Date: ${issued.toLocaleString('en-GB', { timeZone: 'Africa/Accra', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}`, 11)
-        y -= 26
-        page.drawLine({ start: { x: L, y }, end: { x: R, y }, thickness: 1, color: black }); y -= 20
+        const W = 226.77 // 80mm
+        const L = 14
+        const R = W - 14
+        const CW = R - L
 
-        for (const it of items ?? []) {
-          const qty = it.qty ?? 1
-          draw(`${it.name}   ${qty} ×`, 11)
-          drawRight(`GHS ${ghs(it.line_total_pesewas ?? 0)}`, 11)
-          y -= 16
-          if (y < 90) break
+        // Optional logo (best-effort fetch + embed).
+        let logo: any = null, logoDims: { w: number; h: number } | null = null
+        const logoUrl = (restaurant as any)?.logo_url as string | undefined
+        if (logoUrl) {
+          try {
+            let buf: Uint8Array | null = null
+            // Prefer the storage client (server-side, no reliance on outbound fetch).
+            const m = logoUrl.match(/\/storage\/v1\/object\/(?:public\/)?([^/]+)\/(.+)$/)
+            if (m) {
+              const bucket = m[1]!, objectPath = (m[2]!.split('?')[0]) as string
+              const dl = await supabaseAdmin.storage.from(bucket).download(objectPath)
+              if (dl.data) buf = new Uint8Array(await dl.data.arrayBuffer())
+            }
+            if (!buf) { const resp = await fetch(logoUrl); if (resp.ok) buf = new Uint8Array(await resp.arrayBuffer()) }
+            if (buf) {
+              const isPng = logoUrl.toLowerCase().includes('.png') || (buf[0] === 0x89 && buf[1] === 0x50)
+              try { logo = isPng ? await pdf.embedPng(buf) : await pdf.embedJpg(buf) }
+              catch { try { logo = isPng ? await pdf.embedJpg(buf) : await pdf.embedPng(buf) } catch { logo = null } }
+              if (logo) {
+                const maxW = 120, maxH = 58
+                const sc = Math.min(maxW / logo.width, maxH / logo.height, 1)
+                logoDims = { w: logo.width * sc, h: logo.height * sc }
+              }
+            }
+          } catch { logo = null }
         }
 
-        y -= 8
-        page.drawLine({ start: { x: L, y }, end: { x: R, y }, thickness: 1, color: black }); y -= 22
-        draw('TOTAL PAID', 13, bold)
-        drawRight(`GHS ${ghs(receipt.total_paid_pesewas ?? totalPaid)}`, 13, bold)
-        y -= 30
-        draw('Thank you for dining with us.', 11)
+        const wrap = (text: string, font: any, size: number, maxW: number): string[] => {
+          const words = String(text).split(/\s+/).filter(Boolean)
+          const out: string[] = []; let cur = ''
+          for (const w of words) {
+            const t = cur ? cur + ' ' + w : w
+            if (font.widthOfTextAtSize(t, size) <= maxW || !cur) cur = t
+            else { out.push(cur); cur = w }
+          }
+          if (cur) out.push(cur)
+          return out.length ? out : ['']
+        }
+
+        // Pre-compute item name wraps (leave room for the amount column).
+        const IS = 9 // item font size
+        const amtW = (a: number) => monoB.widthOfTextAtSize(`GHS ${ghs(a)}`, IS)
+        const itemLineSets = lines.map((l) => {
+          const label = `${l.qty} x ${l.name}`
+          return { lines: wrap(label, mono, IS, CW - amtW(l.amount) - 8), amount: l.amount }
+        })
+
+        // ---- height pass ----
+        let H = 16 // top pad
+        if (logoDims) H += logoDims.h + 8
+        H += 15 // name
+        if (restaurant?.city) H += 12
+        H += 14 // VAT INVOICE
+        H += 12 // rule
+        H += 12 * 3 // receipt no, date, table
+        H += 12 // rule
+        for (const s of itemLineSets) H += 12 * s.lines.length
+        H += 12 // rule
+        H += 12 // breakdown title
+        H += 12 * 5 // 5 levy lines
+        H += 12 // rule
+        H += 12 // order total
+        if (tipPaid > 0) H += 12 // tip
+        H += 20 // TOTAL PAID
+        H += 12 // rule
+        H += 12 * 3 // footer
+        H += 16 // bottom pad
+
+        const page = pdf.addPage([W, H])
+        let y = H - 16
+
+        const center = (t: string, size: number, f = mono, color = black) => {
+          const x = L + (CW - f.widthOfTextAtSize(t, size)) / 2
+          page.drawText(t, { x, y, size, font: f, color }); }
+        const left = (t: string, size: number, f = mono, color = black) => page.drawText(t, { x: L, y, size, font: f, color })
+        const right = (t: string, size: number, f = mono, color = black) => page.drawText(t, { x: R - f.widthOfTextAtSize(t, size), y, size, font: f, color })
+        const rule = (dashed = true) => { page.drawLine({ start: { x: L, y: y + 4 }, end: { x: R, y: y + 4 }, thickness: 0.7, color: grey, dashArray: dashed ? [2, 2] : undefined }) }
+
+        if (logo && logoDims) { page.drawImage(logo, { x: L + (CW - logoDims.w) / 2, y: y - logoDims.h + 6, width: logoDims.w, height: logoDims.h }); y -= logoDims.h + 8 }
+        center((restaurant?.name ?? 'Kozo').toUpperCase(), 13, monoB); y -= 15
+        if (restaurant?.city) { center(restaurant.city, 9, mono, grey); y -= 12 }
+        center('VAT INVOICE', 9, monoB); y -= 12
+        rule(); y -= 12
+
+        left(`Receipt  ${receipt.receipt_number}`, 8, mono, grey)
+        y -= 12
+        const issued = new Date(receipt.issued_at ?? Date.now())
+        left(`Date     ${issued.toLocaleString('en-GB', { timeZone: 'Africa/Accra', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}`, 8, mono, grey)
+        y -= 12
+        left(`Table    ${table?.label ?? '-'}`, 8, mono, grey)
+        y -= 12
+        rule(); y -= 12
+
+        for (const set of itemLineSets) {
+          for (let i = 0; i < set.lines.length; i++) {
+            left(set.lines[i]!, IS, mono)
+            if (i === 0) right(`GHS ${ghs(set.amount)}`, IS, monoB)
+            y -= 12
+          }
+        }
+        rule(); y -= 12
+
+        left('TAX BREAKDOWN', 8, monoB, grey); y -= 12
+        const taxRow = (label: string, amt: number) => { left(label, 8, mono, grey); right(`GHS ${ghs(amt)}`, 8, mono); y -= 12 }
+        taxRow('Net (excl. tax)', tax.net)
+        taxRow('NHIL 2.5%', tax.nhil)
+        taxRow('GETFund 2.5%', tax.getfund)
+        taxRow('VAT 15%', tax.vat)
+        taxRow('Tourism Levy 1%', tax.tourism)
+        rule(); y -= 12
+
+        left('Order total (incl. tax)', 8, mono); right(`GHS ${ghs(itemsTotal)}`, 8, mono); y -= 12
+        if (tipPaid > 0) { left('Tip', 8, mono); right(`GHS ${ghs(tipPaid)}`, 8, mono); y -= 12 }
+        left('TOTAL PAID', 11, monoB); right(`GHS ${ghs(receipt.total_paid_pesewas ?? totalPaid)}`, 11, monoB); y -= 20
+        rule(); y -= 12
+
+        center('Thank you for dining with us.', 8, mono, grey); y -= 12
+        center(`${(restaurant?.name ?? 'Kozo')} - ${restaurant?.city ?? 'Accra'}`, 7, mono, grey); y -= 12
+        center('Powered by Klown', 7, mono, grey)
 
         const bytes = await pdf.save()
         const path = `${receipt.receipt_number}.pdf`
