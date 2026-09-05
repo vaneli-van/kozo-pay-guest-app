@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MSlugRouteImport } from './routes/m.$slug'
 import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as ApiConnectorCommandsRouteImport } from './routes/api/connector/commands'
 import { Route as ApiConnectorSyncRouteImport } from './routes/api/connector/sync'
@@ -19,6 +20,7 @@ import { Route as ApiPublicBillRouteImport } from './routes/api/public/bill'
 import { Route as ApiPublicBillDisputeRouteImport } from './routes/api/public/bill-dispute'
 import { Route as ApiPublicFeedbackRouteImport } from './routes/api/public/feedback'
 import { Route as ApiPublicMenuRouteImport } from './routes/api/public/menu'
+import { Route as ApiPublicMenuBySlugRouteImport } from './routes/api/public/menu-by-slug'
 import { Route as ApiPublicOtpSendRouteImport } from './routes/api/public/otp-send'
 import { Route as ApiPublicOtpVerifyRouteImport } from './routes/api/public/otp-verify'
 import { Route as ApiPublicPaymentInitRouteImport } from './routes/api/public/payment-init'
@@ -43,11 +45,17 @@ import { Route as ApiPublicSplitReleaseRouteImport } from './routes/api/public/s
 import { Route as ApiPublicSplitUnassignRouteImport } from './routes/api/public/split-unassign'
 import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
 import { Route as ApiPublicWhatsappReceiptRouteImport } from './routes/api/public/whatsapp-receipt'
+import { Route as ApiStudioImportPosRouteImport } from './routes/api/studio/import-pos'
 import { Route as ApiSyncPosOrdersRouteImport } from './routes/api/sync/pos-orders'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MSlugRoute = MSlugRouteImport.update({
+  id: '/m/$slug',
+  path: '/m/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const STokenRoute = STokenRouteImport.update({
@@ -94,6 +102,11 @@ const ApiPublicFeedbackRoute = ApiPublicFeedbackRouteImport.update({
 const ApiPublicMenuRoute = ApiPublicMenuRouteImport.update({
   id: '/api/public/menu',
   path: '/api/public/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicMenuBySlugRoute = ApiPublicMenuBySlugRouteImport.update({
+  id: '/api/public/menu-by-slug',
+  path: '/api/public/menu-by-slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicOtpSendRoute = ApiPublicOtpSendRouteImport.update({
@@ -219,6 +232,11 @@ const ApiPublicWhatsappReceiptRoute =
     path: '/api/public/whatsapp-receipt',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiStudioImportPosRoute = ApiStudioImportPosRouteImport.update({
+  id: '/api/studio/import-pos',
+  path: '/api/studio/import-pos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSyncPosOrdersRoute = ApiSyncPosOrdersRouteImport.update({
   id: '/api/sync/pos-orders',
   path: '/api/sync/pos-orders',
@@ -227,6 +245,7 @@ const ApiSyncPosOrdersRoute = ApiSyncPosOrdersRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/m/$slug': typeof MSlugRoute
   '/s/$token': typeof STokenRoute
   '/api/connector/commands': typeof ApiConnectorCommandsRoute
   '/api/connector/sync': typeof ApiConnectorSyncRoute
@@ -236,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/feedback': typeof ApiPublicFeedbackRoute
   '/api/public/menu': typeof ApiPublicMenuRoute
+  '/api/public/menu-by-slug': typeof ApiPublicMenuBySlugRoute
   '/api/public/otp-send': typeof ApiPublicOtpSendRoute
   '/api/public/otp-verify': typeof ApiPublicOtpVerifyRoute
   '/api/public/payment-init': typeof ApiPublicPaymentInitRoute
@@ -260,10 +280,12 @@ export interface FileRoutesByFullPath {
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
+  '/api/studio/import-pos': typeof ApiStudioImportPosRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/m/$slug': typeof MSlugRoute
   '/s/$token': typeof STokenRoute
   '/api/connector/commands': typeof ApiConnectorCommandsRoute
   '/api/connector/sync': typeof ApiConnectorSyncRoute
@@ -273,6 +295,7 @@ export interface FileRoutesByTo {
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/feedback': typeof ApiPublicFeedbackRoute
   '/api/public/menu': typeof ApiPublicMenuRoute
+  '/api/public/menu-by-slug': typeof ApiPublicMenuBySlugRoute
   '/api/public/otp-send': typeof ApiPublicOtpSendRoute
   '/api/public/otp-verify': typeof ApiPublicOtpVerifyRoute
   '/api/public/payment-init': typeof ApiPublicPaymentInitRoute
@@ -297,11 +320,13 @@ export interface FileRoutesByTo {
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
+  '/api/studio/import-pos': typeof ApiStudioImportPosRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/m/$slug': typeof MSlugRoute
   '/s/$token': typeof STokenRoute
   '/api/connector/commands': typeof ApiConnectorCommandsRoute
   '/api/connector/sync': typeof ApiConnectorSyncRoute
@@ -311,6 +336,7 @@ export interface FileRoutesById {
   '/api/public/bill-dispute': typeof ApiPublicBillDisputeRoute
   '/api/public/feedback': typeof ApiPublicFeedbackRoute
   '/api/public/menu': typeof ApiPublicMenuRoute
+  '/api/public/menu-by-slug': typeof ApiPublicMenuBySlugRoute
   '/api/public/otp-send': typeof ApiPublicOtpSendRoute
   '/api/public/otp-verify': typeof ApiPublicOtpVerifyRoute
   '/api/public/payment-init': typeof ApiPublicPaymentInitRoute
@@ -335,12 +361,14 @@ export interface FileRoutesById {
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
+  '/api/studio/import-pos': typeof ApiStudioImportPosRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/m/$slug'
     | '/s/$token'
     | '/api/connector/commands'
     | '/api/connector/sync'
@@ -350,6 +378,7 @@ export interface FileRouteTypes {
     | '/api/public/bill-dispute'
     | '/api/public/feedback'
     | '/api/public/menu'
+    | '/api/public/menu-by-slug'
     | '/api/public/otp-send'
     | '/api/public/otp-verify'
     | '/api/public/payment-init'
@@ -374,10 +403,12 @@ export interface FileRouteTypes {
     | '/api/public/split-unassign'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
+    | '/api/studio/import-pos'
     | '/api/sync/pos-orders'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/m/$slug'
     | '/s/$token'
     | '/api/connector/commands'
     | '/api/connector/sync'
@@ -387,6 +418,7 @@ export interface FileRouteTypes {
     | '/api/public/bill-dispute'
     | '/api/public/feedback'
     | '/api/public/menu'
+    | '/api/public/menu-by-slug'
     | '/api/public/otp-send'
     | '/api/public/otp-verify'
     | '/api/public/payment-init'
@@ -411,10 +443,12 @@ export interface FileRouteTypes {
     | '/api/public/split-unassign'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
+    | '/api/studio/import-pos'
     | '/api/sync/pos-orders'
   id:
     | '__root__'
     | '/'
+    | '/m/$slug'
     | '/s/$token'
     | '/api/connector/commands'
     | '/api/connector/sync'
@@ -424,6 +458,7 @@ export interface FileRouteTypes {
     | '/api/public/bill-dispute'
     | '/api/public/feedback'
     | '/api/public/menu'
+    | '/api/public/menu-by-slug'
     | '/api/public/otp-send'
     | '/api/public/otp-verify'
     | '/api/public/payment-init'
@@ -448,11 +483,13 @@ export interface FileRouteTypes {
     | '/api/public/split-unassign'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
+    | '/api/studio/import-pos'
     | '/api/sync/pos-orders'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MSlugRoute: typeof MSlugRoute
   STokenRoute: typeof STokenRoute
   ApiConnectorCommandsRoute: typeof ApiConnectorCommandsRoute
   ApiConnectorSyncRoute: typeof ApiConnectorSyncRoute
@@ -462,6 +499,7 @@ export interface RootRouteChildren {
   ApiPublicBillDisputeRoute: typeof ApiPublicBillDisputeRoute
   ApiPublicFeedbackRoute: typeof ApiPublicFeedbackRoute
   ApiPublicMenuRoute: typeof ApiPublicMenuRoute
+  ApiPublicMenuBySlugRoute: typeof ApiPublicMenuBySlugRoute
   ApiPublicOtpSendRoute: typeof ApiPublicOtpSendRoute
   ApiPublicOtpVerifyRoute: typeof ApiPublicOtpVerifyRoute
   ApiPublicPaymentInitRoute: typeof ApiPublicPaymentInitRoute
@@ -486,6 +524,7 @@ export interface RootRouteChildren {
   ApiPublicSplitUnassignRoute: typeof ApiPublicSplitUnassignRoute
   ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
   ApiPublicWhatsappReceiptRoute: typeof ApiPublicWhatsappReceiptRoute
+  ApiStudioImportPosRoute: typeof ApiStudioImportPosRoute
   ApiSyncPosOrdersRoute: typeof ApiSyncPosOrdersRoute
 }
 
@@ -496,6 +535,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/m/$slug': {
+      id: '/m/$slug'
+      path: '/m/$slug'
+      fullPath: '/m/$slug'
+      preLoaderRoute: typeof MSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/s/$token': {
@@ -559,6 +605,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/menu'
       fullPath: '/api/public/menu'
       preLoaderRoute: typeof ApiPublicMenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/menu-by-slug': {
+      id: '/api/public/menu-by-slug'
+      path: '/api/public/menu-by-slug'
+      fullPath: '/api/public/menu-by-slug'
+      preLoaderRoute: typeof ApiPublicMenuBySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/otp-send': {
@@ -729,6 +782,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappReceiptRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/studio/import-pos': {
+      id: '/api/studio/import-pos'
+      path: '/api/studio/import-pos'
+      fullPath: '/api/studio/import-pos'
+      preLoaderRoute: typeof ApiStudioImportPosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/sync/pos-orders': {
       id: '/api/sync/pos-orders'
       path: '/api/sync/pos-orders'
@@ -741,6 +801,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MSlugRoute: MSlugRoute,
   STokenRoute: STokenRoute,
   ApiConnectorCommandsRoute: ApiConnectorCommandsRoute,
   ApiConnectorSyncRoute: ApiConnectorSyncRoute,
@@ -750,6 +811,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBillDisputeRoute: ApiPublicBillDisputeRoute,
   ApiPublicFeedbackRoute: ApiPublicFeedbackRoute,
   ApiPublicMenuRoute: ApiPublicMenuRoute,
+  ApiPublicMenuBySlugRoute: ApiPublicMenuBySlugRoute,
   ApiPublicOtpSendRoute: ApiPublicOtpSendRoute,
   ApiPublicOtpVerifyRoute: ApiPublicOtpVerifyRoute,
   ApiPublicPaymentInitRoute: ApiPublicPaymentInitRoute,
@@ -774,6 +836,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSplitUnassignRoute: ApiPublicSplitUnassignRoute,
   ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
   ApiPublicWhatsappReceiptRoute: ApiPublicWhatsappReceiptRoute,
+  ApiStudioImportPosRoute: ApiStudioImportPosRoute,
   ApiSyncPosOrdersRoute: ApiSyncPosOrdersRoute,
 }
 export const routeTree = rootRouteImport

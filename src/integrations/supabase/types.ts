@@ -420,6 +420,7 @@ export type Database = {
           created_at: string
           id: string
           opened_at: string
+          server_name: string | null
           service_charge_pesewas: number
           status: string
           subtotal_pesewas: number
@@ -430,6 +431,7 @@ export type Database = {
           created_at?: string
           id?: string
           opened_at?: string
+          server_name?: string | null
           service_charge_pesewas?: number
           status?: string
           subtotal_pesewas?: number
@@ -440,6 +442,7 @@ export type Database = {
           created_at?: string
           id?: string
           opened_at?: string
+          server_name?: string | null
           service_charge_pesewas?: number
           status?: string
           subtotal_pesewas?: number
@@ -2828,6 +2831,1201 @@ export type Database = {
           },
         ]
       }
+      studio_assets: {
+        Row: {
+          alt: string | null
+          bytes: number | null
+          created_at: string
+          focal_point: string | null
+          id: string
+          kind: string
+          restaurant_id: string
+          storage_path: string | null
+          updated_by: string | null
+          url: string
+        }
+        Insert: {
+          alt?: string | null
+          bytes?: number | null
+          created_at?: string
+          focal_point?: string | null
+          id?: string
+          kind?: string
+          restaurant_id: string
+          storage_path?: string | null
+          updated_by?: string | null
+          url: string
+        }
+        Update: {
+          alt?: string | null
+          bytes?: number | null
+          created_at?: string
+          focal_point?: string | null
+          id?: string
+          kind?: string
+          restaurant_id?: string
+          storage_path?: string | null
+          updated_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_assets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_assets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_assets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_assets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_assets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_assets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_assets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_assets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_catalogue_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          dietary_note: string | null
+          extras: string | null
+          id: string
+          image_url: string | null
+          name: string
+          pos_id: string | null
+          price_display: string | null
+          price_pesewas: number | null
+          restaurant_id: string
+          sku: string | null
+          symbols: string[]
+          tags: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          dietary_note?: string | null
+          extras?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          pos_id?: string | null
+          price_display?: string | null
+          price_pesewas?: number | null
+          restaurant_id: string
+          sku?: string | null
+          symbols?: string[]
+          tags?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          dietary_note?: string | null
+          extras?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          pos_id?: string | null
+          price_display?: string | null
+          price_pesewas?: number | null
+          restaurant_id?: string
+          sku?: string | null
+          symbols?: string[]
+          tags?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_catalogue_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_catalogue_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_catalogue_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_catalogue_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_catalogue_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_catalogue_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_catalogue_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_catalogue_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_digital_settings: {
+        Row: {
+          attached_menu_ids: string[]
+          banner_bg: string | null
+          banner_url: string | null
+          biz_name: string | null
+          colors: Json
+          hours: Json
+          id: string
+          info: string | null
+          link_text: string | null
+          link_url: string | null
+          logo_url: string | null
+          menu_id: string
+          menu_selector: boolean
+          nav_style: string
+          phone: string | null
+          public_slug: string | null
+          published: boolean
+          published_at: string | null
+          qr_config: Json
+          rec_image_url: string | null
+          rec_name: string | null
+          rec_note: string | null
+          rec_price_pesewas: number | null
+          restaurant_id: string
+          show_bins: boolean
+          show_notes: boolean
+          show_prices: boolean
+          show_titles: boolean
+          single_menu_view: boolean
+          thumbnails: string
+          updated_at: string
+          updated_by: string | null
+          welcome_alert: string | null
+        }
+        Insert: {
+          attached_menu_ids?: string[]
+          banner_bg?: string | null
+          banner_url?: string | null
+          biz_name?: string | null
+          colors?: Json
+          hours?: Json
+          id?: string
+          info?: string | null
+          link_text?: string | null
+          link_url?: string | null
+          logo_url?: string | null
+          menu_id: string
+          menu_selector?: boolean
+          nav_style?: string
+          phone?: string | null
+          public_slug?: string | null
+          published?: boolean
+          published_at?: string | null
+          qr_config?: Json
+          rec_image_url?: string | null
+          rec_name?: string | null
+          rec_note?: string | null
+          rec_price_pesewas?: number | null
+          restaurant_id: string
+          show_bins?: boolean
+          show_notes?: boolean
+          show_prices?: boolean
+          show_titles?: boolean
+          single_menu_view?: boolean
+          thumbnails?: string
+          updated_at?: string
+          updated_by?: string | null
+          welcome_alert?: string | null
+        }
+        Update: {
+          attached_menu_ids?: string[]
+          banner_bg?: string | null
+          banner_url?: string | null
+          biz_name?: string | null
+          colors?: Json
+          hours?: Json
+          id?: string
+          info?: string | null
+          link_text?: string | null
+          link_url?: string | null
+          logo_url?: string | null
+          menu_id?: string
+          menu_selector?: boolean
+          nav_style?: string
+          phone?: string | null
+          public_slug?: string | null
+          published?: boolean
+          published_at?: string | null
+          qr_config?: Json
+          rec_image_url?: string | null
+          rec_name?: string | null
+          rec_note?: string | null
+          rec_price_pesewas?: number | null
+          restaurant_id?: string
+          show_bins?: boolean
+          show_notes?: boolean
+          show_prices?: boolean
+          show_titles?: boolean
+          single_menu_view?: boolean
+          thumbnails?: string
+          updated_at?: string
+          updated_by?: string | null
+          welcome_alert?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_digital_settings_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "studio_menus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_digital_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_digital_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_digital_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_digital_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_digital_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_digital_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_digital_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_digital_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_import_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error: string | null
+          id: string
+          menu_id: string | null
+          restaurant_id: string
+          source: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          menu_id?: string | null
+          restaurant_id: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          menu_id?: string | null
+          restaurant_id?: string
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_import_jobs_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "studio_menus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_import_jobs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_import_jobs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_import_jobs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_import_jobs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_import_jobs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_import_jobs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_import_jobs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_import_jobs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_import_rows: {
+        Row: {
+          errors: Json | null
+          id: string
+          job_id: string
+          mapped: Json | null
+          raw: Json | null
+          sort: number
+        }
+        Insert: {
+          errors?: Json | null
+          id?: string
+          job_id: string
+          mapped?: Json | null
+          raw?: Json | null
+          sort?: number
+        }
+        Update: {
+          errors?: Json | null
+          id?: string
+          job_id?: string
+          mapped?: Json | null
+          raw?: Json | null
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_import_rows_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "studio_import_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_items: {
+        Row: {
+          after_space: number
+          alignment: string
+          available: boolean
+          before_space: number
+          bin: string | null
+          box_accent_color: string | null
+          box_style: string
+          catalogue_item_id: string | null
+          created_at: string
+          description: string | null
+          dietary_note: string | null
+          extras: string | null
+          id: string
+          image_url: string | null
+          name: string
+          pos_id: string | null
+          prep_time: number | null
+          price_beside: boolean
+          price_display: string | null
+          price_pesewas: number | null
+          restaurant_id: string
+          section_id: string
+          sizes: Json
+          sku: string | null
+          sold_out: boolean
+          sort: number
+          spacing: string
+          span: boolean
+          symbols: string[]
+          tags: string[]
+          updated_at: string
+          updated_by: string | null
+          visible: boolean
+          wrap: boolean
+        }
+        Insert: {
+          after_space?: number
+          alignment?: string
+          available?: boolean
+          before_space?: number
+          bin?: string | null
+          box_accent_color?: string | null
+          box_style?: string
+          catalogue_item_id?: string | null
+          created_at?: string
+          description?: string | null
+          dietary_note?: string | null
+          extras?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          pos_id?: string | null
+          prep_time?: number | null
+          price_beside?: boolean
+          price_display?: string | null
+          price_pesewas?: number | null
+          restaurant_id: string
+          section_id: string
+          sizes?: Json
+          sku?: string | null
+          sold_out?: boolean
+          sort?: number
+          spacing?: string
+          span?: boolean
+          symbols?: string[]
+          tags?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          visible?: boolean
+          wrap?: boolean
+        }
+        Update: {
+          after_space?: number
+          alignment?: string
+          available?: boolean
+          before_space?: number
+          bin?: string | null
+          box_accent_color?: string | null
+          box_style?: string
+          catalogue_item_id?: string | null
+          created_at?: string
+          description?: string | null
+          dietary_note?: string | null
+          extras?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          pos_id?: string | null
+          prep_time?: number | null
+          price_beside?: boolean
+          price_display?: string | null
+          price_pesewas?: number | null
+          restaurant_id?: string
+          section_id?: string
+          sizes?: Json
+          sku?: string | null
+          sold_out?: boolean
+          sort?: number
+          spacing?: string
+          span?: boolean
+          symbols?: string[]
+          tags?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          visible?: boolean
+          wrap?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_items_catalogue_item_id_fkey"
+            columns: ["catalogue_item_id"]
+            isOneToOne: false
+            referencedRelation: "studio_catalogue_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_items_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "studio_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_menus: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          location: string | null
+          name: string
+          ordering_enabled: boolean
+          restaurant_id: string
+          service_charge_pct: number
+          sort: number
+          source: string
+          status: string
+          tax_pct: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          location?: string | null
+          name: string
+          ordering_enabled?: boolean
+          restaurant_id: string
+          service_charge_pct?: number
+          sort?: number
+          source?: string
+          status?: string
+          tax_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          location?: string | null
+          name?: string
+          ordering_enabled?: boolean
+          restaurant_id?: string
+          service_charge_pct?: number
+          sort?: number
+          source?: string
+          status?: string
+          tax_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_menus_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_menus_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_menus_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_menus_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_menus_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_menus_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_menus_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_menus_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_modifier_groups: {
+        Row: {
+          id: string
+          item_id: string
+          max_select: number
+          min_select: number
+          name: string
+          required: boolean
+          sort: number
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          max_select?: number
+          min_select?: number
+          name?: string
+          required?: boolean
+          sort?: number
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          max_select?: number
+          min_select?: number
+          name?: string
+          required?: boolean
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_modifier_groups_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "studio_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_modifiers: {
+        Row: {
+          available: boolean
+          group_id: string
+          id: string
+          name: string
+          price_pesewas: number
+          sort: number
+        }
+        Insert: {
+          available?: boolean
+          group_id: string
+          id?: string
+          name?: string
+          price_pesewas?: number
+          sort?: number
+        }
+        Update: {
+          available?: boolean
+          group_id?: string
+          id?: string
+          name?: string
+          price_pesewas?: number
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_modifiers_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "studio_modifier_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_publishes: {
+        Row: {
+          id: string
+          menu_id: string
+          public_url: string | null
+          published_at: string
+          published_by: string | null
+          snapshot: Json
+        }
+        Insert: {
+          id?: string
+          menu_id: string
+          public_url?: string | null
+          published_at?: string
+          published_by?: string | null
+          snapshot: Json
+        }
+        Update: {
+          id?: string
+          menu_id?: string
+          public_url?: string | null
+          published_at?: string
+          published_by?: string | null
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_publishes_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "studio_menus"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_revisions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string | null
+          menu_id: string
+          snapshot: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          menu_id: string
+          snapshot: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          menu_id?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_revisions_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "studio_menus"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_sections: {
+        Row: {
+          accent: string
+          accent_color: string | null
+          after_space: number
+          alignment: string
+          before_space: number
+          columns: number
+          created_at: string
+          description: string | null
+          id: string
+          ignore_global_spacing: boolean
+          menu_id: string
+          name: string
+          nav_label: string | null
+          new_page: boolean
+          pin: boolean
+          restaurant_id: string
+          schedule: string | null
+          sort: number
+          spacing: string
+          span: boolean
+          span_accent: boolean
+          type: string
+          updated_at: string
+          updated_by: string | null
+          visible: boolean
+          wrap: boolean
+        }
+        Insert: {
+          accent?: string
+          accent_color?: string | null
+          after_space?: number
+          alignment?: string
+          before_space?: number
+          columns?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          ignore_global_spacing?: boolean
+          menu_id: string
+          name?: string
+          nav_label?: string | null
+          new_page?: boolean
+          pin?: boolean
+          restaurant_id: string
+          schedule?: string | null
+          sort?: number
+          spacing?: string
+          span?: boolean
+          span_accent?: boolean
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+          visible?: boolean
+          wrap?: boolean
+        }
+        Update: {
+          accent?: string
+          accent_color?: string | null
+          after_space?: number
+          alignment?: string
+          before_space?: number
+          columns?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          ignore_global_spacing?: boolean
+          menu_id?: string
+          name?: string
+          nav_label?: string | null
+          new_page?: boolean
+          pin?: boolean
+          restaurant_id?: string
+          schedule?: string | null
+          sort?: number
+          spacing?: string
+          span?: boolean
+          span_accent?: boolean
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+          visible?: boolean
+          wrap?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_sections_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "studio_menus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_themes: {
+        Row: {
+          created_at: string
+          id: string
+          menu_id: string | null
+          restaurant_id: string
+          template_name: string | null
+          tokens: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          menu_id?: string | null
+          restaurant_id: string
+          template_name?: string | null
+          tokens?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          menu_id?: string | null
+          restaurant_id?: string
+          template_name?: string | null
+          tokens?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_themes_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "studio_menus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_themes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_themes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_themes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_themes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_themes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_themes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_themes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_themes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_devices: {
         Row: {
           bridge_status: string
@@ -3411,6 +4609,89 @@ export type Database = {
           p_welcome_copy: string
         }
         Returns: undefined
+      }
+      studio_catalogue_delete: { Args: { p_id: string }; Returns: Json }
+      studio_catalogue_list: { Args: never; Returns: Json }
+      studio_catalogue_upsert: {
+        Args: { p_item: Json; p_restaurant_id?: string }
+        Returns: Json
+      }
+      studio_digital_save: {
+        Args: { p_menu_id: string; p_patch: Json }
+        Returns: Json
+      }
+      studio_item_delete: { Args: { p_item_id: string }; Returns: Json }
+      studio_item_duplicate: { Args: { p_item_id: string }; Returns: Json }
+      studio_item_move: {
+        Args: { p_item_id: string; p_to_index: number; p_to_section_id: string }
+        Returns: Json
+      }
+      studio_item_upsert: {
+        Args: { p_item: Json; p_section_id: string }
+        Returns: Json
+      }
+      studio_items_reorder: {
+        Args: { p_ids: string[]; p_section_id: string }
+        Returns: Json
+      }
+      studio_menu_create: {
+        Args: { p_name: string; p_restaurant_id?: string; p_source?: string }
+        Returns: Json
+      }
+      studio_menu_delete: { Args: { p_menu_id: string }; Returns: Json }
+      studio_menu_duplicate: { Args: { p_menu_id: string }; Returns: Json }
+      studio_menu_get: { Args: { p_menu_id: string }; Returns: Json }
+      studio_menu_publish: { Args: { p_menu_id: string }; Returns: Json }
+      studio_menu_unpublish: { Args: { p_menu_id: string }; Returns: Json }
+      studio_menu_update: {
+        Args: { p_menu_id: string; p_patch: Json }
+        Returns: Json
+      }
+      studio_menus_list: { Args: never; Returns: Json }
+      studio_modifier_delete: { Args: { p_mod_id: string }; Returns: Json }
+      studio_modifier_group_delete: {
+        Args: { p_group_id: string }
+        Returns: Json
+      }
+      studio_modifier_group_upsert: {
+        Args: { p_group: Json; p_item_id: string }
+        Returns: Json
+      }
+      studio_modifier_upsert: {
+        Args: { p_group_id: string; p_modifier: Json }
+        Returns: Json
+      }
+      studio_owned_group: { Args: { p_group_id: string }; Returns: string }
+      studio_owned_item: { Args: { p_item_id: string }; Returns: string }
+      studio_owned_menu: { Args: { p_menu_id: string }; Returns: string }
+      studio_owned_modifier: { Args: { p_mod_id: string }; Returns: string }
+      studio_owned_section: { Args: { p_section_id: string }; Returns: string }
+      studio_place_catalogue_item: {
+        Args: { p_catalogue_item_id: string; p_section_id: string }
+        Returns: Json
+      }
+      studio_revision_restore: {
+        Args: { p_menu_id: string; p_revision_id: string }
+        Returns: Json
+      }
+      studio_revision_save: {
+        Args: { p_label?: string; p_menu_id: string }
+        Returns: Json
+      }
+      studio_revisions_list: { Args: { p_menu_id: string }; Returns: Json }
+      studio_section_delete: { Args: { p_section_id: string }; Returns: Json }
+      studio_section_upsert: {
+        Args: { p_menu_id: string; p_section: Json }
+        Returns: Json
+      }
+      studio_sections_reorder: {
+        Args: { p_ids: string[]; p_menu_id: string }
+        Returns: Json
+      }
+      studio_theme_reset: { Args: { p_menu_id: string }; Returns: Json }
+      studio_theme_save: {
+        Args: { p_menu_id: string; p_patch: Json }
+        Returns: Json
       }
       submit_lead: {
         Args: {
