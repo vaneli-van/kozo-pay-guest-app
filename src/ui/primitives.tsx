@@ -14,7 +14,7 @@ export function Shell({ children, s, dispatch }: { children: React.ReactNode; s:
 
 export function Back({ dispatch, to = 'menu' }: any) { return <button className="back" onClick={() => dispatch(go(to))}><ArrowLeft />Back</button> }
 
-export function Action({ children, onClick, secondary = false }: any) { return <button className={`action ${secondary ? 'secondary' : ''}`} onClick={onClick}>{children}<ChevronRight /></button> }
+export function Action({ children, onClick, secondary = false, disabled = false, style }: any) { return <button className={`action ${secondary ? 'secondary' : ''}`} onClick={onClick} disabled={disabled} style={style}>{children}<ChevronRight /></button> }
 
 export function Center({ eyebrow, title, copy, children, icon = 'K', logoUrl, alt }: any) { return <section className="center-screen"><div className="brand-mark"><img src={logoUrl || '/klown-logo.png'} alt={alt || 'Klown'} /></div><p className="eyebrow">{eyebrow}</p><h1 dangerouslySetInnerHTML={{ __html: title }} /><p className="muted">{copy}</p>{children}</section> }
 
