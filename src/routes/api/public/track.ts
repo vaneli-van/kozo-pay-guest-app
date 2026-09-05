@@ -17,6 +17,7 @@ export const Route = createFileRoute('/api/public/track')({
         const event = typeof body?.event === 'string' ? body.event.slice(0, 64) : null
         const screen = typeof body?.screen === 'string' ? body.screen.slice(0, 64) : null
         const props = body?.props && typeof body.props === 'object' ? body.props : {}
+        const client_id = typeof body?.clientId === 'string' ? body.clientId.slice(0, 64) : null
         if (!sessionToken || !event) return json({ ok: false })
 
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
@@ -41,7 +42,7 @@ export const Route = createFileRoute('/api/public/track')({
         try { safeProps = JSON.parse(JSON.stringify(props)); if (JSON.stringify(safeProps).length > 2000) safeProps = {} } catch { safeProps = {} }
 
         await supabaseAdmin.from('analytics_events').insert({
-          session_id: session.id, restaurant_id, branch_id, table_label, event, screen, props: safeProps,
+          session_id: session.id, restaurant_id, branch_id, table_label, event, screen, props: safeProps, client_id,
         })
         return json({ ok: true })
       } catch { return json({ ok: false }) }
