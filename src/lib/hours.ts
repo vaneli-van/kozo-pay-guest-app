@@ -7,8 +7,13 @@ const ORDER = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 
 function inWindow(day: DayHours, ref: number, overnightTail = false): boolean {
   if (!day || !day.open || !day.close) return false
-  const [oh, om] = String(day.open).split(':').map(Number)
-  const [ch, cm] = String(day.close).split(':').map(Number)
+  const openParts = String(day.open).split(':')
+  const closeParts = String(day.close).split(':')
+  if (openParts.length < 2 || closeParts.length < 2) return false
+  const oh = Number(openParts[0])
+  const om = Number(openParts[1])
+  const ch = Number(closeParts[0])
+  const cm = Number(closeParts[1])
   if ([oh, om, ch, cm].some((n) => Number.isNaN(n))) return false
   const o = oh * 60 + om
   const c = ch * 60 + cm
@@ -34,8 +39,8 @@ export function openState(hours: any): { open: boolean } | null {
     const now = (hh % 24) * 60 + mm
     const idx = ORDER.indexOf(wd)
     if (idx < 0) return null
-    const yday = ORDER[(idx + 6) % 7]
-    const open = inWindow(hours[wd], now) || inWindow(hours[yday], now, true)
+    const yday = ORDER[(idx + 6) % 7]!
+    const open = inWindow(hours[wd] ?? null, now) || inWindow(hours[yday] ?? null, now, true)
     return { open }
   } catch {
     return null
@@ -49,7 +54,10 @@ export function hoursLine(hours: any): string | null {
   const has = days.filter((d) => hours[d] && hours[d].open && hours[d].close)
   if (!has.length) return null
   const to12 = (t: string) => {
-    const [H, M] = String(t).split(':').map(Number)
+    const parts = String(t).split(':')
+    if (parts.length < 2) return t
+    const H = Number(parts[0])
+    const M = Number(parts[1])
     const ap = H < 12 ? 'am' : 'pm'
     const h = (H % 12) || 12
     return `${h}${M ? ':' + String(M).padStart(2, '0') : ''}${ap}`

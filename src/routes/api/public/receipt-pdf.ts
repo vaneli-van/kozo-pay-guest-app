@@ -139,7 +139,7 @@ export const Route = createFileRoute('/api/public/receipt-pdf')({
           page.drawText(t, { x, y, size, font: f, color }); }
         const left = (t: string, size: number, f = mono, color = black) => page.drawText(t, { x: L, y, size, font: f, color })
         const right = (t: string, size: number, f = mono, color = black) => page.drawText(t, { x: R - f.widthOfTextAtSize(t, size), y, size, font: f, color })
-        const rule = (dashed = true) => { page.drawLine({ start: { x: L, y: y + 4 }, end: { x: R, y: y + 4 }, thickness: 0.7, color: grey, dashArray: dashed ? [2, 2] : undefined }) }
+        const rule = (dashed = true) => { page.drawLine({ start: { x: L, y: y + 4 }, end: { x: R, y: y + 4 }, thickness: 0.7, color: grey, ...(dashed ? { dashArray: [2, 2] } : {}) }) }
 
         if (logo && logoDims) { page.drawImage(logo, { x: L + (CW - logoDims.w) / 2, y: y - logoDims.h + 6, width: logoDims.w, height: logoDims.h }); y -= logoDims.h + 8 }
         center((restaurant?.name ?? 'Kozo').toUpperCase(), 13, monoB); y -= 15

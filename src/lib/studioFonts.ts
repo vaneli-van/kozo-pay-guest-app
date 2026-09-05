@@ -5,8 +5,13 @@ const GOOGLE = /^(Open Sans|Playfair Display|Lora|Montserrat|Poppins|Merriweathe
 export function injectStudioFonts(fonts: any) {
   try {
     if (!fonts || typeof document === 'undefined') return
-    const fams = Array.from(new Set(Object.values(fonts)
-      .map((f: any) => String(f).split(',')[0].replace(/["']/g, '').trim())
+    const values: string[] = []
+    for (const key in fonts) {
+      const v = fonts[key]
+      if (typeof v === 'string') values.push(v)
+    }
+    const fams = Array.from(new Set(values
+      .map((f: string) => (f.split(',')[0] || '').replace(/["']/g, '').trim())
       .filter(Boolean)))
     const google = fams.filter((f) => GOOGLE.test(f as string))
     if (!google.length) return

@@ -103,7 +103,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 const rawServer = (Array.isArray(o.employee_id) ? o.employee_id[1] : '') || (typeof o.cashier === 'string' ? o.cashier : '')
                 const serverName = rawServer ? String(rawServer).trim().split(/\s+/)[0] || null : null
                 const { data: nb } = await supabaseAdmin.from('bills')
-                  .insert({ table_id: klownId, status: 'open', subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total, server_name: serverName, opened_at: new Date().toISOString() })
+                  .insert({ table_id: klownId, status: 'open', subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total, server_name: serverName as string | null, opened_at: new Date().toISOString() })
                   .select('id').single()
                 if (!nb) continue
                 const ol = linesByOrder.get(o.id) ?? []

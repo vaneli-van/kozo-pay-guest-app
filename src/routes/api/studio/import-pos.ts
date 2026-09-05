@@ -131,24 +131,24 @@ export const Route = createFileRoute('/api/studio/import-pos')({
             const pid = String(it.pos_id)
             if (posSet.has(pid)) {
               const np = posPrice.get(pid)
-              const patch: Record<string, unknown> = {}
-              if (typeof np === 'number' && np !== it.price_pesewas) patch.price_pesewas = np
-              if (it.visible === false) { patch.visible = true; patch.sold_out = false; restored++ }
+              const patch: { price_pesewas?: number; visible?: boolean; sold_out?: boolean; updated_by?: string } = {}
+              if (typeof np === 'number' && np !== it['price_pesewas']) patch.price_pesewas = np
+              if (it['visible'] === false) { patch.visible = true; patch.sold_out = false; restored++ }
               if (Object.keys(patch).length) {
                 patch.updated_by = user.id
-                await supabaseAdmin.from('studio_items').update(patch).eq('id', it.id)
+                await supabaseAdmin.from('studio_items').update(patch).eq('id', it['id'])
                 if ('price_pesewas' in patch) {
                   priceUpdated++
-                  if (it.catalogue_item_id) await supabaseAdmin.from('studio_catalogue_items').update({ price_pesewas: np }).eq('id', it.catalogue_item_id)
+                  if (it['catalogue_item_id']) await (supabaseAdmin.from('studio_catalogue_items' as any).update({ price_pesewas: np }).eq('id', it['catalogue_item_id']) as any)
                 }
               }
-            } else if (it.visible !== false) {
-              await supabaseAdmin.from('studio_items').update({ visible: false, sold_out: true, updated_by: user.id }).eq('id', it.id)
+            } else if (it['visible'] !== false) {
+              await supabaseAdmin.from('studio_items').update({ visible: false, sold_out: true, updated_by: user.id }).eq('id', it['id'])
               hidden++
             }
           }
 
-          await supabaseAdmin.from('studio_menus').update({ source: 'pos' }).eq('id', menuId)
+          await (supabaseAdmin.from('studio_menus' as any).update({ source: 'pos' }).eq('id', menuId) as any)
           return json({ ok: true, sections_added: sectionsAdded, items_added: itemsAdded, price_updated: priceUpdated, hidden, restored, skipped, total_products: prods.length, job_id: job?.id ?? null })
         } catch (e) {
           return json({ ok: false, reason: 'error', message: String(e) }, 500)
