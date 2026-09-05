@@ -56,7 +56,7 @@ export const Route = createFileRoute('/api/public/menu-by-slug')({
               : { data: [] }
             const slugByMenu: Record<string, string> = {}
             for (const d of digs ?? []) { if (d.published && d.public_slug) slugByMenu[d.menu_id] = d.public_slug }
-            menus = (live ?? []).filter((m: any) => slugByMenu[m.id]).map((m: any) => ({ slug: slugByMenu[m.id], name: m.name }))
+            menus = (live ?? []).filter((m: any) => slugByMenu[m.id]).map((m: any) => ({ slug: slugByMenu[m.id] as string, name: String(m.name || '') }))
           }
           return json({ ok: true, source: 'studio', menu_name: menu.name, currency: menu.currency ?? 'GHS', theme: theme?.tokens ?? null, template: theme?.template_name ?? null, digital: dig, sections, menus })
         } catch (e) {

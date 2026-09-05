@@ -99,7 +99,7 @@ function PublicMenu() {
     if (!(data?.sections?.length)) return
     const obs = new IntersectionObserver((entries) => {
       const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
-      if (vis) setActive((vis.target as HTMLElement).dataset.sid || null)
+      if (vis) setActive((vis.target as HTMLElement).dataset['sid'] || null)
     }, { rootMargin: '-30% 0px -55% 0px', threshold: 0 })
     ;(data!.sections || []).forEach((x: any) => { const el = document.getElementById('sec-' + x.id); if (el) obs.observe(el) })
     return () => obs.disconnect()

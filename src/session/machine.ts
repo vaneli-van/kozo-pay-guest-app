@@ -54,7 +54,17 @@ export type State = {
   bill?: { status?: string; serverName?: string | null; items: { name: string; qty: number; lineTotalPesewas: number }[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number } | undefined
   quote?: { billTotalPesewas: number; remainingPesewas: number; sharePesewas: number; tipPesewas: number; grandTotalPesewas: number } | undefined
   // Menu (fetched once from /api/public/menu; all optional)
-  menu?: { categories: MenuCategory[]; items: MenuItem[]; recommendations: MenuRec[] } | undefined
+  menu?: {
+    source?: string
+    categories: MenuCategory[]
+    items: MenuItem[]
+    recommendations: MenuRec[]
+    sections?: any[]
+    theme?: any
+    digital?: any
+    currency?: string
+    menus?: any[] | null
+  } | undefined
   activeCategoryId?: string
   selectedItem?: MenuItem | undefined
 }

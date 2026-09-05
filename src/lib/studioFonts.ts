@@ -5,7 +5,7 @@ const GOOGLE = /^(Open Sans|Playfair Display|Lora|Montserrat|Poppins|Merriweathe
 export function injectStudioFonts(fonts: any) {
   try {
     if (!fonts || typeof document === 'undefined') return
-    const fams = Array.from(new Set(Object.values(fonts)
+    const fams = Array.from(new Set(Object.values(fonts || {})
       .map((f: any) => String(f).split(',')[0].replace(/["']/g, '').trim())
       .filter(Boolean)))
     const google = fams.filter((f) => GOOGLE.test(f as string))
