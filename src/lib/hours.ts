@@ -39,7 +39,7 @@ export function openState(hours: any): { open: boolean } | null {
     const now = (hh % 24) * 60 + mm
     const idx = ORDER.indexOf(wd)
     if (idx < 0) return null
-    const yday = ORDER[(idx + 6) % 7]
+    const yday = ORDER[(idx + 6) % 7]!
     const open = inWindow(hours[wd] ?? null, now) || inWindow(hours[yday] ?? null, now, true)
     return { open }
   } catch {
