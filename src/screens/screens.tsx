@@ -216,13 +216,16 @@ export function DownloadReceiptButton({ s }: any) {
   const onClick = () => {
     if (busy) return
     setErr(undefined); setBusy(true)
-    const win = typeof window !== 'undefined' ? window.open('', '_blank') : null
     fetch('/api/public/receipt-pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionToken: s?.sessionToken }) })
       .then((r) => r.json()).catch(() => null)
       .then((r) => {
         setBusy(false)
-        if (r?.ok && r.url) { if (win) win.location.href = r.url; else if (typeof window !== 'undefined') window.location.href = r.url }
-        else { try { win?.close() } catch { /* noop */ } setErr('Could not prepare the receipt. Please try again.') }
+        if (r?.ok && r.url) {
+          // A new tab is nicer on desktop, but mobile / in-app browsers routinely block a
+          // deferred popup — so fall back to navigating this tab, which always opens the PDF.
+          const w = typeof window !== 'undefined' ? window.open(r.url, '_blank', 'noopener') : null
+          if (!w && typeof window !== 'undefined') window.location.href = r.url
+        } else setErr('Could not prepare the receipt. Please try again.')
       })
   }
   return <><button className="outline-button" onClick={onClick} disabled={busy}>{busy ? 'Preparing receipt…' : 'Download / print receipt'}</button>{err && <p className="muted receipt-error">{err}</p>}</>
