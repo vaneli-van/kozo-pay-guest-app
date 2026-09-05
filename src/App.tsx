@@ -328,8 +328,12 @@ export default function App({
         window.clearInterval(id)
         patch({ failureReason: r?.failureReason })
         goScreen('payment-error')
-      } else if (n > 40) {
+      } else if (n > 120) {
+        // ~3 min with no confirmation (e.g. the MoMo prompt was never approved):
+        // stop guessing and show the fallback instead of spinning forever.
         window.clearInterval(id)
+        patch({ failureReason: 'The payment was not confirmed in time.' })
+        goScreen('payment-error')
       }
     }, 1500)
     return () => window.clearInterval(id)
