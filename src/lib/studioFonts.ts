@@ -11,7 +11,7 @@ export function injectStudioFonts(fonts: any) {
       if (typeof v === 'string') values.push(v)
     }
     const fams = Array.from(new Set(values
-      .map((f) => f.split(',')[0].replace(/["']/g, '').trim())
+      .map((f: string) => f.split(',')[0].replace(/["']/g, '').trim())
       .filter(Boolean)))
     const google = fams.filter((f) => GOOGLE.test(f as string))
     if (!google.length) return
