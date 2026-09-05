@@ -63,13 +63,27 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 linesByOrder.get(oid)!.push(l)
               }
 
-              // Refresh: clear this restaurant's open bills, then write current ones.
+              // Refresh open bills, but PRESERVE any bill a diner is mid-paying or has paid.
+              // payment_attempts.bill_id is ON DELETE SET NULL, so deleting a bill under an
+              // in-flight/captured payment severs the link the settle + auto-close path needs
+              // (the table would never close on the POS). We never churn such a bill, and we
+              // never recreate a duplicate open bill for that table.
+              const protectedTableIds = new Set<string>()
               if (klownTableIds.length) {
-                const { data: openBills } = await supabaseAdmin.from('bills').select('id').in('table_id', klownTableIds).in('status', ['open', 'ready'])
-                const openIds = (openBills ?? []).map((b: any) => b.id)
-                if (openIds.length) {
-                  await supabaseAdmin.from('bill_items').delete().in('bill_id', openIds)
-                  await supabaseAdmin.from('bills').delete().in('id', openIds)
+                const { data: existBills } = await supabaseAdmin.from('bills').select('id, table_id, status').in('table_id', klownTableIds)
+                const billTable = new Map<string, string>()
+                for (const b of existBills ?? []) billTable.set(b.id, b.table_id)
+                const billIds = [...billTable.keys()]
+                if (billIds.length) {
+                  const { data: pays } = await supabaseAdmin.from('payment_attempts').select('bill_id,status').in('bill_id', billIds).in('status', ['pending', 'captured'])
+                  for (const pmt of pays ?? []) { const t = pmt.bill_id ? billTable.get(pmt.bill_id) : undefined; if (t) protectedTableIds.add(t) }
+                }
+                const deleteIds = (existBills ?? [])
+                  .filter((b: any) => (b.status === 'open' || b.status === 'ready') && !protectedTableIds.has(b.table_id))
+                  .map((b: any) => b.id)
+                if (deleteIds.length) {
+                  await supabaseAdmin.from('bill_items').delete().in('bill_id', deleteIds)
+                  await supabaseAdmin.from('bills').delete().in('id', deleteIds)
                 }
               }
 
@@ -79,6 +93,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 if (num == null) continue
                 const klownId = klownByNum.get(num)
                 if (!klownId) continue
+                if (protectedTableIds.has(klownId)) continue // diner mid-payment or paid — leave their bill intact
                 const total = Math.round((o.amount_total || 0) * 100)
                 const { data: nb } = await supabaseAdmin.from('bills')
                   .insert({ table_id: klownId, status: 'open', subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total, opened_at: new Date().toISOString() })
