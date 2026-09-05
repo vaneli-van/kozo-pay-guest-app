@@ -35,3 +35,5 @@
 .item-step svg{width:15px}
 .item-step strong{font-size:16px;min-width:16px;text-align:center}
 .split-actions{display:flex;gap:18px;justify-content:center;margin-top:18px}
+.summary-card>div:not(.grand-total){display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-top:14px}
+.summary-card>div:first-child{padding-top:0}
