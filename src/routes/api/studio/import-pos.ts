@@ -1,9 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-// Owner-portal-triggered POS import: pulls a restaurant's Odoo POS products and
-// seeds a studio menu (sections by POS category, items by product). Called by the
-// owner portal with the owner's Supabase access token; authorises server-side that
-// the caller owns the menu's restaurant, then writes with the service role.
+// Owner-portal-triggered POS SYNC (a.k.a. "Import from POS"). Pulls a restaurant's
+// Odoo POS products and RECONCILES them into the studio menu, idempotently:
+//   - new POS products  -> inserted into their POS-category section (+ catalogue)
+//   - existing (matched by pos_id) -> price refreshed from POS; if previously
+//     hidden by a past sync (item removed then re-added in POS) -> un-hidden
+//   - products no longer in POS -> the matching studio item is hidden
+//     (visible=false, sold_out=true) so it drops off the diner menu, but the row
+//     is kept so its placement/theming survives if it ever comes back
+// Owner name/description edits on existing items are preserved (only price syncs).
+// Manual items (no pos_id) are never touched. The diner app reads the live studio
+// tree, so changes are visible immediately with no re-publish.
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
 function json(b: unknown, s = 200) { return new Response(JSON.stringify(b), { status: s, headers: { ...cors, 'Content-Type': 'application/json' } }) }
 
@@ -42,6 +49,11 @@ export const Route = createFileRoute('/api/studio/import-pos')({
           for (const c of cats) catById.set(c.id, { name: String(c.name || '').trim() || 'Menu', sequence: c.sequence ?? 999 })
           const prods = await searchRead(cfg, 'product.template', [['available_in_pos', '=', true]], ['id', 'display_name', 'list_price', 'description_sale', 'pos_categ_ids'])
 
+          // POS snapshot keyed by pos_id (used for add + reconcile).
+          const posSet = new Set<string>()
+          const posPrice = new Map<string, number>()
+          for (const p of prods) { const pid = String(p.id); posSet.add(pid); posPrice.set(pid, Math.round((p.list_price || 0) * 100)) }
+
           const { data: job } = await supabaseAdmin.from('studio_import_jobs').insert({ restaurant_id: rid, menu_id: menuId, source: 'odoo', status: 'committed', created_by: user.id }).select('id').single()
 
           const { data: existSecs } = await supabaseAdmin.from('studio_sections').select('id,name,sort').eq('menu_id', menuId)
@@ -49,11 +61,16 @@ export const Route = createFileRoute('/api/studio/import-pos')({
           let maxSort = 0
           for (const s of existSecs ?? []) { sectionByName.set(String(s.name || '').toLowerCase(), s.id); if ((s.sort ?? 0) > maxSort) maxSort = s.sort }
           const secIds = (existSecs ?? []).map((s: any) => s.id)
-          const existPos = new Set<string>()
+
+          // Existing studio items in this menu (for dedupe + reconcile).
+          let existItems: any[] = []
           if (secIds.length) {
-            const { data: ei } = await supabaseAdmin.from('studio_items').select('pos_id').in('section_id', secIds)
-            for (const it of ei ?? []) if (it.pos_id) existPos.add(String(it.pos_id))
+            const { data: ei } = await supabaseAdmin.from('studio_items').select('id,pos_id,price_pesewas,visible,sold_out,catalogue_item_id').in('section_id', secIds)
+            existItems = ei ?? []
           }
+          const existPos = new Set<string>()
+          for (const it of existItems) if (it.pos_id) existPos.add(String(it.pos_id))
+
           const { data: cat0 } = await supabaseAdmin.from('studio_catalogue_items').select('id,pos_id').eq('restaurant_id', rid)
           const catByPos = new Map<string, string>()
           for (const c of cat0 ?? []) if (c.pos_id) catByPos.set(String(c.pos_id), c.id)
@@ -77,6 +94,7 @@ export const Route = createFileRoute('/api/studio/import-pos')({
             return sa - sb || a - b
           })
 
+          // 1) ADD new products (not already in the menu by pos_id).
           let sectionsAdded = 0, itemsAdded = 0, skipped = 0
           for (const key of keys) {
             const list = groups.get(key)!
@@ -105,8 +123,33 @@ export const Route = createFileRoute('/api/studio/import-pos')({
               if (!iErr) { itemsAdded++; existPos.add(pid) }
             }
           }
+
+          // 2) RECONCILE existing POS-sourced items: price refresh, hide removed, restore returned.
+          let priceUpdated = 0, hidden = 0, restored = 0
+          for (const it of existItems) {
+            if (!it.pos_id) continue
+            const pid = String(it.pos_id)
+            if (posSet.has(pid)) {
+              const np = posPrice.get(pid)
+              const patch: Record<string, unknown> = {}
+              if (typeof np === 'number' && np !== it.price_pesewas) patch.price_pesewas = np
+              if (it.visible === false) { patch.visible = true; patch.sold_out = false; restored++ }
+              if (Object.keys(patch).length) {
+                patch.updated_by = user.id
+                await supabaseAdmin.from('studio_items').update(patch).eq('id', it.id)
+                if ('price_pesewas' in patch) {
+                  priceUpdated++
+                  if (it.catalogue_item_id) await supabaseAdmin.from('studio_catalogue_items').update({ price_pesewas: np }).eq('id', it.catalogue_item_id)
+                }
+              }
+            } else if (it.visible !== false) {
+              await supabaseAdmin.from('studio_items').update({ visible: false, sold_out: true, updated_by: user.id }).eq('id', it.id)
+              hidden++
+            }
+          }
+
           await supabaseAdmin.from('studio_menus').update({ source: 'pos' }).eq('id', menuId)
-          return json({ ok: true, sections_added: sectionsAdded, items_added: itemsAdded, skipped, total_products: prods.length, job_id: job?.id ?? null })
+          return json({ ok: true, sections_added: sectionsAdded, items_added: itemsAdded, price_updated: priceUpdated, hidden, restored, skipped, total_products: prods.length, job_id: job?.id ?? null })
         } catch (e) {
           return json({ ok: false, reason: 'error', message: String(e) }, 500)
         }
