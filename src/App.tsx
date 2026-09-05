@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { reducer, initial, go, type State, type Screen } from './session/machine'
 import { Shell, accentStyle } from './ui/primitives'
+import { track } from './lib/track'
 import { Connect, Welcome, map } from './screens/screens'
 
 const POST = (url: string, body: unknown): Promise<any> =>
@@ -56,6 +57,14 @@ export default function App({
   useEffect(() => { if (sessionToken && s.sessionToken !== sessionToken) patch({ sessionToken }) }, [sessionToken])
   // A retry after a failed/declined attempt must not reuse the burned attempt or its idempotency key.
   useEffect(() => { if (!s.paymentRef) idemRef.current = '' }, [s.paymentRef])
+  // Diner funnel tracking: fire one screen_view per screen change (deduped).
+  const lastScreenRef = useRef<string>('')
+  useEffect(() => {
+    if (!s.sessionToken || !s.screen) return
+    if (lastScreenRef.current === s.screen) return
+    lastScreenRef.current = s.screen
+    track(s.sessionToken, 'screen_view', { screen: s.screen })
+  }, [s.screen, s.sessionToken])
 
   const patch = (value: Partial<State>) => dispatch({ type: 'patch', value })
   const goScreen = (screen: Screen) => {
