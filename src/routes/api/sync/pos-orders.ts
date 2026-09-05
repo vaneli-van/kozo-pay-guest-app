@@ -70,7 +70,10 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               // never recreate a duplicate open bill for that table.
               const protectedTableIds = new Set<string>()
               if (klownTableIds.length) {
-                const { data: existBills } = await supabaseAdmin.from('bills').select('id, table_id, status').in('table_id', klownTableIds)
+                // Only LIVE bills (open/ready) can protect a table. A long-settled bill from a
+                // past session still has a captured payment, but it must NOT keep the sync from
+                // opening a fresh bill when the table is seated again — that permanently stuck the table.
+                const { data: existBills } = await supabaseAdmin.from('bills').select('id, table_id, status').in('table_id', klownTableIds).in('status', ['open', 'ready'])
                 const billTable = new Map<string, string>()
                 for (const b of existBills ?? []) billTable.set(b.id, b.table_id)
                 const billIds = [...billTable.keys()]
