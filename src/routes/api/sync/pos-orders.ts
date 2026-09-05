@@ -48,7 +48,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               for (const t of tables ?? []) { klownByNum.set(parseInt(t.label, 10), t.id); klownTableIds.push(t.id) }
 
               // Odoo open (draft) orders seated at a table.
-              const orders = await searchRead(cfg, 'pos.order', [['state', '=', 'draft']], ['id', 'table_id', 'amount_total'])
+              const orders = await searchRead(cfg, 'pos.order', [['state', '=', 'draft']], ['id', 'table_id', 'amount_total', 'employee_id', 'cashier'])
               const seated = orders.filter((o: any) => Array.isArray(o.table_id))
               const odooTableIds = [...new Set(seated.map((o: any) => o.table_id[0]))]
               const otables = odooTableIds.length ? await searchRead(cfg, 'restaurant.table', [['id', 'in', odooTableIds]], ['id', 'table_number']) : []
@@ -95,8 +95,12 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 if (!klownId) continue
                 if (protectedTableIds.has(klownId)) continue // diner mid-payment or paid — leave their bill intact
                 const total = Math.round((o.amount_total || 0) * 100)
+                // The waiter/server on the POS order — employee_id is the seated staff member;
+                // fall back to the cashier label. First name only keeps the tip prompt friendly.
+                const rawServer = (Array.isArray(o.employee_id) ? o.employee_id[1] : '') || (typeof o.cashier === 'string' ? o.cashier : '')
+                const serverName = rawServer ? String(rawServer).trim().split(/\s+/)[0] || null : null
                 const { data: nb } = await supabaseAdmin.from('bills')
-                  .insert({ table_id: klownId, status: 'open', subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total, opened_at: new Date().toISOString() })
+                  .insert({ table_id: klownId, status: 'open', subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total, server_name: serverName, opened_at: new Date().toISOString() })
                   .select('id').single()
                 if (!nb) continue
                 const ol = linesByOrder.get(o.id) ?? []

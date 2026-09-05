@@ -4,19 +4,19 @@ import { supabaseAdmin } from '@/integrations/supabase/client.server'
 // system has synced into Supabase. Swap MockPosProvider for a real adapter (Vend, Loyverse,
 // a custom POS webhook sync, etc.) without changing any route or UI code.
 export interface PosBillItem { name: string; qty: number; lineTotalPesewas: number }
-export interface PosBill { id: string; status: string; items: PosBillItem[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number }
+export interface PosBill { id: string; status: string; items: PosBillItem[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number; serverName?: string | null }
 export interface PosProvider { getActiveBillForTable(tableId: string): Promise<PosBill | null> }
 
 export class MockPosProvider implements PosProvider {
   async getActiveBillForTable(tableId: string): Promise<PosBill | null> {
     const { data: bill } = await supabaseAdmin
-      .from('bills').select('id,status,subtotal_pesewas,service_charge_pesewas,total_pesewas')
+      .from('bills').select('id,status,subtotal_pesewas,service_charge_pesewas,total_pesewas,server_name')
       .eq('table_id', tableId).in('status', ['open', 'ready']).order('opened_at', { ascending: false }).maybeSingle()
     if (!bill) return null
     const { data: items } = await supabaseAdmin
       .from('bill_items').select('name,qty,line_total_pesewas').eq('bill_id', bill.id).order('sort')
     return {
-      id: bill.id, status: bill.status,
+      id: bill.id, status: bill.status, serverName: bill.server_name ?? null,
       subtotalPesewas: bill.subtotal_pesewas, serviceChargePesewas: bill.service_charge_pesewas, totalPesewas: bill.total_pesewas,
       items: (items ?? []).map((i) => ({ name: i.name, qty: i.qty, lineTotalPesewas: i.line_total_pesewas })),
     }

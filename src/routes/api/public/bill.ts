@@ -18,7 +18,7 @@ export const Route = createFileRoute('/api/public/bill')({
           const bill = await posProvider.getActiveBillForTable(session.table_id)
           if (!bill) return json({ ok: true, bill: null })
           // Read-only: the diner can never mutate bill items.
-          return json({ ok: true, bill: { status: bill.status, items: bill.items, subtotalPesewas: bill.subtotalPesewas, serviceChargePesewas: bill.serviceChargePesewas, totalPesewas: bill.totalPesewas } })
+          return json({ ok: true, bill: { status: bill.status, items: bill.items, subtotalPesewas: bill.subtotalPesewas, serviceChargePesewas: bill.serviceChargePesewas, totalPesewas: bill.totalPesewas, serverName: bill.serverName ?? null } })
         } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
       },
     },
