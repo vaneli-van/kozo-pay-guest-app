@@ -233,7 +233,15 @@ export function DownloadReceiptButton({ s }: any) {
 
 export function ReceiptChoice({ s, dispatch }: any) { return <section><p className="eyebrow">{(s?.restaurantName || '').toUpperCase()} · RECEIPT {s?.receiptNumber ?? '#2841'}</p><h1>Keep a little<br /><em>memory.</em></h1><div className="receipt-card"><div className="receipt-head"><span>{s?.restaurantName || ''}</span><b>PAID</b></div><p>Tuesday, 26 August 2026 · 9:16 PM</p><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div><Action onClick={() => dispatch(go('phone'))}>Save receipt & earn rewards</Action><button className="outline-button" onClick={() => dispatch(go('guest-receipt'))}>Continue as guest</button><DownloadReceiptButton s={s} /></section> }
 
-export function Phone({ s, dispatch }: any) { const [phone, setPhone] = useState(''); return <section><Back dispatch={dispatch} to="receipt-choice" /><p className="eyebrow">OPTIONAL · REWARDS</p><h1>Where should we<br /><em>send it?</em></h1><p className="muted">We&apos;ll send your receipt straight to this number on WhatsApp, and collect {s?.restaurantName || ''} rewards. No account or sign-in needed.</p><label className="field-label">Phone number<input value={phone} onChange={e => setPhone(e.target.value)} placeholder="024 000 0000" inputMode="tel" /></label><Action disabled style={{ opacity: 0.55, cursor: 'not-allowed' }}>Send receipt to WhatsApp</Action></section> }
+export function Phone({ s, dispatch }: any) {
+  const [phone, setPhone] = useState(s?.phone ?? '')
+  const [err, setErr] = useState(false)
+  const submit = () => {
+    if (phone.replace(/\D/g, '').length < 9) { setErr(true); return }
+    dispatch({ type: 'patch-go', value: { phone }, to: 'name' })
+  }
+  return <section><Back dispatch={dispatch} to="receipt-choice" /><p className="eyebrow">OPTIONAL · REWARDS</p><h1>Save your<br /><em>rewards.</em></h1><p className="muted">Add your phone number to save this receipt and collect {s?.restaurantName || ''} rewards. No account or sign-in needed.</p><label className="field-label">Phone number<input value={phone} onChange={e => { setPhone(e.target.value); setErr(false) }} placeholder="024 000 0000" inputMode="tel" /></label>{err && <p className="muted" style={{ color: '#c0392b' }}>Enter a valid phone number.</p>}<Action onClick={submit}>Save &amp; earn rewards</Action></section>
+}
 
 export function OtpRewards({ dispatch }: any) { const [code, setCode] = useState(''); return <section><Back dispatch={dispatch} to="phone" /><p className="eyebrow">VERIFY YOUR NUMBER</p><h1>Check your<br /><em>messages.</em></h1><p className="muted">Enter the six-digit demo code sent to your phone.</p><input className="otp" value={code} onChange={e => setCode(e.target.value)} placeholder="123456" inputMode="numeric" /><Action onClick={() => dispatch({ type: 'otp-verify', value: { code } })}>Verify number</Action></section> }
 
