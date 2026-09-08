@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 export type ResolveResult =
   | { status: 'loading' }
   | { status: 'error'; reason: string }
-  | { status: 'ready'; sessionToken: string; restaurant: { name: string; city: string; logoUrl?: string | null; heroUrl?: string | null; accentColor?: string | null; taglineTop?: string | null; taglineBottom?: string | null; welcomeCopy?: string | null }; branch: { name: string }; table: { label: string }; hasActiveBill: boolean; billStatus: string; expiresAt: string }
+  | { status: 'ready'; sessionToken: string; restaurant: { name: string; city: string; logoUrl?: string | null; heroUrl?: string | null; accentColor?: string | null; taglineTop?: string | null; taglineBottom?: string | null; welcomeCopy?: string | null }; branch: { name: string }; table: { label: string }; hasActiveBill: boolean; billStatus: string; expiresAt: string; mode?: string; orderStatus?: string }
 
 const key = (qrToken: string) => `klown-session:${qrToken}`
 
@@ -24,7 +24,7 @@ export function useDiningSession(qrToken: string): ResolveResult {
         if (cancelled) return
         if (!data?.ok) { setState({ status: 'error', reason: data?.reason ?? 'invalid' }); return }
         try { localStorage.setItem(key(qrToken), data.sessionToken) } catch {}
-        setState({ status: 'ready', sessionToken: data.sessionToken, restaurant: data.restaurant, branch: data.branch, table: data.table, hasActiveBill: data.hasActiveBill, billStatus: data.billStatus, expiresAt: data.expiresAt })
+        setState({ status: 'ready', sessionToken: data.sessionToken, restaurant: data.restaurant, branch: data.branch, table: data.table, hasActiveBill: data.hasActiveBill, billStatus: data.billStatus, expiresAt: data.expiresAt, mode: data.mode, orderStatus: data.orderStatus })
       } catch {
         if (!cancelled) setState({ status: 'error', reason: 'network' })
       }

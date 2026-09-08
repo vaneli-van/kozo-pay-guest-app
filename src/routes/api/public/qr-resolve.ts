@@ -35,12 +35,74 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
 
           const { data: qr } = await supabase
             .from('qr_tokens')
-            .select('token,status,expires_at,table_id')
+            .select('token,status,expires_at,table_id,register_id')
             .eq('token', qrToken)
             .maybeSingle()
           if (!qr || qr.status !== 'active') return json({ ok: false, reason: 'invalid' })
           if (qr.expires_at && new Date(qr.expires_at) < new Date())
             return json({ ok: false, reason: 'expired' })
+
+          // ── QSR register (order-and-pay) token: mirror the live Klown-tendered order into a bill ──
+          if ((qr as any).register_id) {
+            const { data: reg } = await supabase
+              .from('pos_registers')
+              .select('id,name,branch_id,restaurant_id,odoo_pos_config_id,mode,active')
+              .eq('id', (qr as any).register_id)
+              .maybeSingle()
+            if (!reg || !reg.active) return json({ ok: false, reason: 'invalid' })
+            const { data: rbranch } = await supabase
+              .from('branches').select('id,name,restaurant_id').eq('id', reg.branch_id).maybeSingle()
+            const { data: rrestaurant } = await supabase
+              .from('restaurants')
+              .select('id,name,city,google_place_id,logo_url,hero_url,accent_color,tagline_top,tagline_bottom,welcome_copy')
+              .eq('id', reg.restaurant_id).maybeSingle()
+
+            let osession: Record<string, any> | null = null
+            if (sessionToken && typeof sessionToken === 'string') {
+              const { data } = await supabase
+                .from('dining_sessions').select('*')
+                .eq('session_token', sessionToken).eq('register_id', reg.id).maybeSingle()
+              if (data && data.status === 'active' && new Date(data.expires_at) > new Date()) osession = data
+            }
+            if (!osession) {
+              const { data: created } = await supabase
+                .from('dining_sessions')
+                .insert({ session_token: opaqueToken(), register_id: reg.id, bill_status: 'none' })
+                .select('*').single()
+              osession = created
+            }
+
+            // Read the current Klown-tendered order from Odoo and mirror it into a bill.
+            const { syncRegisterBill } = await import('@/integrations/pos/register.server')
+            const sync = await syncRegisterBill({ id: osession!['id'], register_id: reg.id })
+            const hasOrder = sync.reason === 'ready'
+
+            await supabase.from('audit_events').insert({ session_id: osession!['id'], type: 'session.resolved', data: { qrToken, mode: 'order', orderStatus: sync.reason } })
+
+            return json({
+              ok: true,
+              mode: 'order',
+              orderStatus: sync.reason,
+              sessionToken: osession!['session_token'],
+              restaurant: {
+                name: rrestaurant!.name,
+                city: rrestaurant!.city,
+                logoUrl: (rrestaurant as any)!.logo_url ?? null,
+                heroUrl: (rrestaurant as any)!.hero_url ?? null,
+                accentColor: (rrestaurant as any)!.accent_color ?? null,
+                taglineTop: (rrestaurant as any)!.tagline_top ?? null,
+                taglineBottom: (rrestaurant as any)!.tagline_bottom ?? null,
+                welcomeCopy: (rrestaurant as any)!.welcome_copy ?? null,
+              },
+              branch: { name: rbranch!.name },
+              table: { label: reg.name },
+              register: { id: reg.id, name: reg.name },
+              hasActiveBill: hasOrder,
+              billStatus: hasOrder ? 'open' : 'none',
+              sessionStatus: osession!['status'],
+              expiresAt: osession!['expires_at'],
+            })
+          }
 
           const { data: table } = await supabase
             .from('restaurant_tables')
@@ -106,6 +168,7 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
 
           return json({
             ok: true,
+            mode: 'table',
             sessionToken: session!['session_token'],
             restaurant: {
               name: restaurant!.name,

@@ -231,7 +231,30 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
 // writeback_enabled = true AND a Klown payment method configured.
 export async function onBillSettled(billId: string, totalPesewas: number) {
   try {
-    const { data: bill } = await supabaseAdmin.from('bills').select('table_id').eq('id', billId).maybeSingle()
+    const { data: bill } = await supabaseAdmin.from('bills')
+      .select('table_id, register_id, restaurant_id, odoo_pos_config_id, odoo_order_id, odoo_session_id')
+      .eq('id', billId).maybeSingle()
+
+    // ── QSR counter (Model A): order was already paid under the Klown tender in Odoo. ──
+    // No POS write-back — just record the collection (idempotent) and alert the owner.
+    if (bill?.register_id && bill?.odoo_order_id && bill?.restaurant_id) {
+      const { data: regRow } = await supabaseAdmin.from('pos_registers').select('name').eq('id', bill.register_id).maybeSingle()
+      const regName = regRow?.name ?? 'Counter'
+      const { error: ledgerErr } = await supabaseAdmin.from('klown_collected_orders').insert({
+        restaurant_id: bill.restaurant_id, register_id: bill.register_id,
+        odoo_pos_config_id: bill.odoo_pos_config_id, odoo_session_id: bill.odoo_session_id,
+        odoo_order_id: bill.odoo_order_id, amount_pesewas: totalPesewas,
+      })
+      // Unique(restaurant_id, odoo_order_id) makes a repeat capture a no-op; don't alert twice.
+      if (!ledgerErr) {
+        await supabaseAdmin.from('staff_notifications').insert({
+          restaurant_id: bill.restaurant_id, table_label: regName, kind: 'payment',
+          amount_pesewas: totalPesewas, message: `${regName} paid via Klown`,
+        })
+      }
+      return
+    }
+
     if (!bill?.table_id) return
     const { data: table } = await supabaseAdmin.from('restaurant_tables').select('label,branch_id').eq('id', bill.table_id).maybeSingle()
     if (!table) return

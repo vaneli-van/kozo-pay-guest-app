@@ -15,15 +15,27 @@ export const Route = createFileRoute('/api/public/payment-init')({
         if (!sessionToken || typeof sessionToken !== 'string') return json({ ok: false, reason: 'invalid_session' })
         if (!idempotencyKey || typeof idempotencyKey !== 'string') return json({ ok: false, reason: 'missing_idempotency_key' })
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
-        const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,table_id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
+        const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,table_id,register_id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
 
         // Idempotency: one attempt per (session, key). A repeat call returns the same attempt — never double-charges.
         const { data: existing } = await supabaseAdmin.from('payment_attempts').select('id,status,amount_pesewas,tip_pesewas,total_pesewas,provider_ref').eq('session_id', session.id).eq('idempotency_key', idempotencyKey).maybeSingle()
         if (existing) return json({ ok: true, paymentRef: existing.id, providerRef: existing.provider_ref, status: existing.status, amountPesewas: existing.amount_pesewas, tipPesewas: existing.tip_pesewas, totalPesewas: existing.total_pesewas, idempotent: true })
 
-        const { posProvider } = await import('@/integrations/pos/provider')
-        const bill = await posProvider.getActiveBillForTable(session.table_id)
+        let bill: { id: string; totalPesewas: number } | null
+        if (!session.table_id && session.register_id) {
+          // QSR counter: the bill mirrors the live Klown-tendered order.
+          const { syncRegisterBill } = await import('@/integrations/pos/register.server')
+          const sync = await syncRegisterBill({ id: session.id, register_id: session.register_id })
+          if (sync.reason !== 'ready' || !sync.billId) { bill = null }
+          else {
+            const { data: b } = await supabaseAdmin.from('bills').select('id,total_pesewas').eq('id', sync.billId).maybeSingle()
+            bill = b ? { id: b.id, totalPesewas: b.total_pesewas } : null
+          }
+        } else {
+          const { posProvider } = await import('@/integrations/pos/provider')
+          bill = await posProvider.getActiveBillForTable(session.table_id)
+        }
         if (!bill) return json({ ok: false, reason: 'no_bill' })
         const { amountPaidForBill, paymentProvider } = await import('@/integrations/payments/provider')
         const amountPaidPesewas = await amountPaidForBill(bill.id)

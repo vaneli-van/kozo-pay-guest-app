@@ -25,5 +25,7 @@ function ResolvedInner({ token }: { token: string }) {
     ...(r.taglineBottom ? { taglineBottom: r.taglineBottom } : {}),
     ...(r.welcomeCopy ? { welcomeCopy: r.welcomeCopy } : {}),
   }
-  return <App initialState={{ screen: s.hasActiveBill ? 'bill' : 'welcome', hasOrder: s.hasActiveBill, tableLabel: s.table.label, restaurantName: s.restaurant.name, ...branding }} storageKey={`klown-dining:${token}`} sessionToken={s.sessionToken} />
+  const isOrder = (s as any).mode === 'order'
+  const startScreen = isOrder ? (s.hasActiveBill ? 'bill' : 'waiting-bill') : (s.hasActiveBill ? 'bill' : 'welcome')
+  return <App initialState={{ screen: startScreen, hasOrder: s.hasActiveBill, mode: isOrder ? 'order' : 'table', tableLabel: s.table.label, restaurantName: s.restaurant.name, ...branding }} storageKey={`klown-dining:${token}`} sessionToken={s.sessionToken} />
 }

@@ -14,6 +14,8 @@ export type State = {
   navigator: boolean
   tableLabel?: string
   restaurantName?: string
+  mode?: 'order' | 'table'
+  orderStatus?: string
   // per-restaurant branding (all optional; null/absent => Klown defaults)
   logoUrl?: string
   heroUrl?: string
