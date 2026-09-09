@@ -50,7 +50,7 @@ export const Route = createFileRoute('/api/public/whatsapp-receipt')({
         if (!caps || caps.length === 0) return json({ ok: false, reason: 'no_payment' })
         const totalPaid = caps.reduce((s: number, r: { total_pesewas: number | null }) => s + (r.total_pesewas ?? 0), 0)
 
-        const { data: table } = await supabaseAdmin.from('restaurant_tables').select('branch_id').eq('id', session.table_id).maybeSingle()
+        const { data: table } = await supabaseAdmin.from('restaurant_tables').select('branch_id').eq('id', session.table_id!).maybeSingle()
         const { data: branch } = table ? await supabaseAdmin.from('branches').select('restaurant_id').eq('id', table.branch_id).maybeSingle() : { data: null }
         const { data: restaurant } = branch ? await supabaseAdmin.from('restaurants').select('name,city').eq('id', branch.restaurant_id).maybeSingle() : { data: null }
 

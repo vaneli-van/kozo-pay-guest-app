@@ -51,7 +51,7 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
               .maybeSingle()
             if (!reg || !reg.active) return json({ ok: false, reason: 'invalid' })
             const { data: rbranch } = await supabase
-              .from('branches').select('id,name,restaurant_id').eq('id', reg.branch_id).maybeSingle()
+              .from('branches').select('id,name,restaurant_id').eq('id', reg.branch_id!).maybeSingle()
             const { data: rrestaurant } = await supabase
               .from('restaurants')
               .select('id,name,city,google_place_id,logo_url,hero_url,accent_color,tagline_top,tagline_bottom,welcome_copy')
@@ -107,7 +107,7 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
           const { data: table } = await supabase
             .from('restaurant_tables')
             .select('id,label,branch_id')
-            .eq('id', qr.table_id)
+            .eq('id', qr.table_id!)
             .maybeSingle()
           if (!table) return json({ ok: false, reason: 'invalid' })
 

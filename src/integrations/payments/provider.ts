@@ -260,7 +260,7 @@ export async function onBillSettled(billId: string, totalPesewas: number) {
       const regName = regRow?.name ?? 'Counter'
       const { error: ledgerErr } = await supabaseAdmin.from('klown_collected_orders').insert({
         restaurant_id: bill.restaurant_id, register_id: bill.register_id,
-        odoo_pos_config_id: bill.odoo_pos_config_id, odoo_session_id: bill.odoo_session_id,
+        odoo_pos_config_id: bill.odoo_pos_config_id as number, odoo_session_id: bill.odoo_session_id as number,
         odoo_order_id: bill.odoo_order_id, amount_pesewas: totalPesewas,
       })
       // Unique(restaurant_id, odoo_order_id) makes a repeat capture a no-op; don't alert twice.

@@ -75,7 +75,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 // opening a fresh bill when the table is seated again — that permanently stuck the table.
                 const { data: existBills } = await supabaseAdmin.from('bills').select('id, table_id, status').in('table_id', klownTableIds).in('status', ['open', 'ready'])
                 const billTable = new Map<string, string>()
-                for (const b of existBills ?? []) billTable.set(b.id, b.table_id)
+                for (const b of existBills ?? []) billTable.set(b.id, b.table_id!)
                 const billIds = [...billTable.keys()]
                 if (billIds.length) {
                   const { data: pays } = await supabaseAdmin.from('payment_attempts').select('bill_id,status').in('bill_id', billIds).in('status', ['pending', 'captured'])

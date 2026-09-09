@@ -23,7 +23,7 @@ export const Route = createFileRoute('/api/public/payment-init')({
         if (existing) return json({ ok: true, paymentRef: existing.id, providerRef: existing.provider_ref, status: existing.status, amountPesewas: existing.amount_pesewas, tipPesewas: existing.tip_pesewas, totalPesewas: existing.total_pesewas, idempotent: true })
 
         let bill: { id: string; totalPesewas: number } | null
-        if (!session.table_id && session.register_id) {
+        if (!session.table_id! && session.register_id) {
           // QSR counter: the bill mirrors the live Klown-tendered order.
           const { syncRegisterBill } = await import('@/integrations/pos/register.server')
           const sync = await syncRegisterBill({ id: session.id, register_id: session.register_id })
@@ -34,7 +34,7 @@ export const Route = createFileRoute('/api/public/payment-init')({
           }
         } else {
           const { posProvider } = await import('@/integrations/pos/provider')
-          bill = await posProvider.getActiveBillForTable(session.table_id)
+          bill = await posProvider.getActiveBillForTable(session.table_id!)
         }
         if (!bill) return json({ ok: false, reason: 'no_bill' })
         const { amountPaidForBill, paymentProvider } = await import('@/integrations/payments/provider')

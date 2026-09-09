@@ -88,6 +88,13 @@ export type Database = {
             foreignKeyName: "activity_log_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "activity_log_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -113,6 +120,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      analytics_events: {
+        Row: {
+          branch_id: string | null
+          client_id: string | null
+          created_at: string
+          event: string
+          id: string
+          props: Json
+          restaurant_id: string | null
+          screen: string | null
+          session_id: string | null
+          table_label: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          event: string
+          id?: string
+          props?: Json
+          restaurant_id?: string | null
+          screen?: string | null
+          session_id?: string | null
+          table_label?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          props?: Json
+          restaurant_id?: string | null
+          screen?: string | null
+          session_id?: string | null
+          table_label?: string | null
+        }
+        Relationships: []
       }
       app_settings: {
         Row: {
@@ -419,37 +465,66 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          odoo_order_id: number | null
+          odoo_pos_config_id: number | null
+          odoo_session_id: number | null
           opened_at: string
+          register_id: string | null
+          restaurant_id: string | null
           server_name: string | null
           service_charge_pesewas: number
           status: string
           subtotal_pesewas: number
-          table_id: string
+          table_id: string | null
           total_pesewas: number
         }
         Insert: {
           created_at?: string
           id?: string
+          odoo_order_id?: number | null
+          odoo_pos_config_id?: number | null
+          odoo_session_id?: number | null
           opened_at?: string
+          register_id?: string | null
+          restaurant_id?: string | null
           server_name?: string | null
           service_charge_pesewas?: number
           status?: string
           subtotal_pesewas?: number
-          table_id: string
+          table_id?: string | null
           total_pesewas?: number
         }
         Update: {
           created_at?: string
           id?: string
+          odoo_order_id?: number | null
+          odoo_pos_config_id?: number | null
+          odoo_session_id?: number | null
           opened_at?: string
+          register_id?: string | null
+          restaurant_id?: string | null
           server_name?: string | null
           service_charge_pesewas?: number
           status?: string
           subtotal_pesewas?: number
-          table_id?: string
+          table_id?: string | null
           total_pesewas?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "bills_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["register_id"]
+          },
+          {
+            foreignKeyName: "bills_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "pos_registers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bills_table_id_fkey"
             columns: ["table_id"]
@@ -525,6 +600,13 @@ export type Database = {
             foreignKeyName: "branches_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "branches_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -558,10 +640,11 @@ export type Database = {
           created_at: string
           expires_at: string
           id: string
+          register_id: string | null
           session_token: string
           started_at: string
           status: string
-          table_id: string
+          table_id: string | null
         }
         Insert: {
           active_bill_id?: string | null
@@ -569,10 +652,11 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          register_id?: string | null
           session_token: string
           started_at?: string
           status?: string
-          table_id: string
+          table_id?: string | null
         }
         Update: {
           active_bill_id?: string | null
@@ -580,10 +664,11 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          register_id?: string | null
           session_token?: string
           started_at?: string
           status?: string
-          table_id?: string
+          table_id?: string | null
         }
         Relationships: [
           {
@@ -647,6 +732,60 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "dining_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      klown_collected_orders: {
+        Row: {
+          amount_pesewas: number
+          collected_at: string
+          dining_session_id: string | null
+          id: string
+          odoo_order_id: number
+          odoo_pos_config_id: number
+          odoo_session_id: number | null
+          payment_ref: string | null
+          register_id: string | null
+          restaurant_id: string
+        }
+        Insert: {
+          amount_pesewas: number
+          collected_at?: string
+          dining_session_id?: string | null
+          id?: string
+          odoo_order_id: number
+          odoo_pos_config_id: number
+          odoo_session_id?: number | null
+          payment_ref?: string | null
+          register_id?: string | null
+          restaurant_id: string
+        }
+        Update: {
+          amount_pesewas?: number
+          collected_at?: string
+          dining_session_id?: string | null
+          id?: string
+          odoo_order_id?: number
+          odoo_pos_config_id?: number
+          odoo_session_id?: number | null
+          payment_ref?: string | null
+          register_id?: string | null
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "klown_collected_orders_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["register_id"]
+          },
+          {
+            foreignKeyName: "klown_collected_orders_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "pos_registers"
             referencedColumns: ["id"]
           },
         ]
@@ -768,6 +907,13 @@ export type Database = {
             foreignKeyName: "member_profiles_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "member_profiles_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -829,6 +975,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["branch_id"]
+          },
+          {
+            foreignKeyName: "menu_categories_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["branch_id"]
           },
           {
@@ -945,6 +1098,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: true
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["branch_id"]
+          },
+          {
+            foreignKeyName: "menus_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: true
+            referencedRelation: "admin_registers"
             referencedColumns: ["branch_id"]
           },
           {
@@ -1125,6 +1285,13 @@ export type Database = {
             foreignKeyName: "payout_accounts_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -1206,6 +1373,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: true
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payout_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -1305,6 +1479,13 @@ export type Database = {
             foreignKeyName: "payouts_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -1398,6 +1579,13 @@ export type Database = {
             foreignKeyName: "pos_commands_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "pos_commands_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -1480,6 +1668,13 @@ export type Database = {
             foreignKeyName: "pos_connections_branch_id_fkey"
             columns: ["branch_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["branch_id"]
+          },
+          {
+            foreignKeyName: "pos_connections_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
             referencedRelation: "admin_table_devices"
             referencedColumns: ["branch_id"]
           },
@@ -1523,6 +1718,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "pos_connections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -1619,6 +1821,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "pos_connectors_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -1776,6 +1985,13 @@ export type Database = {
             foreignKeyName: "pos_odoo_credentials_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: true
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "pos_odoo_credentials_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -1802,26 +2018,62 @@ export type Database = {
           },
         ]
       }
+      pos_registers: {
+        Row: {
+          active: boolean
+          branch_id: string | null
+          created_at: string
+          id: string
+          mode: string
+          name: string
+          odoo_pos_config_id: number | null
+          restaurant_id: string
+        }
+        Insert: {
+          active?: boolean
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          mode?: string
+          name: string
+          odoo_pos_config_id?: number | null
+          restaurant_id: string
+        }
+        Update: {
+          active?: boolean
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          mode?: string
+          name?: string
+          odoo_pos_config_id?: number | null
+          restaurant_id?: string
+        }
+        Relationships: []
+      }
       qr_tokens: {
         Row: {
           created_at: string
           expires_at: string | null
+          register_id: string | null
           status: string
-          table_id: string
+          table_id: string | null
           token: string
         }
         Insert: {
           created_at?: string
           expires_at?: string | null
+          register_id?: string | null
           status?: string
-          table_id: string
+          table_id?: string | null
           token: string
         }
         Update: {
           created_at?: string
           expires_at?: string | null
+          register_id?: string | null
           status?: string
-          table_id?: string
+          table_id?: string | null
           token?: string
         }
         Relationships: [
@@ -1937,6 +2189,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["branch_id"]
+          },
+          {
+            foreignKeyName: "recommendations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["branch_id"]
           },
           {
@@ -2100,6 +2359,13 @@ export type Database = {
             foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -2158,6 +2424,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["branch_id"]
+          },
+          {
+            foreignKeyName: "restaurant_tables_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["branch_id"]
           },
           {
@@ -2232,6 +2505,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_user_invites_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -2322,6 +2602,13 @@ export type Database = {
             foreignKeyName: "restaurant_users_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_users_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -2358,6 +2645,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          notify_phones: string | null
           tagline_bottom: string | null
           tagline_top: string | null
           welcome_copy: string | null
@@ -2371,6 +2659,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          notify_phones?: string | null
           tagline_bottom?: string | null
           tagline_top?: string | null
           welcome_copy?: string | null
@@ -2384,6 +2673,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          notify_phones?: string | null
           tagline_bottom?: string | null
           tagline_top?: string | null
           welcome_copy?: string | null
@@ -2499,6 +2789,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "rewards_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -2637,6 +2934,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "rewards_consent_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -2805,6 +3109,13 @@ export type Database = {
             foreignKeyName: "staff_notifications_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "staff_notifications_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -2895,6 +3206,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_assets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -3009,6 +3327,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_catalogue_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -3187,6 +3512,13 @@ export type Database = {
             foreignKeyName: "studio_digital_settings_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_digital_settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -3278,6 +3610,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_import_jobs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -3494,6 +3833,13 @@ export type Database = {
             foreignKeyName: "studio_items_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -3603,6 +3949,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_menus_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -3903,6 +4256,13 @@ export type Database = {
             foreignKeyName: "studio_sections_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -3994,6 +4354,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "studio_themes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
             referencedColumns: ["restaurant_id"]
           },
           {
@@ -4290,6 +4657,13 @@ export type Database = {
             foreignKeyName: "pos_connectors_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "pos_connectors_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -4376,6 +4750,13 @@ export type Database = {
             foreignKeyName: "pos_odoo_credentials_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: true
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "pos_odoo_credentials_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
             referencedRelation: "admin_restaurant_directory"
             referencedColumns: ["id"]
           },
@@ -4401,6 +4782,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      admin_registers: {
+        Row: {
+          active: boolean | null
+          branch_id: string | null
+          branch_name: string | null
+          odoo_pos_config_id: number | null
+          qr_url: string | null
+          register_id: string | null
+          register_name: string | null
+          restaurant_id: string | null
+          restaurant_name: string | null
+          token: string | null
+          token_status: string | null
+        }
+        Relationships: []
       }
       admin_restaurant_directory: {
         Row: {
@@ -4502,6 +4899,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_analytics: {
+        Args: { p_days?: number; p_restaurant_id?: string }
+        Returns: Json
+      }
       can_bootstrap: { Args: { p_email: string }; Returns: boolean }
       create_bill_split: {
         Args: {
@@ -4532,6 +4933,15 @@ export type Database = {
         Args: { p_name: string; p_provider?: string; p_restaurant_id: string }
         Returns: string
       }
+      create_pos_register: {
+        Args: {
+          p_branch_id: string
+          p_name: string
+          p_odoo_pos_config_id: number
+          p_restaurant_id: string
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           roles: Database["public"]["Enums"]["staff_role"][]
@@ -4540,6 +4950,7 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { uid: string }; Returns: boolean }
+      klown_daily_report: { Args: { p_day?: string }; Returns: Json }
       owner_branding: { Args: never; Returns: Json }
       owner_context: { Args: never; Returns: Json }
       owner_create_ticket: {
@@ -4552,6 +4963,7 @@ export type Database = {
         Returns: Json
       }
       owner_integrations: { Args: never; Returns: Json }
+      owner_notify_phones: { Args: never; Returns: Json }
       owner_payments_summary: { Args: { p_days?: number }; Returns: Json }
       owner_payouts: { Args: never; Returns: Json }
       owner_primary_restaurant: { Args: never; Returns: string }
@@ -4578,6 +4990,7 @@ export type Database = {
         }
         Returns: Json
       }
+      owner_save_notify_phones: { Args: { p_phones: string[] }; Returns: Json }
       owner_set_schedule: { Args: { p_schedule: string }; Returns: Json }
       owner_tickets: { Args: never; Returns: Json }
       promote_staff: {

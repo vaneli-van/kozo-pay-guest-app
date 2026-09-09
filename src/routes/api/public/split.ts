@@ -18,7 +18,7 @@ export const Route = createFileRoute('/api/public/split')({
         // Resolve the split to show for this table: the current OPEN split, else a just-SETTLED one
         // (within the last 30 min). After settlement the bill leaves 'open', so we resolve via the
         // table's bills rather than getActiveBillForTable, which would return null and blank the lobby.
-        const { data: tableBills } = await supabaseAdmin.from('bills').select('id').eq('table_id', session.table_id)
+        const { data: tableBills } = await supabaseAdmin.from('bills').select('id').eq('table_id', session.table_id!)
         const billIds = (tableBills ?? []).map((b: any) => b.id)
         if (billIds.length === 0) return json({ ok: true, split: null })
 

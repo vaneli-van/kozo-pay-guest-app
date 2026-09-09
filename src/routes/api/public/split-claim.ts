@@ -23,7 +23,7 @@ export const Route = createFileRoute('/api/public/split-claim')({
         const { data: split } = await supabaseAdmin.from('bill_splits').select('id,bill_id,status').eq('id', share.split_id).maybeSingle()
         if (!split || split.status !== 'open') return json({ ok: false, reason: 'invalid_share' })
         const { posProvider } = await import('@/integrations/pos/provider')
-        const bill = await posProvider.getActiveBillForTable(session.table_id)
+        const bill = await posProvider.getActiveBillForTable(session.table_id!)
         if (!bill || bill.id !== split.bill_id) return json({ ok: false, reason: 'invalid_share' })
         if (share.status === 'paid') return json({ ok: false, reason: 'share_paid' })
         if (share.status === 'claimed' && share.claimed_by_session === session.id) return json({ ok: true, shareId: share.id, alreadyMine: true })

@@ -16,7 +16,7 @@ export const Route = createFileRoute('/api/public/quote')({
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,table_id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
         const { posProvider } = await import('@/integrations/pos/provider')
-        const bill = await posProvider.getActiveBillForTable(session.table_id)
+        const bill = await posProvider.getActiveBillForTable(session.table_id!)
         if (!bill) return json({ ok: false, reason: 'no_bill' })
         const { amountPaidForBill } = await import('@/integrations/payments/provider')
         const amountPaidPesewas = await amountPaidForBill(bill.id)

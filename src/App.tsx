@@ -138,18 +138,12 @@ export default function App({
         if (action.to) goScreen(action.to as Screen)
         return
       case 'otp-send':
-        // No verification step: the receipt goes straight to the diner's WhatsApp.
+        // Legacy WhatsApp path — no longer used by the receipt flow. No message is sent.
         if (action.value?.phone) patch({ phone: action.value.phone })
-        if (sessionToken && action.value?.phone) {
-          POST('/api/public/receipt-whatsapp', { sessionToken, phone: action.value.phone }).then((r) => {
-            if (r?.ok && !r.sent && r.waLink) window.open(r.waLink, '_blank', 'noopener')
-          })
-        }
-        goScreen('name')
         return
       case 'otp-verify':
-        goScreen('name')
         return
+
 
       case 'whatsapp-receipt': {
         const wp = action.value?.phone
@@ -167,12 +161,13 @@ export default function App({
         })
         return
       }
-      case 'rewards-consent':
-
-        if (sessionToken) {
+      case 'rewards-consent': {
+        const rphone = action.value?.phone ?? s.phone
+        if (rphone) patch({ phone: rphone })
+        if (sessionToken && rphone) {
           POST('/api/public/rewards-consent', {
             sessionToken,
-            phone: action.value?.phone ?? s.phone,
+            phone: rphone,
             firstName: action.value?.firstName,
             receiptConsent: true,
             rewardsConsent: true,
@@ -180,25 +175,17 @@ export default function App({
             consentVersion: 'v1',
           })
         }
-        goScreen('rewards')
-        return
-      case 'feedback': {
-        const rating = action.value?.rating ?? 5
-        if (sessionToken) {
-          POST('/api/public/feedback', { sessionToken, rating }).then(async () => {
-            const rl = await POST('/api/public/review-link', { sessionToken })
-            if (rl?.url) {
-              patch({ reviewUrl: rl.url })
-              goScreen('review-handoff')
-              return
-            }
-            goScreen('complete')
-          })
-        } else {
-          goScreen('complete')
-        }
+        goScreen('guest-receipt')
         return
       }
+      case 'feedback': {
+        // Persists the star rating in place — the combined review screen stays put.
+        const rating = action.value?.rating ?? 5
+        patch({ rating })
+        if (sessionToken) POST('/api/public/feedback', { sessionToken, rating })
+        return
+      }
+
       case 'pay-otp':
         if (sessionToken && s.paymentRef) {
           POST('/api/public/payment-otp', { sessionToken, paymentRef: s.paymentRef, otp: action.value?.otp }).then(() => goScreen('processing'))
@@ -377,6 +364,17 @@ export default function App({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, s.receiptNumber, sessionToken])
+
+  // Fetch the Google review link when the combined review screen opens.
+  useEffect(() => {
+    if (!sessionToken) return
+    if (s.screen === 'review-handoff' && s.reviewUrl === undefined) {
+      POST('/api/public/review-link', { sessionToken }).then((r) => patch({ reviewUrl: r?.url ?? null }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.screen, s.reviewUrl, sessionToken])
+
+
 
   const C = map[s.screen] || Connect
 
