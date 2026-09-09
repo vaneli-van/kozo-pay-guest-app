@@ -194,20 +194,11 @@ export function Authorise({ s, dispatch }: any) { return <Center logoUrl={s?.log
 export function Processing({ s, dispatch }: any) { const [slow, setSlow] = useState(false); useEffect(() => { const t = setTimeout(() => setSlow(true), 20000); return () => clearTimeout(t) }, []); return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow="SECURE PAYMENT" title={'Making it<br /><em>official.</em>'} copy={s?.method === 'card' ? 'Confirming your payment with your bank...' : 'Confirming your payment with mobile money...'}><div className="loader large" />{slow && <div className="processing-help"><p className="muted">Approve the prompt on your phone to finish. Didn&apos;t get one, or changed your mind?</p><button className="text-link" onClick={() => dispatch({ type: 'patch-go', value: { failureReason: 'The mobile money prompt was not approved in time.' }, to: 'payment-error' })}>It didn&apos;t go through</button></div>}</Center> }
 
 export function Success({ s, dispatch }: any) {
-  const [open, setOpen] = useState(false)
-  const [phone, setPhone] = useState(s?.phone ?? s?.momoNumber ?? '')
   return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow="PAYMENT COMPLETE" title={'You&apos;re all<br /><em>settled.</em>'} copy={`Thanks for dining at ${s?.restaurantName || 'us'}. Your receipt is ready whenever you are.`} icon="✓">
     <Action onClick={() => dispatch(go('receipt-choice'))}>View receipt options</Action>
-    {!open && <Action secondary disabled style={{ opacity: 0.55, cursor: 'not-allowed' }}>Send receipt to WhatsApp</Action>}
-    {open && <>
-      <label className="field-label">WhatsApp number<input value={phone} onChange={e => setPhone(e.target.value)} placeholder="024 000 0000" inputMode="tel" /></label>
-      {s?.waStatus === 'sending' && <div className="notice-card"><span>Sending…</span></div>}
-      {s?.waStatus === 'sent' && <div className="notice-card"><span>Receipt sent to WhatsApp ✓</span></div>}
-      {s?.waStatus === 'error' && <div className="error"><X />{s?.waError ?? 'We could not send your receipt.'}</div>}
-      <Action onClick={() => dispatch({ type: 'whatsapp-receipt', value: { phone } })}>Send receipt</Action>
-    </>}
   </Center>
 }
+
 
 
 export function DownloadReceiptButton({ s }: any) {
