@@ -19,7 +19,7 @@ export const Route = createFileRoute('/api/public/rewards-consent')({
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,table_id,register_id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
-        const { data: table } = await supabaseAdmin.from('restaurant_tables').select('branch_id').eq('id', session.table_id).maybeSingle()
+        const { data: table } = await supabaseAdmin.from('restaurant_tables').select('branch_id').eq('id', session.table_id!).maybeSingle()
         const { data: branch } = table ? await supabaseAdmin.from('branches').select('restaurant_id').eq('id', table.branch_id).maybeSingle() : { data: null }
         let restaurantId = branch ? branch.restaurant_id : null
         if (!restaurantId && (session as any).register_id) {

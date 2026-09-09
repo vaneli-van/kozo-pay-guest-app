@@ -27,8 +27,8 @@ export const Route = createFileRoute('/api/public/track')({
         let restaurant_id: string | null = null
         let branch_id: string | null = null
         let table_label: string | null = null
-        if (session.table_id) {
-          const { data: table } = await supabaseAdmin.from('restaurant_tables').select('label,branch_id').eq('id', session.table_id).maybeSingle()
+        if (session.table_id!) {
+          const { data: table } = await supabaseAdmin.from('restaurant_tables').select('label,branch_id').eq('id', session.table_id!).maybeSingle()
           if (table) {
             table_label = table.label
             branch_id = table.branch_id

@@ -15,7 +15,7 @@ export const Route = createFileRoute('/api/public/split-cancel')({
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,table_id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
         const { posProvider } = await import('@/integrations/pos/provider')
-        const bill = await posProvider.getActiveBillForTable(session.table_id)
+        const bill = await posProvider.getActiveBillForTable(session.table_id!)
         if (!bill) return json({ ok: false, reason: 'no_split' })
         const { data: split } = await supabaseAdmin.from('bill_splits').select('id,status').eq('bill_id', bill.id).eq('status', 'open').maybeSingle()
         if (!split) return json({ ok: false, reason: 'no_split' })

@@ -44,7 +44,7 @@ export const Route = createFileRoute('/api/public/receipt-whatsapp')({
           if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
 
           // Restaurant / table context
-          const { data: table } = await supabaseAdmin.from('restaurant_tables').select('label,branch_id').eq('id', session.table_id).maybeSingle()
+          const { data: table } = await supabaseAdmin.from('restaurant_tables').select('label,branch_id').eq('id', session.table_id!).maybeSingle()
           const { data: branch } = table ? await supabaseAdmin.from('branches').select('restaurant_id').eq('id', table.branch_id).maybeSingle() : { data: null }
           const { data: restaurant } = branch ? await supabaseAdmin.from('restaurants').select('name,city').eq('id', branch.restaurant_id).maybeSingle() : { data: null }
 

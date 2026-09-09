@@ -31,7 +31,7 @@ export const Route = createFileRoute('/api/public/receipt-pdf')({
         const totalPaid = caps.reduce((s: number, r: any) => s + (r.total_pesewas ?? 0), 0)
         const tipPaid = caps.reduce((s: number, r: any) => s + (r.tip_pesewas ?? 0), 0)
 
-        const { data: table } = await supabaseAdmin.from('restaurant_tables').select('branch_id,label').eq('id', session.table_id).maybeSingle()
+        const { data: table } = await supabaseAdmin.from('restaurant_tables').select('branch_id,label').eq('id', session.table_id!).maybeSingle()
         const { data: branch } = table ? await supabaseAdmin.from('branches').select('restaurant_id').eq('id', table.branch_id).maybeSingle() : { data: null }
         const { data: restaurant } = branch ? await supabaseAdmin.from('restaurants').select('name,city,logo_url').eq('id', branch.restaurant_id).maybeSingle() : { data: null }
 

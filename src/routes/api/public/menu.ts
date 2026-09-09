@@ -27,7 +27,7 @@ export const Route = createFileRoute('/api/public/menu')({
           if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date())
             return json({ ok: false, reason: 'invalid_session' })
 
-          const { data: table } = await supabase.from('restaurant_tables').select('branch_id').eq('id', session.table_id).maybeSingle()
+          const { data: table } = await supabase.from('restaurant_tables').select('branch_id').eq('id', session.table_id!).maybeSingle()
           const branchId = table!.branch_id
           const { data: branch } = await supabase.from('branches').select('restaurant_id').eq('id', branchId).maybeSingle()
           const restaurantId = branch?.restaurant_id

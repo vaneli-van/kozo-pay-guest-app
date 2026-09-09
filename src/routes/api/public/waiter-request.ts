@@ -39,7 +39,7 @@ export const Route = createFileRoute('/api/public/waiter-request')({
             return json({ ok: true, cooldown: true })
 
           const safeKind = typeof kind === 'string' && kind.length <= 40 ? kind : 'assistance'
-          await supabase.from('waiter_requests').insert({ session_id: session.id, table_id: session.table_id, kind: safeKind })
+          await supabase.from('waiter_requests').insert({ session_id: session.id, table_id: session.table_id!, kind: safeKind })
           await supabase.from('audit_events').insert({ session_id: session.id, type: 'waiter.requested', data: { kind: safeKind } })
           return json({ ok: true, cooldown: false })
         } catch (e) {

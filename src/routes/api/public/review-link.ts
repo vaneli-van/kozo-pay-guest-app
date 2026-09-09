@@ -15,7 +15,7 @@ export const Route = createFileRoute('/api/public/review-link')({
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,table_id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
-        const { data: table } = await supabaseAdmin.from('restaurant_tables').select('branch_id').eq('id', session.table_id).maybeSingle()
+        const { data: table } = await supabaseAdmin.from('restaurant_tables').select('branch_id').eq('id', session.table_id!).maybeSingle()
         const { data: branch } = table ? await supabaseAdmin.from('branches').select('restaurant_id').eq('id', table.branch_id).maybeSingle() : { data: null }
         const { data: restaurant } = branch ? await supabaseAdmin.from('restaurants').select('google_place_id').eq('id', branch.restaurant_id).maybeSingle() : { data: null }
         const v = (restaurant?.google_place_id ?? '').trim()

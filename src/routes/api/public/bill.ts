@@ -16,7 +16,7 @@ export const Route = createFileRoute('/api/public/bill')({
           if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
 
           // QSR counter session (no table): read the live Klown-tendered order from the register.
-          if (!session.table_id && session.register_id) {
+          if (!session.table_id! && session.register_id) {
             const { syncRegisterBill } = await import('@/integrations/pos/register.server')
             const sync = await syncRegisterBill({ id: session.id, register_id: session.register_id })
             if (sync.reason !== 'ready' || !sync.billId) return json({ ok: true, bill: null, orderStatus: sync.reason })
@@ -27,7 +27,7 @@ export const Route = createFileRoute('/api/public/bill')({
           }
 
           const { posProvider } = await import('@/integrations/pos/provider')
-          const bill = await posProvider.getActiveBillForTable(session.table_id)
+          const bill = await posProvider.getActiveBillForTable(session.table_id!)
           if (!bill) return json({ ok: true, bill: null })
           // Read-only: the diner can never mutate bill items.
           return json({ ok: true, bill: { status: bill.status, items: bill.items, subtotalPesewas: bill.subtotalPesewas, serviceChargePesewas: bill.serviceChargePesewas, totalPesewas: bill.totalPesewas, serverName: bill.serverName ?? null } })
