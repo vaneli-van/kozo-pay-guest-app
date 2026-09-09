@@ -260,11 +260,23 @@ export function Name({ s, dispatch }: any) { const [name, setName] = useState(''
 
 export function Rewards({ s, dispatch }: any) { return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow="REWARDS SAVED" title={'See you<br /><em>again.</em>'} copy={`Your receipt is saved and 120 ${s?.restaurantName || ''} points have been added.`} icon="★"><Action onClick={() => dispatch(go('feedback'))}>Share feedback</Action></Center> }
 
-export function GuestReceipt({ s, dispatch }: any) { return <section><p className="eyebrow">GUEST RECEIPT · {s?.receiptNumber ?? '#2841'}</p><h1>All <em>done.</em></h1><div className="receipt-card"><div className="receipt-head"><span>{s?.restaurantName || ''}</span><b>PAID</b></div><p>Your receipt is available for this session.</p><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div><DownloadReceiptButton s={s} /><Action onClick={() => dispatch(go('feedback'))}>Continue</Action></section> }
+export function GuestReceipt({ s, dispatch }: any) { return <section><p className="eyebrow">RECEIPT · {s?.receiptNumber ?? '#2841'}</p><h1>All <em>done.</em></h1><div className="receipt-card"><div className="receipt-head"><span>{s?.restaurantName || ''}</span><b>PAID</b></div><p>Your receipt is available for this session.</p><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div><DownloadReceiptButton s={s} /><Action onClick={() => dispatch(go('review-handoff'))}>Continue</Action></section> }
 
-export function Feedback({ s, dispatch }: any) { return <section className="center-screen"><Heart className="heart" /><p className="eyebrow">ONE LAST THING</p><h1>How was your<br /><em>{s?.restaurantName || 'your'} moment?</em></h1><div className="stars">{[1,2,3,4,5].map(i => <button key={i} onClick={() => dispatch({ type: 'feedback', value: { rating: i } })}><Star /></button>)}</div><p className="muted">Tap a star to share how it felt.</p><button className="text-link" onClick={() => dispatch(go('complete'))}>Maybe later</button></section> }
+export function Feedback({ s, dispatch }: any) { return <ReviewHandoff s={s} dispatch={dispatch} /> }
 
-export function ReviewHandoff({ s, dispatch }: any) { return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow="THANK YOU" title={'Would you tell<br /><em>Google too?</em>'} copy={`Thanks for your feedback. If you have a moment, a quick Google review helps other diners find ${s?.restaurantName || 'us'}. It opens in a new tab.`} icon="★"><Action onClick={() => { try { if (s?.reviewUrl) window.open(s.reviewUrl, '_blank', 'noopener') } catch {} dispatch(go('complete')) }}>Leave a Google review</Action><button className="text-link" onClick={() => dispatch(go('complete'))}>No thanks</button></Center> }
+export function ReviewHandoff({ s, dispatch }: any) {
+  const rating = s?.rating ?? 0
+  return <section className="center-screen">
+    <Heart className="heart" />
+    <p className="eyebrow">ONE LAST THING</p>
+    <h1>How was your<br /><em>{s?.restaurantName || 'your'} moment?</em></h1>
+    <div className="stars">{[1, 2, 3, 4, 5].map(i => <button key={i} aria-label={`${i} star`} style={{ opacity: rating && i > rating ? 0.3 : 1 }} onClick={() => dispatch({ type: 'feedback', value: { rating: i } })}><Star /></button>)}</div>
+    <p className="muted">{rating ? 'Thanks — your rating is saved.' : 'Tap a star to share how it felt.'}</p>
+    {s?.reviewUrl && <Action secondary onClick={() => { try { window.open(s.reviewUrl, '_blank', 'noopener') } catch {} }}>Leave a Google review</Action>}
+    <Action onClick={() => dispatch(go('complete'))}>Done</Action>
+  </section>
+}
+
 
 export function Complete({ s, dispatch }: any) { return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow="THANK YOU" title={'Until the<br /><em>next one.</em>'} copy="Your feedback helps us make every table feel closer."><button className="demo-control" onClick={() => dispatch({ type: 'reset' })}><RotateCcw />Start again</button></Center> }
 
