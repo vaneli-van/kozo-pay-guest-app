@@ -229,6 +229,24 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
 // ── On full payment: alert the floor and (if enabled) close the table on the POS ──
 // Read-only-safe by default: the Odoo write only happens when the restaurant has
 // writeback_enabled = true AND a Klown payment method configured.
+// Owner payment SMS (Arkesel). Best-effort: never throws into the settle path.
+async function notifyOwnerPaid(restaurantId: string, label: string, totalPesewas: number, billId: string) {
+  try {
+    const { data: r } = await supabaseAdmin.from('restaurants').select('name, notify_phones').eq('id', restaurantId).maybeSingle()
+    const { parsePhoneList, sendSms } = await import('@/integrations/notify/arkesel.server')
+    const phones = parsePhoneList((r as any)?.notify_phones)
+    if (!phones.length) return
+    const { data: items } = await supabaseAdmin.from('bill_items').select('name, qty').eq('bill_id', billId).order('sort')
+    const list = (items ?? []).map((i: any) => `${i.qty}x ${i.name}`)
+    const shown = list.slice(0, 6).join(', ')
+    const more = list.length > 6 ? ` (+${list.length - 6} more)` : ''
+    const amt = (totalPesewas / 100).toFixed(2)
+    const name = (r as any)?.name || 'your restaurant'
+    const msg = `Klown: ${label} paid GHS ${amt} at ${name}.` + (shown ? ` Items: ${shown}${more}.` : '')
+    await sendSms(phones, msg)
+  } catch { /* SMS is best-effort */ }
+}
+
 export async function onBillSettled(billId: string, totalPesewas: number) {
   try {
     const { data: bill } = await supabaseAdmin.from('bills')
@@ -251,6 +269,7 @@ export async function onBillSettled(billId: string, totalPesewas: number) {
           restaurant_id: bill.restaurant_id, table_label: regName, kind: 'payment',
           amount_pesewas: totalPesewas, message: `${regName} paid via Klown`,
         })
+        await notifyOwnerPaid(bill.restaurant_id, regName, totalPesewas, billId)
       }
       return
     }
@@ -270,6 +289,7 @@ export async function onBillSettled(billId: string, totalPesewas: number) {
       amount_pesewas: totalPesewas,
       message: `Table ${table.label} paid via Klown`,
     })
+    await notifyOwnerPaid(restaurantId, `Table ${table.label}`, totalPesewas, billId)
 
     // Close the table on the POS, only if this restaurant opted in.
     // Odoo write-back (cloud POS: settle directly).
