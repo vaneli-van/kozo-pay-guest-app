@@ -43,6 +43,7 @@ import { Route as ApiPublicSplitClaimRouteImport } from './routes/api/public/spl
 import { Route as ApiPublicSplitCreateRouteImport } from './routes/api/public/split-create'
 import { Route as ApiPublicSplitReleaseRouteImport } from './routes/api/public/split-release'
 import { Route as ApiPublicSplitUnassignRouteImport } from './routes/api/public/split-unassign'
+import { Route as ApiPublicTrackRouteImport } from './routes/api/public/track'
 import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
 import { Route as ApiPublicWhatsappReceiptRouteImport } from './routes/api/public/whatsapp-receipt'
 import { Route as ApiStudioImportPosRouteImport } from './routes/api/studio/import-pos'
@@ -221,6 +222,11 @@ const ApiPublicSplitUnassignRoute = ApiPublicSplitUnassignRouteImport.update({
   path: '/api/public/split-unassign',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTrackRoute = ApiPublicTrackRouteImport.update({
+  id: '/api/public/track',
+  path: '/api/public/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWaiterRequestRoute = ApiPublicWaiterRequestRouteImport.update({
   id: '/api/public/waiter-request',
   path: '/api/public/waiter-request',
@@ -278,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
+  '/api/public/track': typeof ApiPublicTrackRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/studio/import-pos': typeof ApiStudioImportPosRoute
@@ -318,6 +325,7 @@ export interface FileRoutesByTo {
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
+  '/api/public/track': typeof ApiPublicTrackRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/studio/import-pos': typeof ApiStudioImportPosRoute
@@ -359,6 +367,7 @@ export interface FileRoutesById {
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
+  '/api/public/track': typeof ApiPublicTrackRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/studio/import-pos': typeof ApiStudioImportPosRoute
@@ -401,6 +410,7 @@ export interface FileRouteTypes {
     | '/api/public/split-create'
     | '/api/public/split-release'
     | '/api/public/split-unassign'
+    | '/api/public/track'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/studio/import-pos'
@@ -441,6 +451,7 @@ export interface FileRouteTypes {
     | '/api/public/split-create'
     | '/api/public/split-release'
     | '/api/public/split-unassign'
+    | '/api/public/track'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/studio/import-pos'
@@ -481,6 +492,7 @@ export interface FileRouteTypes {
     | '/api/public/split-create'
     | '/api/public/split-release'
     | '/api/public/split-unassign'
+    | '/api/public/track'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/studio/import-pos'
@@ -522,6 +534,7 @@ export interface RootRouteChildren {
   ApiPublicSplitCreateRoute: typeof ApiPublicSplitCreateRoute
   ApiPublicSplitReleaseRoute: typeof ApiPublicSplitReleaseRoute
   ApiPublicSplitUnassignRoute: typeof ApiPublicSplitUnassignRoute
+  ApiPublicTrackRoute: typeof ApiPublicTrackRoute
   ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
   ApiPublicWhatsappReceiptRoute: typeof ApiPublicWhatsappReceiptRoute
   ApiStudioImportPosRoute: typeof ApiStudioImportPosRoute
@@ -768,6 +781,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSplitUnassignRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/track': {
+      id: '/api/public/track'
+      path: '/api/public/track'
+      fullPath: '/api/public/track'
+      preLoaderRoute: typeof ApiPublicTrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/waiter-request': {
       id: '/api/public/waiter-request'
       path: '/api/public/waiter-request'
@@ -834,6 +854,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSplitCreateRoute: ApiPublicSplitCreateRoute,
   ApiPublicSplitReleaseRoute: ApiPublicSplitReleaseRoute,
   ApiPublicSplitUnassignRoute: ApiPublicSplitUnassignRoute,
+  ApiPublicTrackRoute: ApiPublicTrackRoute,
   ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
   ApiPublicWhatsappReceiptRoute: ApiPublicWhatsappReceiptRoute,
   ApiStudioImportPosRoute: ApiStudioImportPosRoute,
