@@ -365,6 +365,17 @@ export default function App({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, s.receiptNumber, sessionToken])
 
+  // Fetch the Google review link when the combined review screen opens.
+  useEffect(() => {
+    if (!sessionToken) return
+    if (s.screen === 'review-handoff' && s.reviewUrl === undefined) {
+      POST('/api/public/review-link', { sessionToken }).then((r) => patch({ reviewUrl: r?.url ?? null }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.screen, s.reviewUrl, sessionToken])
+
+
+
   const C = map[s.screen] || Connect
 
   useEffect(() => {
