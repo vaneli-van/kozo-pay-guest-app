@@ -225,20 +225,19 @@ export function DownloadReceiptButton({ s }: any) {
 export function ReceiptChoice({ s, dispatch }: any) {
   const [name, setName] = useState(s?.firstName ?? '')
   const [phone, setPhone] = useState(s?.phone ?? s?.momoNumber ?? '')
-  const [err, setErr] = useState(false)
   const submit = () => {
-    if (phone.replace(/\D/g, '').length < 9) { setErr(true); return }
-    dispatch({ type: 'rewards-consent', value: { phone, firstName: name.trim() || undefined } })
+    dispatch({ type: 'patch', value: { phone, firstName: name.trim() || undefined } })
+    dispatch(go('guest-receipt'))
   }
+  const canContinue = phone.trim().length > 0
   return <section>
     <p className="eyebrow">{(s?.restaurantName || '').toUpperCase()} · RECEIPT {s?.receiptNumber ?? '#2841'}</p>
     <h1>Need a <em>receipt?</em></h1>
     <p className="muted">Enter your number to download your receipt and earn rewards.</p>
     <div className="receipt-card"><div className="receipt-head"><span>{s?.restaurantName || ''}</span><b>PAID</b></div><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div>
     <label className="field-label">First name (optional)<input value={name} onChange={e => setName(e.target.value)} placeholder="Ama" /></label>
-    <label className="field-label">Phone number<input value={phone} onChange={e => { setPhone(e.target.value); setErr(false) }} placeholder="024 000 0000" inputMode="tel" /></label>
-    {err && <p className="muted" style={{ color: '#c0392b' }}>Enter a valid phone number.</p>}
-    <Action onClick={submit}>Continue</Action>
+    <label className="field-label">Phone number<input value={phone} onChange={e => setPhone(e.target.value)} placeholder="024 000 0000" inputMode="tel" /></label>
+    <Action onClick={submit} disabled={!canContinue} style={{ opacity: canContinue ? 1 : 0.55, cursor: canContinue ? 'pointer' : 'not-allowed' }}>Continue</Action>
     <button className="text-link" onClick={() => dispatch(go('guest-receipt'))}>Skip</button>
   </section>
 }
