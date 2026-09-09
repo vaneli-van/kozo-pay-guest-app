@@ -226,8 +226,7 @@ export function ReceiptChoice({ s, dispatch }: any) {
   const [name, setName] = useState(s?.firstName ?? '')
   const [phone, setPhone] = useState(s?.phone ?? s?.momoNumber ?? '')
   const submit = () => {
-    dispatch({ type: 'patch', value: { phone, firstName: name.trim() || undefined } })
-    dispatch(go('guest-receipt'))
+    dispatch({ type: 'rewards-consent', value: { phone, firstName: name.trim() || undefined } })
   }
   const canContinue = phone.trim().length > 0
   return <section>
