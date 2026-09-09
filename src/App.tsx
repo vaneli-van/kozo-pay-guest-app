@@ -161,12 +161,13 @@ export default function App({
         })
         return
       }
-      case 'rewards-consent':
-
-        if (sessionToken) {
+      case 'rewards-consent': {
+        const rphone = action.value?.phone ?? s.phone
+        if (rphone) patch({ phone: rphone })
+        if (sessionToken && rphone) {
           POST('/api/public/rewards-consent', {
             sessionToken,
-            phone: action.value?.phone ?? s.phone,
+            phone: rphone,
             firstName: action.value?.firstName,
             receiptConsent: true,
             rewardsConsent: true,
@@ -174,25 +175,17 @@ export default function App({
             consentVersion: 'v1',
           })
         }
-        goScreen('rewards')
-        return
-      case 'feedback': {
-        const rating = action.value?.rating ?? 5
-        if (sessionToken) {
-          POST('/api/public/feedback', { sessionToken, rating }).then(async () => {
-            const rl = await POST('/api/public/review-link', { sessionToken })
-            if (rl?.url) {
-              patch({ reviewUrl: rl.url })
-              goScreen('review-handoff')
-              return
-            }
-            goScreen('complete')
-          })
-        } else {
-          goScreen('complete')
-        }
+        goScreen('guest-receipt')
         return
       }
+      case 'feedback': {
+        // Persists the star rating in place — the combined review screen stays put.
+        const rating = action.value?.rating ?? 5
+        patch({ rating })
+        if (sessionToken) POST('/api/public/feedback', { sessionToken, rating })
+        return
+      }
+
       case 'pay-otp':
         if (sessionToken && s.paymentRef) {
           POST('/api/public/payment-otp', { sessionToken, paymentRef: s.paymentRef, otp: action.value?.otp }).then(() => goScreen('processing'))
