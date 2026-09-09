@@ -42,7 +42,7 @@ export const Route = createFileRoute('/api/public/track')({
         try { safeProps = JSON.parse(JSON.stringify(props)); if (JSON.stringify(safeProps).length > 2000) safeProps = {} } catch { safeProps = {} }
 
         await supabaseAdmin.from('analytics_events').insert({
-          session_id: session.id, restaurant_id, branch_id, table_label, event, screen, props: safeProps, client_id,
+          session_id: session.id, restaurant_id, branch_id, table_label, event, screen, props: safeProps as any, client_id,
         })
         return json({ ok: true })
       } catch { return json({ ok: false }) }

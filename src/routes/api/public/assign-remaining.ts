@@ -18,7 +18,7 @@ export const Route = createFileRoute('/api/public/assign-remaining')({
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
 
         const { resolveOpenItemsSplit, ensureMyShare, recomputeItemSplit, itemsSplitPayload } = await import('@/integrations/billing/itemsplit.server')
-        const res = await resolveOpenItemsSplit(supabaseAdmin, session)
+        const res = await resolveOpenItemsSplit(supabaseAdmin, { ...session, table_id: session.table_id! })
         if ('error' in res) return json({ ok: false, reason: res.error })
         const { split, bill } = res
 
