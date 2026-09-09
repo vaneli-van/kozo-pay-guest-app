@@ -138,18 +138,12 @@ export default function App({
         if (action.to) goScreen(action.to as Screen)
         return
       case 'otp-send':
-        // No verification step: the receipt goes straight to the diner's WhatsApp.
+        // Legacy WhatsApp path — no longer used by the receipt flow. No message is sent.
         if (action.value?.phone) patch({ phone: action.value.phone })
-        if (sessionToken && action.value?.phone) {
-          POST('/api/public/receipt-whatsapp', { sessionToken, phone: action.value.phone }).then((r) => {
-            if (r?.ok && !r.sent && r.waLink) window.open(r.waLink, '_blank', 'noopener')
-          })
-        }
-        goScreen('name')
         return
       case 'otp-verify':
-        goScreen('name')
         return
+
 
       case 'whatsapp-receipt': {
         const wp = action.value?.phone
