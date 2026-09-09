@@ -222,7 +222,27 @@ export function DownloadReceiptButton({ s }: any) {
   return <><button className="outline-button" onClick={onClick} disabled={busy}>{busy ? 'Preparing receipt…' : 'Download / print receipt'}</button>{err && <p className="muted receipt-error">{err}</p>}</>
 }
 
-export function ReceiptChoice({ s, dispatch }: any) { return <section><p className="eyebrow">{(s?.restaurantName || '').toUpperCase()} · RECEIPT {s?.receiptNumber ?? '#2841'}</p><h1>Keep a little<br /><em>memory.</em></h1><div className="receipt-card"><div className="receipt-head"><span>{s?.restaurantName || ''}</span><b>PAID</b></div><p>Tuesday, 26 August 2026 · 9:16 PM</p><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div><Action onClick={() => dispatch(go('phone'))}>Save receipt & earn rewards</Action><button className="outline-button" onClick={() => dispatch(go('guest-receipt'))}>Continue as guest</button><DownloadReceiptButton s={s} /></section> }
+export function ReceiptChoice({ s, dispatch }: any) {
+  const [name, setName] = useState(s?.firstName ?? '')
+  const [phone, setPhone] = useState(s?.phone ?? s?.momoNumber ?? '')
+  const [err, setErr] = useState(false)
+  const submit = () => {
+    if (phone.replace(/\D/g, '').length < 9) { setErr(true); return }
+    dispatch({ type: 'rewards-consent', value: { phone, firstName: name.trim() || undefined } })
+  }
+  return <section>
+    <p className="eyebrow">{(s?.restaurantName || '').toUpperCase()} · RECEIPT {s?.receiptNumber ?? '#2841'}</p>
+    <h1>Need a <em>receipt?</em></h1>
+    <p className="muted">Enter your number to download your receipt and earn rewards.</p>
+    <div className="receipt-card"><div className="receipt-head"><span>{s?.restaurantName || ''}</span><b>PAID</b></div><div className="grand-total"><span>Total paid</span><b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b></div></div>
+    <label className="field-label">First name (optional)<input value={name} onChange={e => setName(e.target.value)} placeholder="Ama" /></label>
+    <label className="field-label">Phone number<input value={phone} onChange={e => { setPhone(e.target.value); setErr(false) }} placeholder="024 000 0000" inputMode="tel" /></label>
+    {err && <p className="muted" style={{ color: '#c0392b' }}>Enter a valid phone number.</p>}
+    <Action onClick={submit}>Continue</Action>
+    <button className="text-link" onClick={() => dispatch(go('guest-receipt'))}>Skip</button>
+  </section>
+}
+
 
 export function Phone({ s, dispatch }: any) {
   const [phone, setPhone] = useState(s?.phone ?? '')
