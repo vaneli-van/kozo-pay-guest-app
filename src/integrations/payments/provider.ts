@@ -16,6 +16,13 @@ export interface InitiateInput {
   phone?: string                  // MoMo number (transaction-only, never persisted)
   momoProvider?: string           // 'mtn' | 'vod' | 'atl' (derived from the number if absent)
   callbackUrl?: string            // where Paystack returns the diner after the hosted card page
+  // -- Transaction split (direct-to-restaurant settlement) --
+  // When `subaccount` is set, `totalPesewas` is the grossed-up charge (T); the
+  // subaccount receives (T - transactionChargePesewas) and Klown's main account
+  // keeps transactionChargePesewas. Absent -> single-account collection (unchanged).
+  subaccount?: string                 // Paystack subaccount code (ACCT_...)
+  transactionChargePesewas?: number   // flat amount routed to Klown's main account (= T - B)
+  bearer?: 'account' | 'subaccount'   // who bears the Paystack fee; 'account' = Klown main
 }
 export type InitiateAction = 'phone_approval' | 'redirect' | 'otp' | 'none'
 export interface InitiateResult {
@@ -75,11 +82,22 @@ export class PaystackProvider implements PaymentProvider {
     const email = input.email || `guest-${reference}@guests.kozopay.app`
     const amount = String(Math.trunc(input.totalPesewas)) // GHS subunit == pesewas
 
+    // Transaction-split fields, only when the restaurant has a subaccount configured.
+    // Kept as a spreadable fragment so the single-account path is byte-for-byte unchanged.
+    const split = input.subaccount
+      ? {
+          subaccount: input.subaccount,
+          transaction_charge: Math.max(0, Math.trunc(input.transactionChargePesewas ?? 0)),
+          bearer: input.bearer ?? 'account',
+        }
+      : {}
+
     if (input.provider === 'card') {
       // PCI-safe: never handle the PAN ourselves. Paystack hosts card entry + 3DS/OTP.
       const r = await paystackPost('/transaction/initialize', {
         email, amount, currency: 'GHS', reference, channels: ['card'],
         callback_url: input.callbackUrl,
+        ...split,
       })
       const url = r?.data?.authorization_url
       if (!r?.status || !url) throw new Error(r?.message || 'paystack_init_failed')
@@ -91,6 +109,7 @@ export class PaystackProvider implements PaymentProvider {
       const r = await paystackPost('/charge', {
         email, amount, currency: 'GHS', reference,
         mobile_money: { phone: input.phone, provider: input.momoProvider || momoProviderFromNumber(input.phone) },
+        ...split,
       })
       if (r?.status) {
         const st = r?.data?.status
@@ -108,6 +127,7 @@ export class PaystackProvider implements PaymentProvider {
       email, amount, currency: 'GHS', reference: hostedRef,
       channels: ['mobile_money'], callback_url: input.callbackUrl,
       metadata: { attempt: reference },
+      ...split,
     })
     const hostedUrl = h?.data?.authorization_url
     if (!h?.status || !hostedUrl) throw new Error(h?.message || 'paystack_charge_failed')

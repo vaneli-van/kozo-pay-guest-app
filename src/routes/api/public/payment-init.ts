@@ -92,9 +92,26 @@ export const Route = createFileRoute('/api/public/payment-init')({
         // MoMo number and card details are used only to initiate the charge with the gateway — never stored.
         const phone = typeof body.phone === 'string' ? body.phone : undefined
         const callbackUrl = typeof body.callbackUrl === 'string' ? body.callbackUrl : undefined
+
+        // Transaction split (direct-to-restaurant settlement).
+        // If this bill's restaurant has a Paystack subaccount, gross the charge up
+        // so the diner covers the fee (folded in, surfaced only at MoMo/card), the
+        // restaurant is settled B directly to its bank, and Klown keeps its bps.
+        // No subaccount -> chargePesewas stays B and no split fields are sent (unchanged).
+        const { getSplitConfigForBill, computeGrossUp } = await import('@/integrations/payments/split.server')
+        const splitCfg = await getSplitConfigForBill(bill.id)
+        let chargePesewas = quote.grandTotalPesewas
+        let splitFields: { subaccount?: string; transactionChargePesewas?: number; bearer?: 'account' | 'subaccount' } = {}
+        if (splitCfg) {
+          const g = computeGrossUp(quote.grandTotalPesewas, splitCfg.klownFeeBps)
+          chargePesewas = g.totalPesewas
+          splitFields = { subaccount: splitCfg.subaccountCode, transactionChargePesewas: g.transactionChargePesewas, bearer: 'account' }
+          await supabaseAdmin.from('audit_events').insert({ session_id: session.id, type: 'payment.split', data: { paymentRef: attempt.id, base: g.basePesewas, charged: g.totalPesewas, transactionCharge: g.transactionChargePesewas, subaccount: splitCfg.subaccountCode, klownFeeBps: g.klownFeeBps } })
+        }
+
         let init
         try {
-          init = await paymentProvider.initiate({ paymentAttemptId: attempt.id, provider, method: method ?? undefined, totalPesewas: quote.grandTotalPesewas, phone, callbackUrl })
+          init = await paymentProvider.initiate({ paymentAttemptId: attempt.id, provider, method: method ?? undefined, totalPesewas: chargePesewas, phone, callbackUrl, ...splitFields })
         } catch (e) {
           const gatewayMsg = (e instanceof Error ? e.message : String(e)) || 'gateway_error'
           await supabaseAdmin.from('payment_attempts').update({ status: 'failed', failure_reason: gatewayMsg, updated_at: new Date().toISOString() }).eq('id', attempt.id)
