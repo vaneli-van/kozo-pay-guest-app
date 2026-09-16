@@ -78,8 +78,17 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 for (const b of existBills ?? []) billTable.set(b.id, b.table_id!)
                 const billIds = [...billTable.keys()]
                 if (billIds.length) {
-                  const { data: pays } = await supabaseAdmin.from('payment_attempts').select('bill_id,status').in('bill_id', billIds).in('status', ['pending', 'captured'])
-                  for (const pmt of pays ?? []) { const t = pmt.bill_id ? billTable.get(pmt.bill_id) : undefined; if (t) protectedTableIds.add(t) }
+                  // An unapproved MoMo prompt only protects a table briefly; an abandoned
+                  // pending attempt must not freeze the bill forever. 'captured' always protects.
+                  const FRESH_MS = 15 * 60 * 1000
+                  const nowMs = Date.now()
+                  const { data: pays } = await supabaseAdmin.from('payment_attempts').select('bill_id,status,created_at').in('bill_id', billIds).in('status', ['pending', 'captured'])
+                  for (const pmt of pays ?? []) {
+                    const t = pmt.bill_id ? billTable.get(pmt.bill_id) : undefined
+                    if (!t) continue
+                    const active = pmt.status === 'captured' || (nowMs - new Date(pmt.created_at as string).getTime() < FRESH_MS)
+                    if (active) protectedTableIds.add(t)
+                  }
                 }
                 const deleteIds = (existBills ?? [])
                   .filter((b: any) => (b.status === 'open' || b.status === 'ready') && !protectedTableIds.has(b.table_id))
