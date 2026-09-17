@@ -19,3 +19,14 @@ export function Action({ children, onClick, secondary = false, disabled = false,
 export function Center({ eyebrow, title, copy, children, icon = 'K', logoUrl, alt }: any) { return <section className="center-screen"><div className="brand-mark"><img src={logoUrl || '/klown-logo.png'} alt={alt || 'Klown'} /></div><p className="eyebrow">{eyebrow}</p><h1 dangerouslySetInnerHTML={{ __html: title }} /><p className="muted">{copy}</p>{children}</section> }
 
 export function BillRow({ name, qty, price }: any) { return <div className="bill-row"><span><small>{qty} ×</small>{name}</span><b>{money(price)}</b></div> }
+
+
+export function ConnBanner({ offline, onRetry }: { offline: boolean; onRetry: () => void }) {
+  return (
+    <div className="conn-banner" role="status" aria-live="polite">
+      <span className="conn-dot" />
+      <span className="conn-text">{offline ? 'You’re offline — we’ll continue when you reconnect.' : 'Weak connection — keeping your payment safe and retrying…'}</span>
+      <button className="conn-retry" onClick={onRetry}>Retry</button>
+    </div>
+  )
+}

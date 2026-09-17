@@ -10,6 +10,8 @@ export type State = {
   people: number
   tip: number
   paymentError: boolean
+  netOnline?: boolean
+  connLost?: boolean
   waiter: boolean
   navigator: boolean
   tableLabel?: string
@@ -86,7 +88,7 @@ export const screens: [Screen, string, string, string, string, string][] = [
 export function go(screen: Screen) { return { type: 'screen', value: screen } as const }
 
 export function reducer(s: State, a: { type: string; value?: any }): State {
-  if (a.type === 'screen') return { ...s, screen: a.value, paymentError: false }
+  if (a.type === 'screen') return { ...s, screen: a.value, paymentError: false, connLost: false }
   if (a.type === 'patch') return { ...s, ...a.value }
   if (a.type === 'toggleOrder') return { ...s, hasOrder: !s.hasOrder, screen: !s.hasOrder ? 'welcome' : 'welcome' }
   if (a.type === 'dish') return { ...s, dish: a.value, screen: 'dish' }

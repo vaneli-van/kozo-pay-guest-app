@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { reducer, initial, go, type State, type Screen } from './session/machine'
-import { Shell, accentStyle } from './ui/primitives'
+import { Shell, accentStyle, ConnBanner } from './ui/primitives'
+import { postResilient } from './lib/net'
 import { track } from './lib/track'
 import { Connect, Welcome, map } from './screens/screens'
 
@@ -53,10 +54,22 @@ export default function App({
   const [s, dispatch] = useReducer(reducer, { ...initial, ...initialState })
   const [hydrated, setHydrated] = useState(false)
   const idemRef = useRef<string>('')
+  const [retryTick, setRetryTick] = useState(0)
 
   useEffect(() => { if (sessionToken && s.sessionToken !== sessionToken) patch({ sessionToken }) }, [sessionToken])
   // A retry after a failed/declined attempt must not reuse the burned attempt or its idempotency key.
   useEffect(() => { if (!s.paymentRef) idemRef.current = '' }, [s.paymentRef])
+  // Track connectivity so the pay path can retry safely instead of showing a false failure.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    patch({ netOnline: navigator.onLine, connLost: false })
+    const onOnline = () => { patch({ netOnline: true, connLost: false }); setRetryTick((n) => n + 1) }
+    const onOffline = () => patch({ netOnline: false })
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // Diner funnel tracking: fire one screen_view per screen change (deduped).
   const lastScreenRef = useRef<string>('')
   useEffect(() => {
@@ -288,7 +301,13 @@ export default function App({
     if ((s.screen === 'authorise' || s.screen === 'processing') && !s.paymentRef) {
       if (!idemRef.current) idemRef.current = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`
       const callbackUrl = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : undefined
-      POST('/api/public/payment-init', {
+      let cancelled = false
+      patch({ connLost: false })
+      // Idempotent init: retry transparently on a dropped connection with the SAME key
+      // (the server dedupes, so a retry can never double-charge). A real gateway/decline
+      // response routes to payment-error; a pure network failure does NOT — we keep the
+      // diner here, show a connection notice, and auto-retry when the signal returns.
+      postResilient('/api/public/payment-init', {
         sessionToken,
         shareId: s.claimedShareId,
         idempotencyKey: idemRef.current,
@@ -300,15 +319,20 @@ export default function App({
         provider: s.method === 'card' ? 'card' : 'momo',
         phone: s.momoNumber, // MoMo number — transaction-only, cleared once initiated
         callbackUrl,
-      }).then((r) => {
+      }, { retries: 4 }).then((r) => {
+        if (cancelled) return
         if (!r?.ok) { patch({ failureReason: r?.failureReason ?? r?.message }); goScreen('payment-error'); return }
-        if (r.paymentRef) patch({ paymentRef: r.paymentRef, momoNumber: undefined })
+        if (r.paymentRef) patch({ paymentRef: r.paymentRef, momoNumber: undefined, connLost: false })
         if (r.redirectUrl) { openCheckout(r.redirectUrl); return } // card / hosted MoMo → Paystack page
         if (r.action === 'otp') goScreen('otp') // MoMo send_otp path
+      }).catch(() => {
+        if (cancelled) return
+        patch({ connLost: true })
       })
+      return () => { cancelled = true }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, s.paymentRef, s.claimedShareId, sessionToken])
+  }, [s.screen, s.paymentRef, s.claimedShareId, sessionToken, retryTick])
 
   // Poll payment status while processing — success is reached only when the server confirms capture.
   useEffect(() => {
@@ -410,6 +434,9 @@ export default function App({
 
   return (
     <>
+      {(s.netOnline === false || s.connLost) && (
+        <ConnBanner offline={s.netOnline === false} onRetry={() => setRetryTick((n) => n + 1)} />
+      )}
       {s.screen === 'connect' || s.screen === 'welcome' ? (
         <div className="app-shell" style={accentStyle(s.accentColor)}>
           {s.screen === 'connect' ? <Connect dispatch={navigate} /> : <Welcome s={s} dispatch={navigate} />}
