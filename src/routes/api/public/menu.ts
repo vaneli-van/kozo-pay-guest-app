@@ -36,11 +36,16 @@ export const Route = createFileRoute('/api/public/menu')({
           if (restaurantId) {
             const { data: sms } = await supabase.from('studio_menus').select('id,name,currency').eq('restaurant_id', restaurantId).eq('status', 'live').order('updated_at', { ascending: false })
             if (sms && sms.length) {
-              const menus: any[] = []
-              for (const studio of sms) {
-                const { data: theme } = await supabase.from('studio_themes').select('tokens,template_name').eq('menu_id', studio.id).maybeSingle()
-                const { data: dig } = await supabase.from('studio_digital_settings').select('biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert,hours,rec_name,rec_note,rec_price_pesewas,rec_image_url').eq('menu_id', studio.id).maybeSingle()
-                const { data: secs } = await supabase.from('studio_sections').select('id,name,sort').eq('menu_id', studio.id).eq('visible', true).order('sort')
+              // Resolve every live menu in parallel; within each menu the theme,
+              // digital settings and sections queries run together, then items.
+              // (Was sequential per-menu -> ~12 serial round-trips for a 3-menu venue.)
+              const built = await Promise.all(sms.map(async (studio: any) => {
+                const [themeR, digR, secsR] = await Promise.all([
+                  supabase.from('studio_themes').select('tokens,template_name').eq('menu_id', studio.id).maybeSingle(),
+                  supabase.from('studio_digital_settings').select('biz_name,info,phone,link_url,link_text,logo_url,banner_url,banner_bg,welcome_alert,hours,rec_name,rec_note,rec_price_pesewas,rec_image_url').eq('menu_id', studio.id).maybeSingle(),
+                  supabase.from('studio_sections').select('id,name,sort').eq('menu_id', studio.id).eq('visible', true).order('sort'),
+                ])
+                const theme = themeR.data, dig = digR.data, secs = secsR.data
                 const secIds = (secs ?? []).map((x: any) => x.id)
                 const { data: its } = secIds.length
                   ? await supabase.from('studio_items').select('id,section_id,name,description,price_pesewas,price_display,image_url,tags,available,sold_out,sort').in('section_id', secIds).eq('visible', true).order('sort')
@@ -50,8 +55,9 @@ export const Route = createFileRoute('/api/public/menu')({
                 const sections = (secs ?? [])
                   .map((x: any) => ({ id: x.id, name: x.name, items: bySec[x.id] ?? [] }))
                   .filter((x: any) => x.items.length > 0)
-                if (sections.length) menus.push({ id: studio.id, name: studio.name, currency: studio.currency ?? 'GHS', theme: theme?.tokens ?? null, template: theme?.template_name ?? null, digital: dig ?? null, sections })
-              }
+                return sections.length ? { id: studio.id, name: studio.name, currency: studio.currency ?? 'GHS', theme: theme?.tokens ?? null, template: theme?.template_name ?? null, digital: dig ?? null, sections } : null
+              }))
+              const menus: any[] = built.filter(Boolean) as any[]
               if (menus.length) {
                 const first = menus[0]
                 return json({ ok: true, source: 'studio', currency: first.currency, theme: first.theme, template: first.template, digital: first.digital, sections: first.sections, menus })

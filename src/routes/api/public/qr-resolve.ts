@@ -111,34 +111,27 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
             .maybeSingle()
           if (!table) return json({ ok: false, reason: 'invalid' })
 
-          const { data: branch } = await supabase
-            .from('branches')
-            .select('id,name,restaurant_id')
-            .eq('id', table.branch_id)
-            .maybeSingle()
+          // table is known; branch, any open bill, and the existing session are
+          // independent -> run them together, then restaurant (needs branch).
+          const [branchR, billR, existingSessionR] = await Promise.all([
+            supabase.from('branches').select('id,name,restaurant_id').eq('id', table.branch_id).maybeSingle(),
+            supabase.from('bills').select('id,status,subtotal_pesewas,service_charge_pesewas,total_pesewas').eq('table_id', table.id).in('status', ['open', 'ready']).order('opened_at', { ascending: false }).maybeSingle(),
+            (sessionToken && typeof sessionToken === 'string')
+              ? supabase.from('dining_sessions').select('*').eq('session_token', sessionToken).eq('table_id', table.id).maybeSingle()
+              : Promise.resolve({ data: null as any }),
+          ])
+          const branch = branchR.data
+          const bill = billR.data
           const { data: restaurant } = await supabase
             .from('restaurants')
             .select('id,name,city,google_place_id,logo_url,hero_url,accent_color,tagline_top,tagline_bottom,welcome_copy')
             .eq('id', branch!.restaurant_id)
             .maybeSingle()
-
-          const { data: bill } = await supabase
-            .from('bills')
-            .select('id,status,subtotal_pesewas,service_charge_pesewas,total_pesewas')
-            .eq('table_id', table.id)
-            .in('status', ['open', 'ready'])
-            .order('opened_at', { ascending: false })
-            .maybeSingle()
           const billStatus = bill ? bill.status : 'none'
 
           let session: Record<string, any> | null = null
-          if (sessionToken && typeof sessionToken === 'string') {
-            const { data } = await supabase
-              .from('dining_sessions')
-              .select('*')
-              .eq('session_token', sessionToken)
-              .eq('table_id', table.id)
-              .maybeSingle()
+          {
+            const data = existingSessionR.data
             if (data && data.status === 'active' && new Date(data.expires_at) > new Date())
               session = data
           }
