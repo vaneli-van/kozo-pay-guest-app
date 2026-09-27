@@ -5,7 +5,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import "../index.css";
 
@@ -75,6 +75,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Initialize Amplitude once, client-side only (SSR never loads the browser SDK).
+  useEffect(() => {
+    void import("../lib/amplitude").then((m) => m.initAmplitude()).catch(() => {});
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
