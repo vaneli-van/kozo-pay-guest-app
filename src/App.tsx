@@ -66,6 +66,9 @@ export default function App({
   // and undone). Debounce timers coalesce rapid taps into one network write per item.
   const editWindowRef = useRef(0)
   const assignTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  // Latest split state for async callbacks (avoids stale closures in timers/polls).
+  const splitRef = useRef<any>(undefined)
+  splitRef.current = s.split
 
   useEffect(() => { if (sessionToken && s.sessionToken !== sessionToken) patch({ sessionToken }) }, [sessionToken])
   // A retry after a failed/declined attempt must not reuse the burned attempt or its idempotency key.
@@ -272,22 +275,28 @@ export default function App({
   useEffect(() => {
     if (!sessionToken || (s.screen !== 'split-lobby' && s.screen !== 'split-items')) return
     let cancelled = false
+    let inFlight = false
+    let timer: ReturnType<typeof setTimeout> | undefined
     const load = async () => {
-      const r = await POST('/api/public/split', { sessionToken })
+      // One request at a time, and none while the phone screen is off/backgrounded —
+      // piled-up polls on slow networks were the main source of lag.
+      if (inFlight || (typeof document !== 'undefined' && document.hidden)) return schedule()
+      inFlight = true
+      const startedAt = Date.now()
+      const r = await POST('/api/public/split', { sessionToken }).catch(() => null)
+      inFlight = false
       if (cancelled) return
-      // Don't overwrite the diner's in-progress taps: while they were just tapping, leave their
-      // optimistic edits alone and reconcile only once things settle. This is what made the
-      // steppers feel laggy / undone — the 3s poll was stomping each tap with server state.
-      if (Date.now() - editWindowRef.current < 2500) return
-      // Keep a resolved split in state; only clear (with an error) if the split truly disappears.
-      // Never overwrite an existing split with `undefined` on a transient null — that spun the
-      // "Setting up the split…" loader forever when the table had duplicate/stale bills.
+      // Ignore responses that started before (or during) the diner's latest tap — they're stale.
+      if (startedAt <= editWindowRef.current || Date.now() - editWindowRef.current < 2500) return schedule()
       if (r?.ok && r.split) patch({ split: { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas } })
-      else if (r?.ok && !r.split && s.split) patch({ split: undefined, splitError: 'That split could not be found. Please start it again.' })
+      else if (r?.ok && !r.split && splitRef.current) patch({ split: undefined, splitError: 'That split could not be found. Please start it again.' })
+      schedule()
     }
+    const schedule = () => { if (!cancelled) { clearTimeout(timer); timer = setTimeout(load, 3000) } }
+    const onVisible = () => { if (!document.hidden) { clearTimeout(timer); load() } }
+    document.addEventListener('visibilitychange', onVisible)
     load()
-    const id = window.setInterval(load, 3000)
-    return () => { cancelled = true; window.clearInterval(id) }
+    return () => { cancelled = true; clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, sessionToken])
 
