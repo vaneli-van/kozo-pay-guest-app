@@ -351,7 +351,7 @@ export default function App({
         customAmountPesewas: s.customAmountPesewas,
         tipPercent: s.tipPercent ?? s.tip,
         method: s.method ?? 'momo',
-        provider: s.method === 'card' ? 'card' : 'momo',
+        provider: s.method === 'card' || s.method === 'applepay' ? 'card' : 'momo',
         phone: s.momoNumber, // MoMo number — transaction-only, cleared once initiated
         callbackUrl,
       }, { retries: 4 }).then((r) => {

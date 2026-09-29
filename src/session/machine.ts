@@ -29,7 +29,7 @@ export type State = {
   shareMode?: ShareMode
   customAmountPesewas?: number
   tipPercent?: number
-  method?: 'momo' | 'card'
+  method?: 'momo' | 'card' | 'applepay'
   momoNumber?: string | undefined
   paymentRef?: string | undefined
   failureReason?: string | undefined
