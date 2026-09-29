@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Klown Apple Pay test</title>
+<style>
+  body{font:16px/1.5 -apple-system,system-ui,sans-serif;margin:0;background:#0d0d0f;color:#fff;display:grid;place-items:center;min-height:100vh;padding:24px}
+  .card{max-width:420px;width:100%;background:#171717;border:1px solid #2a2a2a;border-radius:14px;padding:28px}
+  h1{font-size:20px;margin:0 0 6px}
+  p{color:#b5b5b5;margin:6px 0}
+  button{width:100%;margin-top:18px;padding:15px;border:0;border-radius:10px;background:#c8a56b;color:#171717;font-size:16px;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .status{margin-top:16px;padding:12px;border-radius:8px;font-size:14px;display:none}
+  .ok{background:#12351f;color:#8ff0b0;display:block}
+  .err{background:#3a1414;color:#ffb3b3;display:block}
+  code{color:#c8a56b;word-break:break-all}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Apple Pay test</h1>
+    <p>Charges <b>US$1.00</b> via Paystack Apple Pay. This is a throwaway test page, separate from the Klown app and any bill.</p>
+    <p><b>Open this on an iPhone or Mac in Safari</b>, with a card added to Apple Wallet. Apple Pay does not appear in Chrome or on Android.</p>
+    <button id="pay">Pay US$1.00 with Apple Pay</button>
+    <div id="status" class="status"></div>
+  </div>
+  <script src="https://js.paystack.co/v2/inline.js"></script>
+  <script>
+    var KEY = "pk_live_dd8063afac7659ac931d32ab899ae892c6426d35";
+    var statusEl = document.getElementById("status");
+    function show(cls, html){ statusEl.className = "status " + cls; statusEl.innerHTML = html; }
+    document.getElementById("pay").addEventListener("click", function(){
+      try {
+        var ref = "applepaytest_" + Date.now();
+        var popup = new PaystackPop();
+        popup.newTransaction({
+          key: KEY,
+          email: "applepay-test@klown.io",
+          amount: 100,            // 100 = US$1.00 (USD subunit)
+          currency: "USD",
+          channels: ["apple_pay"],
+          reference: ref,
+          onSuccess: function(tx){ show("ok", "Success. Reference: <code>" + (tx && tx.reference ? tx.reference : ref) + "</code><br>Check it in your Paystack dashboard under Transactions."); },
+          onCancel: function(){ show("err", "Payment was cancelled."); },
+          onError: function(err){ show("err", "Error: " + (err && err.message ? err.message : JSON.stringify(err))); }
+        });
+      } catch(e){ show("err", "Could not start Apple Pay: " + e.message + ". Make sure you are in Safari on an Apple device."); }
+    });
+  </script>
+</body>
+</html>
