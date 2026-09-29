@@ -41,3 +41,22 @@
 .conn-banner .conn-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent);animation:load 1.4s infinite ease-in-out}
 .conn-banner .conn-text{flex:1;min-width:0}
 .conn-banner .conn-retry{flex:none;background:var(--accent);color:#181816;font-weight:700;border-radius:8px;padding:6px 12px;min-height:32px;font-size:12px}
+/* --- Split-by-item: modern card restyle --- */
+.item-board{border-top:0;margin:22px 0 6px;display:flex;flex-direction:column;gap:9px}
+.item-row{background:var(--soft);border:1px solid transparent;border-radius:14px;padding:15px 16px;transition:background .14s ease,border-color .14s ease}
+.item-row.dim{opacity:1;background:transparent;border:1px dashed var(--line)}
+.item-row.dim .item-main strong{color:var(--muted)}
+.item-main strong{font-size:14px}
+.item-main small{font-size:11px}
+.item-take{border-radius:10px;border:1.5px solid var(--line);min-width:74px;padding:9px 16px;font-weight:700;color:var(--foreground);background:transparent;transition:background .14s ease,border-color .14s ease}
+.item-take.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.item-take.on svg{color:#fff}
+.item-row:has(.item-take.on){background:color-mix(in srgb, var(--accent) 13%, var(--soft));border-color:color-mix(in srgb, var(--accent) 55%, transparent)}
+.item-step{gap:12px}
+.item-step button{border-radius:9px;border:1.5px solid var(--line)}
+.item-step strong{font-size:16px;min-width:22px}
+.split-share{align-items:flex-end;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.split-share b{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.split-progress{margin-top:14px}
+.split-progress .bar{height:6px;border-radius:99px;background:#e7e4dc}
+.split-progress .bar i{border-radius:99px;background:var(--accent)}
