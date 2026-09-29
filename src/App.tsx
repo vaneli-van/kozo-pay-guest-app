@@ -248,7 +248,11 @@ export default function App({
     const load = async () => {
       const r = await POST('/api/public/split', { sessionToken })
       if (cancelled) return
-      if (r?.ok) patch({ split: r.split ? { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas } : undefined })
+      // Keep a resolved split in state; only clear (with an error) if the split truly disappears.
+      // Never overwrite an existing split with `undefined` on a transient null — that spun the
+      // "Setting up the split…" loader forever when the table had duplicate/stale bills.
+      if (r?.ok && r.split) patch({ split: { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas } })
+      else if (r?.ok && !r.split && s.split) patch({ split: undefined, splitError: 'That split could not be found. Please start it again.' })
     }
     load()
     const id = window.setInterval(load, 3000)
