@@ -4915,6 +4915,10 @@ export type Database = {
       }
     }
     Functions: {
+      _split_bills_feed: {
+        Args: { p_days: number; p_restaurant_id: string }
+        Returns: Json
+      }
       add_bootstrap: {
         Args: {
           p_email: string
@@ -4924,6 +4928,10 @@ export type Database = {
         Returns: undefined
       }
       admin_analytics: {
+        Args: { p_days?: number; p_restaurant_id?: string }
+        Returns: Json
+      }
+      admin_split_bills: {
         Args: { p_days?: number; p_restaurant_id?: string }
         Returns: Json
       }
@@ -5035,6 +5043,7 @@ export type Database = {
         Returns: Json
       }
       owner_set_schedule: { Args: { p_schedule: string }; Returns: Json }
+      owner_split_bills: { Args: { p_days?: number }; Returns: Json }
       owner_team: { Args: never; Returns: Json }
       owner_tickets: { Args: never; Returns: Json }
       promote_staff: {
