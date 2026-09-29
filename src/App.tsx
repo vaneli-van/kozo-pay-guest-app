@@ -10,12 +10,18 @@ const POST = (url: string, body: unknown): Promise<any> =>
     .then((r) => r.json())
     .catch(() => null)
 
+// Sentinel share id used only for the optimistic (pre-server) local update on the first tap.
+// It is never a real share and must never be sent to the pay path (see the patch-go guard).
+const LOCAL_PENDING = '__local_pending__'
+
 // Paystack's checkout sends X-Frame-Options: SAMEORIGIN, so it cannot load inside an
 // embedded preview iframe. Navigate the top-level window when we're framed; if the
 // browser blocks cross-origin top navigation, fall back to opening a new tab.
 function optimisticUnits(split: any, billItemId: string, units: number) {
-  const myId = split?.myShareId
-  if (!myId) return split
+  if (!split) return split
+  // On the very first tap we may not have a server share yet — use a provisional local id
+  // so the tapped count still shows instantly. The server response replaces it moments later.
+  const myId = split.myShareId || LOCAL_PENDING
   const myName = (split.shares || []).find((sh: any) => sh.mine)?.name || 'You'
   const items = (split.items || []).map((it: any) => {
     if (it.billItemId !== billItemId) return it
@@ -30,7 +36,7 @@ function optimisticUnits(split: any, billItemId: string, units: number) {
     const unit = it.qty > 0 ? it.lineTotalPesewas / it.qty : it.lineTotalPesewas
     return a + u * unit
   }, 0)
-  return { ...split, items, myShareAmountPesewas: Math.round(myAmount) }
+  return { ...split, myShareId: myId, items, myShareAmountPesewas: Math.round(myAmount) }
 }
 
 function openCheckout(url: string) {
@@ -55,6 +61,11 @@ export default function App({
   const [hydrated, setHydrated] = useState(false)
   const idemRef = useRef<string>('')
   const [retryTick, setRetryTick] = useState(0)
+  // Timestamp of the diner's last split tap. While it's recent, the background /split poll
+  // leaves their optimistic edits alone instead of overwriting them (that made taps feel laggy
+  // and undone). Debounce timers coalesce rapid taps into one network write per item.
+  const editWindowRef = useRef(0)
+  const assignTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => { if (sessionToken && s.sessionToken !== sessionToken) patch({ sessionToken }) }, [sessionToken])
   // A retry after a failed/declined attempt must not reuse the burned attempt or its idempotency key.
@@ -118,20 +129,32 @@ export default function App({
         })
         return
       }
-      case 'split-assign':
-        if (sessionToken) {
-          if (s.split?.myShareId) patch({ split: optimisticUnits(s.split, action.billItemId, action.units) })
+      case 'split-assign': {
+        if (!sessionToken) return
+        editWindowRef.current = Date.now()
+        // Instant feedback: apply the tapped count locally right away — even before the server
+        // has created our share (provisional id) — so the number never lags behind the tap.
+        patch({ split: optimisticUnits(s.split, action.billItemId, action.units) })
+        // Debounce the network write per item: rapid taps send one request with the final count,
+        // which also stops out-of-order responses from flickering the number.
+        const prev = assignTimersRef.current[action.billItemId]
+        if (prev) clearTimeout(prev)
+        assignTimersRef.current[action.billItemId] = setTimeout(() => {
+          delete assignTimersRef.current[action.billItemId]
           POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name }).then(applyItemsSplit)
-        }
+        }, 300)
         return
+      }
       case 'split-unassign':
-        if (sessionToken) {
-          if (s.split?.myShareId) patch({ split: optimisticUnits(s.split, action.billItemId, 0) })
-          POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId }).then(applyItemsSplit)
-        }
+        if (!sessionToken) return
+        editWindowRef.current = Date.now()
+        patch({ split: optimisticUnits(s.split, action.billItemId, 0) })
+        POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId }).then(applyItemsSplit)
         return
       case 'assign-remaining':
-        if (sessionToken) POST('/api/public/assign-remaining', { sessionToken, name: action.name }).then(applyItemsSplit)
+        if (!sessionToken) return
+        editWindowRef.current = Date.now()
+        POST('/api/public/assign-remaining', { sessionToken, name: action.name }).then(applyItemsSplit)
         return
       case 'split-claim':
         if (sessionToken) POST('/api/public/split-claim', { sessionToken, shareId: action.shareId }).then((r) => { if (r?.ok) patch({ claimedShareId: r.shareId }) })
@@ -147,6 +170,10 @@ export default function App({
         goScreen('waiter-notified')
         return
       case 'patch-go':
+        // Safety: never carry an optimistic (not-yet-real) share id into the pay path. If the
+        // diner taps "Pay my share" in the split second before the server share is created,
+        // ignore it — the real id lands within ~1s and the button works then.
+        if (action.value?.claimedShareId === LOCAL_PENDING) return
         patch(action.value ?? {})
         if (action.to) goScreen(action.to as Screen)
         return
@@ -248,6 +275,10 @@ export default function App({
     const load = async () => {
       const r = await POST('/api/public/split', { sessionToken })
       if (cancelled) return
+      // Don't overwrite the diner's in-progress taps: while they were just tapping, leave their
+      // optimistic edits alone and reconcile only once things settle. This is what made the
+      // steppers feel laggy / undone — the 3s poll was stomping each tap with server state.
+      if (Date.now() - editWindowRef.current < 2500) return
       // Keep a resolved split in state; only clear (with an error) if the split truly disappears.
       // Never overwrite an existing split with `undefined` on a transient null — that spun the
       // "Setting up the split…" loader forever when the table had duplicate/stale bills.
