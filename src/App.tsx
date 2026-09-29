@@ -366,6 +366,7 @@ export default function App({
       })
       return () => { cancelled = true }
     }
+    return undefined
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, s.paymentRef, s.claimedShareId, sessionToken, retryTick])
 
