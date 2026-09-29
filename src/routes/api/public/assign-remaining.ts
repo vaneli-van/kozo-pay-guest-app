@@ -26,9 +26,11 @@ export const Route = createFileRoute('/api/public/assign-remaining')({
         if (!share) return json({ ok: false, reason: 'share_failed' })
         if (share.status === 'paid') return json({ ok: false, reason: 'share_paid' })
 
-        const { data: lines } = await supabaseAdmin.from('bill_items').select('id,qty').eq('bill_id', bill.id)
-        const { data: assigns } = await supabaseAdmin.from('bill_split_item_assignments')
-          .select('bill_item_id,share_id,weight').eq('split_id', split.id)
+        const [{ data: lines }, { data: assigns }] = await Promise.all([
+          supabaseAdmin.from('bill_items').select('id,qty').eq('bill_id', bill.id),
+          supabaseAdmin.from('bill_split_item_assignments').select('bill_item_id,share_id,weight').eq('split_id', split.id),
+        ])
+        const rows: any[] = []
 
         for (const line of lines ?? []) {
           const onLine = (assigns ?? []).filter((a: any) => a.bill_item_id === line.id)
@@ -37,9 +39,10 @@ export const Route = createFileRoute('/api/public/assign-remaining')({
           if (free <= 0) continue
           const existing = onLine.find((a: any) => a.share_id === share.id)
           const weight = Math.max(0, Math.trunc(existing?.weight ?? 0)) + free
-          await supabaseAdmin.from('bill_split_item_assignments')
-            .upsert({ split_id: split.id, bill_item_id: line.id, share_id: share.id, weight }, { onConflict: 'split_id,bill_item_id,share_id' })
+          rows.push({ split_id: split.id, bill_item_id: line.id, share_id: share.id, weight })
         }
+        // One bulk write instead of one request per line.
+        if (rows.length) await supabaseAdmin.from('bill_split_item_assignments').upsert(rows, { onConflict: 'split_id,bill_item_id,share_id' })
 
         await recomputeItemSplit(supabaseAdmin, split.id)
         return json(await itemsSplitPayload(supabaseAdmin, split, session.id))

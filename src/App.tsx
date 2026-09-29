@@ -66,6 +66,9 @@ export default function App({
   // and undone). Debounce timers coalesce rapid taps into one network write per item.
   const editWindowRef = useRef(0)
   const assignTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  // Latest split state for async callbacks (avoids stale closures in timers/polls).
+  const splitRef = useRef<any>(undefined)
+  splitRef.current = s.split
 
   useEffect(() => { if (sessionToken && s.sessionToken !== sessionToken) patch({ sessionToken }) }, [sessionToken])
   // A retry after a failed/declined attempt must not reuse the burned attempt or its idempotency key.
@@ -96,7 +99,9 @@ export default function App({
     dispatch(go(screen))
   }
 
-  const applyItemsSplit = (r: any) => {
+  const applyItemsSplit = (r: any, startedAt = 0) => {
+    // A newer tap happened after this request left — its own response will reconcile.
+    if (startedAt && editWindowRef.current > startedAt) return
     if (r?.ok && r.split) patch({ split: { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas } })
   }
 
@@ -134,22 +139,23 @@ export default function App({
         editWindowRef.current = Date.now()
         // Instant feedback: apply the tapped count locally right away — even before the server
         // has created our share (provisional id) — so the number never lags behind the tap.
-        patch({ split: optimisticUnits(s.split, action.billItemId, action.units) })
+        patch({ split: (splitRef.current = optimisticUnits(splitRef.current, action.billItemId, action.units)) })
         // Debounce the network write per item: rapid taps send one request with the final count,
         // which also stops out-of-order responses from flickering the number.
         const prev = assignTimersRef.current[action.billItemId]
         if (prev) clearTimeout(prev)
         assignTimersRef.current[action.billItemId] = setTimeout(() => {
           delete assignTimersRef.current[action.billItemId]
-          POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name }).then(applyItemsSplit)
+          const t0 = Date.now()
+          POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name }).then((r) => applyItemsSplit(r, t0))
         }, 300)
         return
       }
       case 'split-unassign':
         if (!sessionToken) return
         editWindowRef.current = Date.now()
-        patch({ split: optimisticUnits(s.split, action.billItemId, 0) })
-        POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId }).then(applyItemsSplit)
+        patch({ split: (splitRef.current = optimisticUnits(splitRef.current, action.billItemId, 0)) })
+        { const t0 = Date.now(); POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId }).then((r) => applyItemsSplit(r, t0)) }
         return
       case 'assign-remaining':
         if (!sessionToken) return
@@ -251,7 +257,7 @@ export default function App({
 
   // Live bill from the POS — refreshed whenever the diner is on a bill/payment screen.
   useEffect(() => {
-    const billScreens = ['welcome', 'bill', 'bill-ready', 'waiting-bill', 'full-check', 'pay', 'split', 'split-share', 'split-lobby', 'tip', 'review', 'method']
+    const billScreens = ['welcome', 'bill', 'bill-ready', 'waiting-bill', 'full-check', 'pay', 'split', 'split-share', 'tip', 'review', 'method']
     if (!sessionToken || !billScreens.includes(s.screen)) return
     let cancelled = false
     const load = async () => {
@@ -272,22 +278,28 @@ export default function App({
   useEffect(() => {
     if (!sessionToken || (s.screen !== 'split-lobby' && s.screen !== 'split-items')) return
     let cancelled = false
+    let inFlight = false
+    let timer: ReturnType<typeof setTimeout> | undefined
     const load = async () => {
-      const r = await POST('/api/public/split', { sessionToken })
+      // One request at a time, and none while the phone screen is off/backgrounded —
+      // piled-up polls on slow networks were the main source of lag.
+      if (inFlight || (typeof document !== 'undefined' && document.hidden)) return schedule()
+      inFlight = true
+      const startedAt = Date.now()
+      const r = await POST('/api/public/split', { sessionToken }).catch(() => null)
+      inFlight = false
       if (cancelled) return
-      // Don't overwrite the diner's in-progress taps: while they were just tapping, leave their
-      // optimistic edits alone and reconcile only once things settle. This is what made the
-      // steppers feel laggy / undone — the 3s poll was stomping each tap with server state.
-      if (Date.now() - editWindowRef.current < 2500) return
-      // Keep a resolved split in state; only clear (with an error) if the split truly disappears.
-      // Never overwrite an existing split with `undefined` on a transient null — that spun the
-      // "Setting up the split…" loader forever when the table had duplicate/stale bills.
+      // Ignore responses that started before (or during) the diner's latest tap — they're stale.
+      if (startedAt <= editWindowRef.current || Date.now() - editWindowRef.current < 2500) return schedule()
       if (r?.ok && r.split) patch({ split: { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas } })
-      else if (r?.ok && !r.split && s.split) patch({ split: undefined, splitError: 'That split could not be found. Please start it again.' })
+      else if (r?.ok && !r.split && splitRef.current) patch({ split: undefined, splitError: 'That split could not be found. Please start it again.' })
+      schedule()
     }
+    const schedule = () => { if (!cancelled) { clearTimeout(timer); timer = setTimeout(load, 3000) } }
+    const onVisible = () => { if (!document.hidden) { clearTimeout(timer); load() } }
+    document.addEventListener('visibilitychange', onVisible)
     load()
-    const id = window.setInterval(load, 3000)
-    return () => { cancelled = true; window.clearInterval(id) }
+    return () => { cancelled = true; clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, sessionToken])
 
@@ -319,14 +331,17 @@ export default function App({
     const quoteScreens = ['pay', 'split', 'split-share', 'tip', 'review', 'method', 'momo', 'authorise']
     if (!quoteScreens.includes(s.screen)) return
     const preTip = s.screen === 'pay' || s.screen === 'split' || s.screen === 'split-share' || s.screen === 'tip'
-    POST('/api/public/quote', {
+    // Only the latest request may update the amount — stepper taps used to race.
+    let cancelled = false
+    const t = setTimeout(() => POST('/api/public/quote', {
       sessionToken,
       shareId: s.claimedShareId,
       mode: s.shareMode ?? 'full',
       people: s.people,
       customAmountPesewas: s.customAmountPesewas,
       tipPercent: preTip ? 0 : (s.tipPercent ?? s.tip),
-    }).then((r) => { if (r?.ok && r.quote) patch({ quote: r.quote }) })
+    }).then((r) => { if (!cancelled && r?.ok && r.quote) patch({ quote: r.quote }) }), 150)
+    return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, s.claimedShareId, sessionToken])
 
@@ -374,9 +389,15 @@ export default function App({
   useEffect(() => {
     if (s.screen !== 'processing' || !sessionToken || !s.paymentRef) return
     let n = 0
+    let stopped = false
+    let inFlight = false
     const id = window.setInterval(async () => {
+      if (inFlight) return
       n++
-      const r = await POST('/api/public/payment-status', { sessionToken, paymentRef: s.paymentRef })
+      inFlight = true
+      const r = await POST('/api/public/payment-status', { sessionToken, paymentRef: s.paymentRef }).catch(() => null)
+      inFlight = false
+      if (stopped) return // diner left processing / attempt changed — ignore this late reply
       if (r?.status === 'captured') {
         window.clearInterval(id)
         goScreen('success')
@@ -392,7 +413,7 @@ export default function App({
         goScreen('payment-error')
       }
     }, 1500)
-    return () => window.clearInterval(id)
+    return () => { stopped = true; window.clearInterval(id) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, s.paymentRef, sessionToken])
 

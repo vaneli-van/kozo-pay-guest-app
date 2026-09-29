@@ -48,13 +48,21 @@ export const Route = createFileRoute('/api/public/split')({
           await supabaseAdmin.from('bill_split_shares').update({ status: 'unclaimed', claimed_by_session: null, claimed_by_name: null }).eq('split_id', split.id).eq('status', 'claimed').lt('updated_at', rel)
         }
 
-        const { data: rows } = await supabaseAdmin.from('bill_split_shares')
-          .select('id,position,label,amount_pesewas,status,claimed_by_session,claimed_by_name,share_token')
-          .eq('split_id', split.id).order('position')
         const { amountPaidForBill } = await import('@/integrations/payments/provider')
-        const paid = await amountPaidForBill(split.bill_id)
+        const [{ data: rows }, paid] = await Promise.all([
+          supabaseAdmin.from('bill_split_shares')
+            .select('id,position,label,amount_pesewas,status,claimed_by_session,claimed_by_name,share_token')
+            .eq('split_id', split.id).order('position'),
+          amountPaidForBill(split.bill_id),
+        ])
+        // Self-heal: a fully paid split must read as settled (a missed callback left some 'open').
+        let status = split.status
+        if (status === 'open' && split.total_pesewas > 0 && paid >= split.total_pesewas) {
+          status = 'settled'
+          await supabaseAdmin.from('bill_splits').update({ status: 'settled', updated_at: new Date().toISOString() }).eq('id', split.id).eq('status', 'open')
+        }
         return json({ ok: true,
-          split: { id: split.id, mode: split.mode, totalPesewas: split.total_pesewas, status: split.status },
+          split: { id: split.id, mode: split.mode, totalPesewas: split.total_pesewas, status },
           paidPesewas: paid, remainingPesewas: Math.max(0, split.total_pesewas - paid),
           shares: (rows ?? []).map((r: any) => ({ id: r.id, position: r.position, label: r.label, amountPesewas: r.amount_pesewas, status: r.status, claimedByName: r.claimed_by_name, mine: r.claimed_by_session === session.id, shareToken: r.share_token })) })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
