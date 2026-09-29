@@ -389,9 +389,15 @@ export default function App({
   useEffect(() => {
     if (s.screen !== 'processing' || !sessionToken || !s.paymentRef) return
     let n = 0
+    let stopped = false
+    let inFlight = false
     const id = window.setInterval(async () => {
+      if (inFlight) return
       n++
-      const r = await POST('/api/public/payment-status', { sessionToken, paymentRef: s.paymentRef })
+      inFlight = true
+      const r = await POST('/api/public/payment-status', { sessionToken, paymentRef: s.paymentRef }).catch(() => null)
+      inFlight = false
+      if (stopped) return // diner left processing / attempt changed — ignore this late reply
       if (r?.status === 'captured') {
         window.clearInterval(id)
         goScreen('success')
@@ -407,7 +413,7 @@ export default function App({
         goScreen('payment-error')
       }
     }, 1500)
-    return () => window.clearInterval(id)
+    return () => { stopped = true; window.clearInterval(id) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, s.paymentRef, sessionToken])
 
