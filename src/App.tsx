@@ -99,7 +99,9 @@ export default function App({
     dispatch(go(screen))
   }
 
-  const applyItemsSplit = (r: any) => {
+  const applyItemsSplit = (r: any, startedAt = 0) => {
+    // A newer tap happened after this request left — its own response will reconcile.
+    if (startedAt && editWindowRef.current > startedAt) return
     if (r?.ok && r.split) patch({ split: { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas } })
   }
 
@@ -137,22 +139,23 @@ export default function App({
         editWindowRef.current = Date.now()
         // Instant feedback: apply the tapped count locally right away — even before the server
         // has created our share (provisional id) — so the number never lags behind the tap.
-        patch({ split: optimisticUnits(s.split, action.billItemId, action.units) })
+        patch({ split: (splitRef.current = optimisticUnits(splitRef.current, action.billItemId, action.units)) })
         // Debounce the network write per item: rapid taps send one request with the final count,
         // which also stops out-of-order responses from flickering the number.
         const prev = assignTimersRef.current[action.billItemId]
         if (prev) clearTimeout(prev)
         assignTimersRef.current[action.billItemId] = setTimeout(() => {
           delete assignTimersRef.current[action.billItemId]
-          POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name }).then(applyItemsSplit)
+          const t0 = Date.now()
+          POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name }).then((r) => applyItemsSplit(r, t0))
         }, 300)
         return
       }
       case 'split-unassign':
         if (!sessionToken) return
         editWindowRef.current = Date.now()
-        patch({ split: optimisticUnits(s.split, action.billItemId, 0) })
-        POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId }).then(applyItemsSplit)
+        patch({ split: (splitRef.current = optimisticUnits(splitRef.current, action.billItemId, 0)) })
+        { const t0 = Date.now(); POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId }).then((r) => applyItemsSplit(r, t0)) }
         return
       case 'assign-remaining':
         if (!sessionToken) return
