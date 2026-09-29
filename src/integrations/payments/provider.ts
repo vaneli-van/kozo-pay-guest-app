@@ -95,7 +95,7 @@ export class PaystackProvider implements PaymentProvider {
     if (input.provider === 'card') {
       // PCI-safe: never handle the PAN ourselves. Paystack hosts card entry + 3DS/OTP.
       const r = await paystackPost('/transaction/initialize', {
-        email, amount, currency: 'GHS', reference, channels: ['card'],
+        email, amount, currency: 'GHS', reference, channels: ['card', 'applepay'],
         callback_url: input.callbackUrl,
         ...split,
       })
