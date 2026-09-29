@@ -58,7 +58,7 @@ export default {
         status: 200,
         headers: {
           "content-type": "application/text",
-          "cache-control": "public, max-age=3600",
+          "cache-control": "no-store",
         },
       });
     }
