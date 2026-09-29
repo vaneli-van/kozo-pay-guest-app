@@ -106,12 +106,23 @@ export function Split({ s, dispatch }: any) {
   </section>
 }
 
+// Loader for the split screens — never a dead end: after a few seconds offer a way back.
+function SplitLoading({ s, dispatch, eyebrow }: any) {
+  const [slow, setSlow] = useState(false)
+  useEffect(() => { const t = setTimeout(() => setSlow(true), 8000); return () => clearTimeout(t) }, [])
+  const stuck = slow || !!s?.splitError
+  return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow={eyebrow} title={'Setting up<br /><em>the split…</em>'} copy={s?.splitError || 'One moment.'}>
+    {!s?.splitError && <div className="loader" />}
+    {stuck && <Action secondary onClick={() => dispatch({ type: 'screen', value: 'split' })}>Back to split options</Action>}
+  </Center>
+}
+
 export function SplitItems({ s, dispatch }: any) {
   const split = s?.split
   const base = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
   const copyInvite = () => { try { navigator.clipboard?.writeText(base) } catch {} }
   const waInvite = () => { try { window.open(`https://wa.me/?text=${encodeURIComponent(`Join our bill and pick your items: ${base}`)}`, '_blank', 'noopener') } catch {} }
-  if (!split || split.mode !== 'items') return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow="SPLIT BY ITEM" title={'Setting up<br /><em>the split…</em>'} copy="One moment."><div className="loader" /></Center>
+  if (!split || split.mode !== 'items') return <SplitLoading s={s} dispatch={dispatch} eyebrow="SPLIT BY ITEM" />
   const items = split.items ?? []
   const myId = split.myShareId ?? null
   const myAmount = split.myShareAmountPesewas ?? 0
@@ -158,7 +169,7 @@ export function SplitLobby({ s, dispatch }: any) {
   const invite = (tok: string) => `${base}?claim=${tok}`
   const copyInvite = (tok: string) => { try { navigator.clipboard?.writeText(invite(tok)) } catch {} }
   const waInvite = (tok: string, amt: number) => { try { window.open(`https://wa.me/?text=${encodeURIComponent(`Your share of the bill is ${pes(amt)}. Tap to pay: ${invite(tok)}`)}`, '_blank', 'noopener') } catch {} }
-  if (!split) return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow="SPLIT" title={'Setting up<br /><em>the split…</em>'} copy="One moment."><div className="loader" /></Center>
+  if (!split) return <SplitLoading s={s} dispatch={dispatch} eyebrow="SPLIT" />
   const paid = split.paidPesewas ?? 0, total = split.totalPesewas ?? 0
   const done = total > 0 && paid >= total
   return <section><Back dispatch={dispatch} to="pay" /><p className="eyebrow">SPLIT THE BILL · TABLE {s?.tableLabel ?? ''}</p><h1>Everyone pays<br /><em>their share.</em></h1>

@@ -257,7 +257,7 @@ export default function App({
 
   // Live bill from the POS — refreshed whenever the diner is on a bill/payment screen.
   useEffect(() => {
-    const billScreens = ['welcome', 'bill', 'bill-ready', 'waiting-bill', 'full-check', 'pay', 'split', 'split-share', 'split-lobby', 'tip', 'review', 'method']
+    const billScreens = ['welcome', 'bill', 'bill-ready', 'waiting-bill', 'full-check', 'pay', 'split', 'split-share', 'tip', 'review', 'method']
     if (!sessionToken || !billScreens.includes(s.screen)) return
     let cancelled = false
     const load = async () => {
@@ -331,14 +331,17 @@ export default function App({
     const quoteScreens = ['pay', 'split', 'split-share', 'tip', 'review', 'method', 'momo', 'authorise']
     if (!quoteScreens.includes(s.screen)) return
     const preTip = s.screen === 'pay' || s.screen === 'split' || s.screen === 'split-share' || s.screen === 'tip'
-    POST('/api/public/quote', {
+    // Only the latest request may update the amount — stepper taps used to race.
+    let cancelled = false
+    const t = setTimeout(() => POST('/api/public/quote', {
       sessionToken,
       shareId: s.claimedShareId,
       mode: s.shareMode ?? 'full',
       people: s.people,
       customAmountPesewas: s.customAmountPesewas,
       tipPercent: preTip ? 0 : (s.tipPercent ?? s.tip),
-    }).then((r) => { if (r?.ok && r.quote) patch({ quote: r.quote }) })
+    }).then((r) => { if (!cancelled && r?.ok && r.quote) patch({ quote: r.quote }) }), 150)
+    return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, s.claimedShareId, sessionToken])
 
