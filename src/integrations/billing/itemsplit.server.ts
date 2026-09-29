@@ -26,17 +26,15 @@ export async function recomputeItemSplit(supabaseAdmin: Admin, splitId: string):
     .select('id,bill_id,mode,status').eq('id', splitId).maybeSingle()
   if (!split || split.mode !== 'items' || split.status !== 'open') return
 
-  const { data: bill } = await supabaseAdmin.from('bills')
-    .select('id,subtotal_pesewas,service_charge_pesewas,total_pesewas').eq('id', split.bill_id).maybeSingle()
+  // Independent reads run in parallel — this runs on every tap and every poll.
+  const [{ data: bill }, { data: lines }, { data: assigns }, { data: shares }] = await Promise.all([
+    supabaseAdmin.from('bills').select('id,subtotal_pesewas,service_charge_pesewas,total_pesewas').eq('id', split.bill_id).maybeSingle(),
+    supabaseAdmin.from('bill_items').select('id,qty,line_total_pesewas').eq('bill_id', split.bill_id),
+    supabaseAdmin.from('bill_split_item_assignments').select('bill_item_id,share_id,weight').eq('split_id', split.id),
+    supabaseAdmin.from('bill_split_shares').select('id,status,amount_pesewas').eq('split_id', split.id),
+  ])
   if (!bill) return
   const total = Math.trunc(bill.total_pesewas ?? 0)
-
-  const { data: lines } = await supabaseAdmin.from('bill_items')
-    .select('id,qty,line_total_pesewas').eq('bill_id', bill.id)
-  const { data: assigns } = await supabaseAdmin.from('bill_split_item_assignments')
-    .select('bill_item_id,share_id,weight').eq('split_id', split.id)
-  const { data: shares } = await supabaseAdmin.from('bill_split_shares')
-    .select('id,status,amount_pesewas').eq('split_id', split.id)
 
   const itemValue = new Map<string, number>()
   let unassignedItemValue = 0
@@ -64,32 +62,35 @@ export async function recomputeItemSplit(supabaseAdmin: Admin, splitId: string):
   const weights = [...unpaid.map((s: any) => itemValue.get(s.id) ?? 0), unassignedItemValue]
   const slices = allocate(remainingTotal, weights)
 
+  const writes: PromiseLike<unknown>[] = []
+  const now = new Date().toISOString()
   for (let i = 0; i < unpaid.length; i++) {
     const share = unpaid[i]!
     const amount = slices[i] ?? 0
     const hasItems = (assigns ?? []).some((a: any) => a.share_id === share.id && Math.trunc(a.weight ?? 0) > 0)
     if (!hasItems) {
-      await supabaseAdmin.from('bill_split_shares').delete().eq('id', share.id)
+      // Only drop empty shares that aren't mid-payment.
+      if (share.status !== 'paying') writes.push(supabaseAdmin.from('bill_split_shares').delete().eq('id', share.id).neq('status', 'paid'))
       continue
     }
     if (amount !== Math.trunc(share.amount_pesewas ?? 0)) {
-      await supabaseAdmin.from('bill_split_shares')
-        .update({ amount_pesewas: amount, updated_at: new Date().toISOString() }).eq('id', share.id)
+      writes.push(supabaseAdmin.from('bill_split_shares').update({ amount_pesewas: amount, updated_at: now }).eq('id', share.id).neq('status', 'paid'))
     }
   }
+  await Promise.all(writes)
 }
 
 // Shared payload for every items-mode endpoint, so the client can patch state in one call.
 export async function itemsSplitPayload(supabaseAdmin: Admin, split: any, sessionId: string) {
-  const { data: lines } = await supabaseAdmin.from('bill_items')
-    .select('id,name,qty,line_total_pesewas,sort').eq('bill_id', split.bill_id).order('sort')
-  const { data: shares } = await supabaseAdmin.from('bill_split_shares')
-    .select('id,position,label,amount_pesewas,status,claimed_by_session,claimed_by_name,share_token')
-    .eq('split_id', split.id).order('position')
-  const { data: assigns } = await supabaseAdmin.from('bill_split_item_assignments')
-    .select('bill_item_id,share_id,weight').eq('split_id', split.id)
   const { amountPaidForBill } = await import('@/integrations/payments/provider')
-  const paid = await amountPaidForBill(split.bill_id)
+  const [{ data: lines }, { data: shares }, { data: assigns }, paid] = await Promise.all([
+    supabaseAdmin.from('bill_items').select('id,name,qty,line_total_pesewas,sort').eq('bill_id', split.bill_id).order('sort'),
+    supabaseAdmin.from('bill_split_shares')
+      .select('id,position,label,amount_pesewas,status,claimed_by_session,claimed_by_name,share_token')
+      .eq('split_id', split.id).order('position'),
+    supabaseAdmin.from('bill_split_item_assignments').select('bill_item_id,share_id,weight').eq('split_id', split.id),
+    amountPaidForBill(split.bill_id),
+  ])
 
   const shareById = new Map<string, any>((shares ?? []).map((s: any) => [s.id, s]))
   const items = (lines ?? []).map((l: any) => {

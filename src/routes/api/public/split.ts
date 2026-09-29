@@ -48,11 +48,13 @@ export const Route = createFileRoute('/api/public/split')({
           await supabaseAdmin.from('bill_split_shares').update({ status: 'unclaimed', claimed_by_session: null, claimed_by_name: null }).eq('split_id', split.id).eq('status', 'claimed').lt('updated_at', rel)
         }
 
-        const { data: rows } = await supabaseAdmin.from('bill_split_shares')
-          .select('id,position,label,amount_pesewas,status,claimed_by_session,claimed_by_name,share_token')
-          .eq('split_id', split.id).order('position')
         const { amountPaidForBill } = await import('@/integrations/payments/provider')
-        const paid = await amountPaidForBill(split.bill_id)
+        const [{ data: rows }, paid] = await Promise.all([
+          supabaseAdmin.from('bill_split_shares')
+            .select('id,position,label,amount_pesewas,status,claimed_by_session,claimed_by_name,share_token')
+            .eq('split_id', split.id).order('position'),
+          amountPaidForBill(split.bill_id),
+        ])
         return json({ ok: true,
           split: { id: split.id, mode: split.mode, totalPesewas: split.total_pesewas, status: split.status },
           paidPesewas: paid, remainingPesewas: Math.max(0, split.total_pesewas - paid),
