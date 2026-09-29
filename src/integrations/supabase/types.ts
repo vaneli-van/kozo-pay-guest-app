@@ -1135,6 +1135,7 @@ export type Database = {
           amount_pesewas: number
           bill_id: string | null
           created_at: string
+          excluded_from_reports: boolean
           failure_reason: string | null
           id: string
           idempotency_key: string
@@ -1153,6 +1154,7 @@ export type Database = {
           amount_pesewas: number
           bill_id?: string | null
           created_at?: string
+          excluded_from_reports?: boolean
           failure_reason?: string | null
           id?: string
           idempotency_key: string
@@ -1171,6 +1173,7 @@ export type Database = {
           amount_pesewas?: number
           bill_id?: string | null
           created_at?: string
+          excluded_from_reports?: boolean
           failure_reason?: string | null
           id?: string
           idempotency_key?: string
@@ -2638,42 +2641,63 @@ export type Database = {
       restaurants: {
         Row: {
           accent_color: string | null
+          address: string | null
           city: string
+          contact_phone: string | null
           created_at: string
           google_place_id: string | null
           hero_url: string | null
           id: string
+          klown_fee_bps: number
           logo_url: string | null
           name: string
           notify_phones: string | null
+          paystack_subaccount_code: string | null
+          settlement_account_name: string | null
+          settlement_account_number: string | null
+          settlement_bank_code: string | null
           tagline_bottom: string | null
           tagline_top: string | null
           welcome_copy: string | null
         }
         Insert: {
           accent_color?: string | null
+          address?: string | null
           city: string
+          contact_phone?: string | null
           created_at?: string
           google_place_id?: string | null
           hero_url?: string | null
           id?: string
+          klown_fee_bps?: number
           logo_url?: string | null
           name: string
           notify_phones?: string | null
+          paystack_subaccount_code?: string | null
+          settlement_account_name?: string | null
+          settlement_account_number?: string | null
+          settlement_bank_code?: string | null
           tagline_bottom?: string | null
           tagline_top?: string | null
           welcome_copy?: string | null
         }
         Update: {
           accent_color?: string | null
+          address?: string | null
           city?: string
+          contact_phone?: string | null
           created_at?: string
           google_place_id?: string | null
           hero_url?: string | null
           id?: string
+          klown_fee_bps?: number
           logo_url?: string | null
           name?: string
           notify_phones?: string | null
+          paystack_subaccount_code?: string | null
+          settlement_account_name?: string | null
+          settlement_account_number?: string | null
+          settlement_bank_code?: string | null
           tagline_bottom?: string | null
           tagline_top?: string | null
           welcome_copy?: string | null
@@ -4963,11 +4987,21 @@ export type Database = {
         Returns: Json
       }
       owner_integrations: { Args: never; Returns: Json }
+      owner_invite_member: {
+        Args: { p_email: string; p_role?: string }
+        Returns: Json
+      }
       owner_notify_phones: { Args: never; Returns: Json }
+      owner_orders: {
+        Args: { p_from?: string; p_limit?: number; p_to?: string }
+        Returns: Json
+      }
       owner_payments_summary: { Args: { p_days?: number }; Returns: Json }
       owner_payouts: { Args: never; Returns: Json }
       owner_primary_restaurant: { Args: never; Returns: string }
+      owner_profile: { Args: never; Returns: Json }
       owner_recent_payments: { Args: { p_limit?: number }; Returns: Json }
+      owner_remove_member: { Args: { p_email: string }; Returns: Json }
       owner_restaurant_ids: { Args: never; Returns: string[] }
       owner_save_bank: {
         Args: {
@@ -4991,7 +5025,17 @@ export type Database = {
         Returns: Json
       }
       owner_save_notify_phones: { Args: { p_phones: string[] }; Returns: Json }
+      owner_save_profile: {
+        Args: {
+          p_address: string
+          p_city: string
+          p_contact_phone: string
+          p_name: string
+        }
+        Returns: Json
+      }
       owner_set_schedule: { Args: { p_schedule: string }; Returns: Json }
+      owner_team: { Args: never; Returns: Json }
       owner_tickets: { Args: never; Returns: Json }
       promote_staff: {
         Args: {
@@ -5024,7 +5068,10 @@ export type Database = {
         Returns: undefined
       }
       studio_catalogue_delete: { Args: { p_id: string }; Returns: Json }
-      studio_catalogue_list: { Args: never; Returns: Json }
+      studio_catalogue_list: {
+        Args: { p_restaurant_id?: string }
+        Returns: Json
+      }
       studio_catalogue_upsert: {
         Args: { p_item: Json; p_restaurant_id?: string }
         Returns: Json
@@ -5033,6 +5080,7 @@ export type Database = {
         Args: { p_menu_id: string; p_patch: Json }
         Returns: Json
       }
+      studio_is_admin: { Args: never; Returns: boolean }
       studio_item_delete: { Args: { p_item_id: string }; Returns: Json }
       studio_item_duplicate: { Args: { p_item_id: string }; Returns: Json }
       studio_item_move: {
@@ -5060,7 +5108,7 @@ export type Database = {
         Args: { p_menu_id: string; p_patch: Json }
         Returns: Json
       }
-      studio_menus_list: { Args: never; Returns: Json }
+      studio_menus_list: { Args: { p_restaurant_id?: string }; Returns: Json }
       studio_modifier_delete: { Args: { p_mod_id: string }; Returns: Json }
       studio_modifier_group_delete: {
         Args: { p_group_id: string }
