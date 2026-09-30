@@ -3,7 +3,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { openState } from '../lib/hours'
 import { injectStudioFonts } from '../lib/studioFonts'
 
-export const Route = createFileRoute('/m/$slug')({ component: PublicMenu })
+export const Route = createFileRoute('/m/$slug')({
+  head: () => ({ meta: [
+    { title: 'Restaurant menu | Klown Pay' },
+    { name: 'description', content: 'Browse the restaurant menu on Klown Pay.' },
+    { property: 'og:title', content: 'Restaurant menu | Klown Pay' },
+    { property: 'og:description', content: 'Browse the restaurant menu on Klown Pay.' },
+    { property: 'og:type', content: 'website' },
+    { name: 'twitter:card', content: 'summary' },
+  ] }),
+  component: PublicMenu,
+})
 
 type MenuData = {
   ok: boolean
