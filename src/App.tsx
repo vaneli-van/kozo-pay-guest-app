@@ -66,6 +66,7 @@ export default function App({
   // and undone). Debounce timers coalesce rapid taps into one network write per item.
   const editWindowRef = useRef(0)
   const assignTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const itemWritesRef = useRef<Promise<unknown>>(Promise.resolve())
   // Latest split state for async callbacks (avoids stale closures in timers/polls).
   const splitRef = useRef<any>(undefined)
   splitRef.current = s.split
@@ -102,7 +103,8 @@ export default function App({
   const applyItemsSplit = (r: any, startedAt = 0) => {
     // A newer tap happened after this request left — its own response will reconcile.
     if (startedAt && editWindowRef.current > startedAt) return
-    if (r?.ok && r.split) patch({ split: { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas } })
+    if (r?.ok && r.split) patch({ split: { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas }, splitError: undefined })
+    else patch({ splitError: r?.reason === 'no_bill' ? 'There is no open bill for this table.' : 'Could not save your items. Please try again.' })
   }
 
   const checkStatusOnce = async (ref?: string) => {
@@ -129,8 +131,13 @@ export default function App({
         const dest: Screen = action.mode === 'items' ? 'split-items' : 'split-lobby'
         POST('/api/public/split-create', { sessionToken, mode: action.mode, partySize: action.people, amounts: action.amounts }).then((r) => {
           if (r?.ok) { patch({ splitId: r.splitId }); goScreen(dest) }
-          else if (r?.reason === 'split_exists') goScreen(dest)
-          else patch({ splitError: r?.reason === 'shares_do_not_sum' ? 'Shares must add up to the bill total.' : r?.reason === 'already_paying' ? 'Payment has already started on this bill.' : 'Could not start the split. Please try again.' })
+           else if (r?.reason === 'split_exists') {
+             POST('/api/public/split', { sessionToken }).then((current) => {
+               if (current?.ok && current.split?.mode === action.mode) { patch({ splitError: undefined }); goScreen(dest) }
+               else patch({ splitError: 'A different split is already open for this bill.' })
+             })
+           }
+           else patch({ splitError: r?.reason === 'no_bill' ? 'There is no open bill for this table.' : r?.reason === 'shares_do_not_sum' ? 'Shares must add up to the bill total.' : r?.reason === 'already_paying' ? 'Payment has already started on this bill.' : 'Could not start the split. Please try again.' })
         })
         return
       }
@@ -146,8 +153,11 @@ export default function App({
         if (prev) clearTimeout(prev)
         assignTimersRef.current[action.billItemId] = setTimeout(() => {
           delete assignTimersRef.current[action.billItemId]
-          const t0 = Date.now()
-          POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name }).then((r) => applyItemsSplit(r, t0))
+           const t0 = Date.now()
+           itemWritesRef.current = itemWritesRef.current.catch(() => {}).then(async () => {
+             const r = await POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name })
+             applyItemsSplit(r, t0)
+           })
         }, 300)
         return
       }
@@ -155,7 +165,10 @@ export default function App({
         if (!sessionToken) return
         editWindowRef.current = Date.now()
         patch({ split: (splitRef.current = optimisticUnits(splitRef.current, action.billItemId, 0)) })
-        { const t0 = Date.now(); POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId }).then((r) => applyItemsSplit(r, t0)) }
+         { const t0 = Date.now(); itemWritesRef.current = itemWritesRef.current.catch(() => {}).then(async () => {
+           const r = await POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId })
+           applyItemsSplit(r, t0)
+         }) }
         return
       case 'assign-remaining':
         if (!sessionToken) return

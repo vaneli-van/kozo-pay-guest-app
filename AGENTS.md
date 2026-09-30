@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+Item-split selection writes are serialized in the diner app, because the first pick creates the diner's share and parallel writes can race that creation.
