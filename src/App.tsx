@@ -14,41 +14,6 @@ const POST = (url: string, body: unknown): Promise<any> =>
 // It is never a real share and must never be sent to the pay path (see the patch-go guard).
 const LOCAL_PENDING = '__local_pending__'
 
-// The banner appears only once the diner is on the bill-to-payment path.
-const headerScreens = new Set<Screen>([
-  'waiting-bill', 'bill-ready', 'bill', 'bill-issue', 'full-check', 'pay',
-  'split', 'split-share', 'split-lobby', 'split-items',
-  'tip', 'review', 'method', 'momo', 'authorise', 'processing', 'payment-error',
-  'success', 'receipt-choice', 'guest-receipt', 'review-handoff', 'complete',
-])
-
-// Stage of the payment journey shown in the banner: 0 = Bill, 1 = Tip, 2 = Pay.
-const payStages = ['Bill', 'Tip', 'Pay'] as const
-const stageFor = (screen: Screen): number => {
-  if (screen === 'tip') return 1
-  if (['review', 'method', 'momo', 'authorise', 'processing', 'payment-error', 'success',
-    'receipt-choice', 'guest-receipt', 'review-handoff', 'complete'].includes(screen)) return 2
-  return 0
-}
-
-function DiningHeader({ s }: { s: State }) {
-  if (!headerScreens.has(s.screen)) return null
-  const stage = stageFor(s.screen)
-  return <header className="dining-header" aria-label="Payment progress">
-    {s.logoUrl
-      ? <img className="dining-header-logo" src={s.logoUrl} alt={s.restaurantName || 'Restaurant'} />
-      : <span className="dining-header-logo-text">{s.restaurantName || 'Klown Pay'}</span>}
-    <ol className="dining-header-stages" aria-label="Payment progress">
-      {payStages.map((label, i) => (
-        <li key={label} className={i < stage ? 'done' : i === stage ? 'current' : ''} aria-current={i === stage ? 'step' : undefined}>
-          <span className="stage-dot" />
-          {label}
-        </li>
-      ))}
-    </ol>
-  </header>
-}
-
 // Paystack's checkout sends X-Frame-Options: SAMEORIGIN, so it cannot load inside an
 // embedded preview iframe. Navigate the top-level window when we're framed; if the
 // browser blocks cross-origin top navigation, fall back to opening a new tab.
@@ -552,7 +517,6 @@ export default function App({
         </div>
       ) : (
         <Shell s={s} dispatch={navigate}>
-          <DiningHeader s={s} />
           <C s={s} dispatch={navigate} />
         </Shell>
       )}
