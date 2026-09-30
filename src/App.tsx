@@ -494,9 +494,13 @@ export default function App({
       {(s.netOnline === false || s.connLost) && (
         <ConnBanner offline={s.netOnline === false} onRetry={() => setRetryTick((n) => n + 1)} />
       )}
-      {s.screen === 'connect' || s.screen === 'welcome' ? (
+      {s.screen === 'welcome' ? (
+        <div className="welcome-shell" style={accentStyle(s.accentColor)}>
+          <Welcome s={s} dispatch={navigate} />
+        </div>
+      ) : s.screen === 'connect' ? (
         <div className="app-shell" style={accentStyle(s.accentColor)}>
-          {s.screen === 'connect' ? <Connect dispatch={navigate} /> : <Welcome s={s} dispatch={navigate} />}
+          <Connect dispatch={navigate} />
         </div>
       ) : (
         <Shell s={s} dispatch={navigate}>

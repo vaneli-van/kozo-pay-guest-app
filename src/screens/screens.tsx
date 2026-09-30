@@ -26,7 +26,39 @@ export function Welcome({ s, dispatch }: any) {
   const hrs = hoursLine(dig.hours)
   const name = s?.taglineTop || s?.restaurantName || 'Welcome'
   const copy = s?.welcomeCopy || "Browse the menu and settle your bill whenever you're ready."
-  return <section className="welcome"><div className="hero-image" {...(s?.heroUrl ? { style: { backgroundImage: `url(${s.heroUrl})` } } : {})} /><div className="welcome-copy">{s?.logoUrl ? <img src={s.logoUrl} alt={s?.restaurantName || ''} style={{ height: 48, width: 'auto', marginBottom: 14, borderRadius: 8 }} /> : <p className="eyebrow">WELCOME TO {(s?.restaurantName || 'the restaurant').toUpperCase()}</p>}<h1>{name}{s?.taglineBottom ? <><br /><em>{s.taglineBottom}</em></> : null}</h1><div className="welcome-info">{oc && <span className="welcome-status" style={{ color: oc.open ? '#1c7c3a' : '#8a857c' }}>{oc.open ? '● Open now' : '● Closed now'}</span>}{hrs && <p>{hrs}</p>}{dig.info && <p>{dig.info}</p>}{dig.phone && <p>Tel: {dig.phone}</p>}{dig.link_url && <p><a href={dig.link_url} target="_blank" rel="noopener noreferrer">{dig.link_text || 'Visit website'}</a></p>}</div><p className="muted">{s?.tableLabel ? `You are at table ${s.tableLabel}. ` : ''}{copy}</p><Action onClick={() => dispatch(go('menu'))} style={{ background: 'var(--accent)', color: '#1a1a1a' }}>View menu</Action></div></section>
+  const hero = s?.heroUrl || '/assets/restaurant-hero.png'
+  const meta = dig.info || s?.city || ''
+  return (
+    <section className="welcome-v2">
+      <div className="welcome-hero" style={{ backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,.30) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 40%, rgba(12,10,8,.55) 66%, rgba(12,10,8,.95) 100%), url(${hero})` }}>
+        <div className="welcome-hero-text">
+          <p className="welcome-eyebrow">Welcome to</p>
+          {s?.logoUrl
+            ? <img className="welcome-logo" src={s.logoUrl} alt={s?.restaurantName || ''} />
+            : <h1 className="welcome-name">{name}{s?.taglineBottom ? <><br /><em>{s.taglineBottom}</em></> : null}</h1>}
+          {(oc || hrs || meta) && (
+            <div className="welcome-open">
+              {oc && <><span className="welcome-open-dot" style={{ background: oc.open ? 'var(--green)' : '#9a948a' }} /><span>{oc.open ? 'Open now' : 'Closed now'}</span></>}
+              {hrs && <><span className="welcome-sep">&middot;</span><span>{hrs}</span></>}
+              {meta && <><span className="welcome-sep">&middot;</span><span>{meta}</span></>}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="welcome-sheet">
+        <p className="welcome-copy">{s?.tableLabel ? <><b>You are at table {s.tableLabel}.</b> </> : ''}{copy}</p>
+        <button className="welcome-btn welcome-btn-primary" onClick={() => dispatch(go('bill'))}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M9 7h6M9 11h6M9 15h4" /></svg>
+          View &amp; pay your bill
+        </button>
+        <button className="welcome-btn welcome-btn-outline" onClick={() => dispatch(go('menu'))}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v7a3 3 0 0 0 6 0V3M6 10v11M18 3c-1.7 0-3 2.2-3 5s1 4 3 4v9" /></svg>
+          Browse the menu
+        </button>
+        <div className="welcome-secured"><img src="/klown-logo.png" alt="Klown" /> &middot; <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg> Secured payments</div>
+      </div>
+    </section>
+  )
 }
 
 export function Empty({ s, dispatch }: any) { return <section><Back dispatch={dispatch} to="welcome" /><p className="eyebrow">{s?.tableLabel ? `TABLE ${s.tableLabel} · READY WHEN YOU ARE` : 'READY WHEN YOU ARE'}</p><h1>Your table,<br /><em>your pace.</em></h1><p className="muted">Nothing has been added yet. Browse the menu, or call someone over if you need a recommendation.</p><div className="empty-card"><QrCode /><strong>No order yet</strong><span>Your bill will appear here once the first order is placed.</span></div><Action onClick={() => dispatch(go('menu'))}>Explore the menu</Action></section> }
