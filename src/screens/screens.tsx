@@ -99,43 +99,41 @@ export function Pay({ s, dispatch }: any) { const due = s?.quote?.remainingPesew
 
 export function Split({ s, dispatch }: any) {
   const due = s?.bill?.totalPesewas ?? s?.quote?.remainingPesewas ?? 0
-  const [mode, setMode] = useState<'even' | 'amounts' | 'items'>('even')
-  const [people, setPeople] = useState(s?.people ?? 2)
+  const [mode, setMode] = useState<'even' | 'amounts' | 'items' | null>(null)
+  const [people, setPeople] = useState(Math.max(2, s?.people ?? 2))
+  const [custom, setCustom] = useState('')
   const [rows, setRows] = useState<{ label: string; amount: string }[]>([{ label: '', amount: '' }, { label: '', amount: '' }])
   const assigned = rows.reduce((n, r) => n + Math.round((parseFloat(r.amount) || 0) * 100), 0)
   const reconciled = assigned === due && rows.every((r) => (parseFloat(r.amount) || 0) > 0)
   const setRow = (i: number, k: 'label' | 'amount', v: string) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
-  return <section><Back dispatch={dispatch} to="bill" /><p className="eyebrow">SPLIT THE BILL</p><h1>Make it <em>easy.</em></h1><p className="muted">Bill total {pes(due)}. Choose how to split it.</p>
-    <div className="split-modes">
-      <button className={mode === 'even' ? 'selected' : ''} onClick={() => setMode('even')}>Even split<small>Everyone pays the same</small></button>
-      <button className={mode === 'amounts' ? 'selected' : ''} onClick={() => setMode('amounts')}>By amount<small>Set each share</small></button>
-      <button className={mode === 'items' ? 'selected' : ''} onClick={() => setMode('items')}>By item<small>Everyone pays for what they had</small></button>
-    </div>
-    {mode === 'even' && (<>
-      <div className="stepper"><button aria-label="Fewer people" onClick={() => setPeople(Math.max(2, people - 1))}><Minus /></button><strong>{people}</strong><button aria-label="More people" onClick={() => setPeople(people + 1)}><Plus /></button></div>
-      <div className="split-share"><span>Each person pays about</span><b>{pes(Math.floor(due / Math.max(2, people)))}</b></div>
-    </>)}
-    {mode === 'amounts' && (<>
-      <div className="amount-rows">{rows.map((r, i) => (
-        <div className="amount-row" key={i}>
-          <input placeholder={`Name ${i + 1}`} value={r.label} onChange={(e) => setRow(i, 'label', e.target.value)} />
-          <input placeholder="0.00" inputMode="decimal" value={r.amount} onChange={(e) => setRow(i, 'amount', e.target.value)} />
-          {rows.length > 2 && <button className="row-x" aria-label="Remove share" onClick={() => setRows(rows.filter((_, j) => j !== i))}><X /></button>}
-        </div>))}
+  const customPesewas = Math.round((parseFloat(custom) || 0) * 100)
+  const validCustom = customPesewas > 0 && customPesewas < due
+  return <div className="split-overlay"><div className="split-bill-underlay" aria-hidden="true"><Bill s={s} dispatch={dispatch} /></div>
+    <div className="split-scrim" onClick={() => dispatch(go('bill'))} />
+    <section className="split-sheet" role="dialog" aria-modal="true" aria-label={mode === 'even' ? 'Divide equally' : mode === 'amounts' ? 'Pay a custom amount' : 'Split the bill'}>
+      <div className="split-sheet-handle" />
+      <header className="split-sheet-header"><h2>{mode === 'even' ? 'Divide equally' : mode === 'amounts' ? 'Pay a custom amount' : 'Split the bill'}</h2><button className="split-close" aria-label="Close split" onClick={() => dispatch(go('bill'))}><X /></button></header>
+      <div className="split-sheet-body">
+        {!mode && <><p className="split-intro">Choose how you’d like to pay your share.</p><div className="split-options">
+          <button onClick={() => dispatch({ type: 'split-create', mode: 'items' })}><span className="split-option-icon">≡</span><span><b>Pay for your items</b><small>Pick exactly what you had</small></span><ChevronRight /></button>
+          <button onClick={() => setMode('even')}><span className="split-option-icon">%</span><span><b>Divide equally</b><small>Split evenly across the table</small></span><ChevronRight /></button>
+          <button onClick={() => setMode('amounts')}><span className="split-option-icon">₵</span><span><b>Pay a custom amount</b><small>Enter the amount you’d like to pay</small></span><ChevronRight /></button>
+        </div><p className="split-footnote"><Info />Others at your table can scan the QR to pay their share. Klown keeps track of what’s paid.</p></>}
+        {mode === 'even' && <><p className="split-intro">Your share of {pes(due)}</p><strong className="split-feature-amount">{pes(Math.floor(due / people))}</strong>
+          <div className="split-counter"><span>People at the table</span><div><button aria-label="Fewer people" onClick={() => setPeople(Math.max(2, people - 1))}><Minus /></button><strong>{people}</strong><button aria-label="More people" onClick={() => setPeople(people + 1)}><Plus /></button></div></div>
+          <div className="split-share"><span>Each person pays about</span><b>{pes(Math.floor(due / people))}</b></div>
+          <Action onClick={() => dispatch({ type: 'split-create', mode: 'even', people })}>Confirm split</Action></>}
+        {mode === 'amounts' && <><p className="split-intro">Enter your share. The remainder stays open for the table.</p>
+          <label className="split-amount-field">GH₵ <input aria-label="Your amount in cedis" inputMode="decimal" placeholder="0.00" value={custom} onChange={e => setCustom(e.target.value)} /></label>
+          <div className="split-share"><span>Remaining for the table</span><b>{pes(Math.max(0, due - customPesewas))}</b></div>
+          <Action disabled={!validCustom} onClick={() => validCustom && dispatch({ type: 'split-create', mode: 'amounts', amounts: [{ label: 'Your share', amount: customPesewas }, { label: 'Remaining', amount: due - customPesewas }] })}>Confirm split</Action>
+          <button className="split-advanced" onClick={() => setMode('items')}>Assign named shares instead</button></>}
+        {mode === 'items' && <><p className="split-intro">Assign amounts for everyone at the table. Shares must add up to {pes(due)}.</p><div className="amount-rows">{rows.map((r, i) => <div className="amount-row" key={i}><input aria-label={`Share ${i + 1} name`} placeholder={`Name ${i + 1}`} value={r.label} onChange={e => setRow(i, 'label', e.target.value)} /><input aria-label={`Share ${i + 1} amount`} placeholder="0.00" inputMode="decimal" value={r.amount} onChange={e => setRow(i, 'amount', e.target.value)} />{rows.length > 2 && <button className="row-x" aria-label="Remove share" onClick={() => setRows(rows.filter((_, j) => j !== i))}><X /></button>}</div>)}</div><button className="text-link" onClick={() => setRows([...rows, { label: '', amount: '' }])}>+ Add a share</button><div className="split-share"><span>Assigned</span><b>{pes(assigned)} / {pes(due)}</b></div><Action disabled={!reconciled} onClick={() => reconciled && dispatch({ type: 'split-create', mode: 'amounts', amounts: rows.map(r => ({ label: r.label, amount: Math.round((parseFloat(r.amount) || 0) * 100) })) })}>Confirm split</Action></>}
+        {s?.splitError && <div className="error"><X />{s.splitError}</div>}
+        {mode && <button className="split-advanced" onClick={() => setMode(null)}>Back to split options</button>}
       </div>
-      <button className="text-link" onClick={() => setRows([...rows, { label: '', amount: '' }])}>+ Add a share</button>
-      <div className="split-share"><span>Assigned</span><b>{pes(assigned)} / {pes(due)}</b></div>
-    </>)}
-    {mode === 'items' && (
-      <div className="notice-card"><Info /><span>Each person opens the bill, taps the items they had, and pays for just those. The table clears once every item is covered.</span></div>
-    )}
-    {s?.splitError && <div className="error"><X />{s.splitError}</div>}
-    <Action onClick={() => dispatch(mode === 'even'
-      ? { type: 'split-create', mode: 'even', people }
-      : mode === 'items' ? { type: 'split-create', mode: 'items' }
-      : reconciled ? { type: 'split-create', mode: 'amounts', amounts: rows.map((r) => ({ label: r.label, amount: Math.round((parseFloat(r.amount) || 0) * 100) })) } : { type: 'noop' })}>
-      {mode === 'amounts' && !reconciled ? `Assign ${pes(Math.max(0, due - assigned))} more` : mode === 'items' ? 'Start picking items' : 'Start split'}</Action>
-  </section>
+    </section>
+  </div>
 }
 
 // Loader for the split screens — never a dead end: after a few seconds offer a way back.
