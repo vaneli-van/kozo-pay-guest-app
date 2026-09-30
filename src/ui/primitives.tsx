@@ -9,7 +9,7 @@ export function accentStyle(accentColor?: string) {
 
 export function Shell({ children, s }: { children: React.ReactNode; s: State; dispatch: React.Dispatch<any> }) {
   const style = accentStyle(s?.accentColor)
-  return <main className="app-shell" style={style}>{!(s?.screen === 'menu' && s?.menu?.source === 'studio') && <div className="topline"><img className="wordmark-logo" src={s?.logoUrl || '/klown-logo.png'} alt={s?.restaurantName || 'Klown'} /><span className="table-pill">TABLE {s?.tableLabel ?? '07'} <span className="dot" /></span></div>}{children}</main>
+  return <main className="app-shell" style={style}>{children}</main>
 }
 
 export function Back({ dispatch, to = 'menu' }: any) { return <button className="back" onClick={() => dispatch(go(to))}><ArrowLeft />Back</button> }
