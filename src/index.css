@@ -87,13 +87,9 @@
 .welcome-secured svg{width:12px;height:12px}
 
 /* Restaurant and page identity stays in the same place throughout the diner flow. */
-.dining-header{display:flex;flex-direction:column;gap:18px;margin:-22px -20px 28px;padding:calc(22px + env(safe-area-inset-top)) 20px 18px;background:var(--banner-bg);color:var(--banner-fg)}
-.dining-header-top{display:flex;align-items:center;justify-content:space-between;gap:14px}
-.dining-header-name{display:flex;flex-direction:column;gap:8px;min-width:0}
-.dining-header-restaurant{font-size:11px;line-height:1.15;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--banner-gold);overflow-wrap:anywhere}
-.dining-header-name strong{font-size:24px;line-height:1.08;font-weight:700;overflow-wrap:anywhere}
-.dining-header-table{flex:none;max-width:38%;border:1px solid var(--banner-line);border-radius:12px;padding:10px 12px;font-size:11px;line-height:1.2;color:var(--banner-fg);text-align:center;overflow-wrap:anywhere}
-.dining-header-table b{font-weight:700}
+.dining-header{display:flex;flex-direction:column;gap:16px;margin:-22px -20px 28px;padding:calc(22px + env(safe-area-inset-top)) 20px 18px;background:var(--banner-bg);color:var(--banner-fg)}
+.dining-header-logo{display:block;width:auto;height:32px;max-width:170px;object-fit:contain;object-position:left center}
+.dining-header-logo-text{font-size:11px;line-height:1.15;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--banner-gold);overflow-wrap:anywhere}
 .dining-header-stages{display:flex;gap:0;margin:0;padding:0;list-style:none}
 .dining-header-stages li{flex:1;display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--banner-line)}
 .dining-header-stages li .stage-dot{width:7px;height:7px;flex:none;border-radius:50%;background:var(--banner-line)}
@@ -101,7 +97,6 @@
 .dining-header-stages li.current .stage-dot{background:var(--banner-gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--banner-gold) 25%,transparent)}
 .dining-header-stages li.done{color:var(--banner-fg)}
 .dining-header-stages li.done .stage-dot{background:var(--banner-fg)}
-@media(max-width:355px){.dining-header-name strong{font-size:21px}.dining-header-table{padding:9px 8px}}
 
 .bill-screen{padding-bottom:calc(96px + env(safe-area-inset-bottom))}.bill-cta{position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:10;width:min(100%,480px);display:flex;gap:10px;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:var(--background);border-top:1px solid var(--line)}.bill-cta .action{margin-top:0;flex:1;justify-content:center;text-align:center;padding:14px 10px;min-width:0}.bill-cta .action.pay{flex:1.5;font-variant-numeric:tabular-nums}.split-bill-underlay .bill-cta{display:none}@media(min-width:700px){.bill-cta{bottom:30px}}
 
