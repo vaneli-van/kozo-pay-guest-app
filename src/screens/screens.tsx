@@ -119,10 +119,10 @@ export function Split({ s, dispatch }: any) {
           <button onClick={() => setMode('even')}><span className="split-option-icon">%</span><span><b>Divide equally</b><small>Split evenly across the table</small></span><ChevronRight /></button>
           <button onClick={() => setMode('amounts')}><span className="split-option-icon">₵</span><span><b>Pay a custom amount</b><small>Enter the amount you’d like to pay</small></span><ChevronRight /></button>
         </div><p className="split-footnote"><Info />Others at your table can scan the QR to pay their share. Klown keeps track of what’s paid.</p></>}
-        {mode === 'even' && <><p className="split-intro">Your share of {pes(due)}</p><strong className="split-feature-amount">{pes(Math.floor(due / people))}</strong>
+        {mode === 'even' && <><p className="split-intro">Split {pes(due)} between {people} people</p><strong className="split-feature-amount">{pes(Math.ceil(due / people))}</strong>
           <div className="split-counter"><span>People at the table</span><div><button aria-label="Fewer people" onClick={() => setPeople(Math.max(2, people - 1))}><Minus /></button><strong>{people}</strong><button aria-label="More people" onClick={() => setPeople(people + 1)}><Plus /></button></div></div>
-          <div className="split-share"><span>Each person pays about</span><b>{pes(Math.floor(due / people))}</b></div>
-          <Action onClick={() => dispatch({ type: 'split-create', mode: 'even', people })}>Confirm split</Action></>}
+          <div className="split-share"><span>Each person pays about</span><b>{pes(Math.ceil(due / people))}</b></div>
+          <Action disabled={due <= 0} onClick={() => due > 0 && dispatch({ type: 'split-create', mode: 'even', people })}>Confirm split</Action></>}
         {mode === 'amounts' && <><p className="split-intro">Enter your share. The remainder stays open for the table.</p>
           <label className="split-amount-field">GH₵ <input aria-label="Your amount in cedis" inputMode="decimal" placeholder="0.00" value={custom} onChange={e => setCustom(e.target.value)} /></label>
           <div className="split-share"><span>Remaining for the table</span><b>{pes(Math.max(0, due - customPesewas))}</b></div>
