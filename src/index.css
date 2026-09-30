@@ -85,3 +85,5 @@
 .welcome-secured{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:16px;color:var(--muted);font-size:12px;font-weight:500}
 .welcome-secured img{height:13px;width:auto;filter:grayscale(1) contrast(.9);opacity:.85}
 .welcome-secured svg{width:12px;height:12px}
+
+.bill-cta{display:flex;gap:10px;margin-top:24px}.bill-cta .action{margin-top:0;flex:1;justify-content:center;text-align:center;padding-left:12px;padding-right:12px}.bill-cta .action.pay{flex:1.5;font-variant-numeric:tabular-nums}
