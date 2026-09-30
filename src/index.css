@@ -143,3 +143,21 @@
 .method-options{display:grid;gap:10px;margin-top:24px}.method-option{width:100%;min-height:78px;display:grid;grid-template-columns:48px minmax(0,1fr) 25px;align-items:center;gap:13px;text-align:left;background:var(--background);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--foreground)}.method-option.selected{border:2px solid var(--foreground);padding:11px}.method-icon{width:48px;height:48px;display:grid;place-items:center;background:var(--soft);color:var(--foreground);border-radius:12px}.method-icon svg{width:23px;height:23px}.method-icon-applepay{background:var(--foreground);color:var(--background)}.method-icon-applepay svg{width:25px;height:25px}.method-icon-momo{background:var(--accent)}.method-option-copy{display:flex;min-width:0;flex-direction:column;gap:5px}.method-option-copy b{font-size:15px;line-height:1.2}.method-option-copy small{font-size:11px;line-height:1.3;color:var(--muted)}.method-radio{width:24px;height:24px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center}.method-option.selected .method-radio{background:var(--foreground);color:var(--background);border-color:var(--foreground)}.method-radio svg{width:14px;height:14px;stroke-width:3}
 .method-screen .action{border-radius:12px;margin-top:24px;padding:14px 16px;min-height:66px}.method-screen .action>svg{display:none}.method-action-content{display:flex;align-items:center;gap:11px;width:100%;min-width:0;text-align:left}.method-action-icon{display:grid;place-items:center;flex:none;width:23px;height:23px}.method-action-icon svg{width:21px;height:21px}.method-action-label{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px}.method-action-label b{font-size:14px;line-height:1.15}.method-action-label small{font-size:11px;color:var(--line);font-weight:400}.method-action-amount{flex:none;background:var(--background);color:var(--foreground);border-radius:8px;padding:10px 12px;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}@media(max-width:360px){.method-option{gap:9px;padding:10px;grid-template-columns:42px minmax(0,1fr) 23px}.method-option.selected{padding:9px}.method-icon{width:42px;height:42px}.method-option-copy b{font-size:13px}.method-action-label b{font-size:12px}.method-action-amount{padding:9px 8px;font-size:11px}}
 .split-items-stage .split-progress{font-size:11px;color:var(--muted)}.split-items-stage .action{border-radius:12px}.split-items-stage .action:disabled{opacity:.55;cursor:not-allowed}
+
+/* Checkout header (Bill · Tip · Pay flow) */
+.cohead{margin-bottom:22px}
+.cohead-top{display:flex;align-items:center;gap:14px}
+.cohead-back{width:38px;height:38px;flex:0 0 38px;border-radius:50%;border:1px solid var(--line);background:transparent;display:grid;place-items:center;padding:0;min-height:0}
+.cohead-back svg{width:16px;height:16px;color:var(--foreground)}
+.cohead-id{min-width:0}
+.cohead-logo{height:26px;width:auto;max-width:150px;object-fit:contain;display:block;margin-bottom:6px;filter:brightness(0)}
+.cohead-id h2{margin:0;font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:400;font-size:20px;letter-spacing:-.01em;color:var(--foreground)}
+.cohead-table{margin-left:auto;align-self:flex-start;margin-top:3px;display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.12em;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.cohead-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
+.cohead-steps{display:flex;gap:10px;margin-top:20px}
+.cohead-step{flex:1;text-align:center}
+.cohead-bar{height:3px;border-radius:3px;background:var(--line)}
+.cohead-step.done .cohead-bar,.cohead-step.active .cohead-bar{background:#c79a3b}
+.cohead-lb{margin-top:8px;font-size:11px;letter-spacing:.08em;font-weight:700;color:var(--muted)}
+.cohead-step.done .cohead-lb,.cohead-step.active .cohead-lb{color:var(--foreground)}
+.cohead-rule{height:1px;background:var(--line);margin:18px -20px 0}
