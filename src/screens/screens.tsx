@@ -18,6 +18,25 @@ const menuImg = (item?: { image_key?: string | null }) => {
 // If a hosted photo ever fails to load, fall back to the neutral plate — never a broken image.
 const imgFallback = (e: any) => { if (e?.currentTarget && !e.currentTarget.src.endsWith('_plate.png')) e.currentTarget.src = '/assets/menu/_plate.png' }
 
+function useSplitScrollLock() {
+  useEffect(() => {
+    const scrollY = window.scrollY
+    const body = document.body
+    const original = { position: body.style.position, top: body.style.top, width: body.style.width, overflow: body.style.overflow }
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.width = '100%'
+    body.style.overflow = 'hidden'
+    return () => {
+      body.style.position = original.position
+      body.style.top = original.top
+      body.style.width = original.width
+      body.style.overflow = original.overflow
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
+}
+
 export function Connect({ s, dispatch }: any) { return <Center logoUrl={s?.logoUrl} alt={s?.restaurantName} eyebrow="A BETTER WAY TO DINE" title={'Making the<br /><em>table</em> feel closer.'} copy="Connecting to your table…"><div className="loader" /><button className="text-link" onClick={() => dispatch(go('welcome'))}>Skip connection</button></Center> }
 
 export function Welcome({ s, dispatch }: any) {
@@ -98,6 +117,7 @@ export function Recommendation({ s, dispatch }: any) {
 export function Pay({ s, dispatch }: any) { const due = s?.quote?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0; return <section><Back dispatch={dispatch} to="bill" /><p className="eyebrow">SETTLE UP</p><h1>How would you<br /><em>like to pay?</em></h1><div className="pay-total"><span>Your share</span><strong>{pes(due)}</strong></div><button className="choice" onClick={() => dispatch({ type: 'patch-go', value: { shareMode: 'full' }, to: 'tip' })}><span className="choice-icon"><CreditCard /></span><span><b>Pay the full bill</b><small>One simple payment</small></span><ChevronRight /></button><button className="choice" onClick={() => dispatch(go('split'))}><span className="choice-icon"><Users /></span><span><b>Split the bill</b><small>Everyone pays their share</small></span><ChevronRight /></button></section> }
 
 export function Split({ s, dispatch }: any) {
+  useSplitScrollLock()
   const due = s?.bill?.totalPesewas ?? s?.quote?.remainingPesewas ?? 0
   const [mode, setMode] = useState<'even' | 'amounts' | 'named' | null>(null)
   const [people, setPeople] = useState(Math.max(2, s?.people ?? 2))
@@ -148,6 +168,7 @@ function SplitLoading({ s, dispatch, eyebrow }: any) {
 }
 
 export function SplitItems({ s, dispatch }: any) {
+  useSplitScrollLock()
   const split = s?.split
   const base = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
   const copyInvite = () => { try { navigator.clipboard?.writeText(base) } catch {} }
