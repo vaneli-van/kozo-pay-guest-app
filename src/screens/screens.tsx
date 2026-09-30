@@ -108,7 +108,7 @@ export function Split({ s, dispatch }: any) {
   const setRow = (i: number, k: 'label' | 'amount', v: string) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
   const customPesewas = Math.round((parseFloat(custom) || 0) * 100)
   const validCustom = Number.isFinite(customPesewas) && customPesewas > 0 && customPesewas < due
-  return <div className="split-overlay"><div className="split-bill-underlay" aria-hidden="true"><Bill s={s} dispatch={dispatch} /></div>
+  return <div className="split-overlay"><div className="split-bill-underlay" aria-hidden="true" inert><Bill s={s} dispatch={dispatch} /></div>
     <div className="split-scrim" onClick={() => dispatch(go('bill'))} />
     <section className="split-sheet" role="dialog" aria-modal="true" aria-label={mode === 'even' ? 'Divide equally' : mode === 'amounts' ? 'Pay a custom amount' : 'Split the bill'}>
       <div className="split-sheet-handle" />
@@ -162,7 +162,8 @@ export function SplitItems({ s, dispatch }: any) {
   const iPaid = (split.shares ?? []).some((sh: any) => sh.mine && sh.status === 'paid')
   const done = total > 0 && paid >= total
   const myUnitsOn = (it: any) => (it.takers.find((t: any) => t.shareId === myId)?.units ?? 0)
-  return <section><Back dispatch={dispatch} to="pay" /><p className="eyebrow">CHOOSE YOUR ITEMS · TABLE {s?.tableLabel ?? ''}</p><h1>Pick what<br /><em>you had.</em></h1>
+  const pickedCount = items.reduce((count: number, it: any) => count + myUnitsOn(it), 0)
+  return <section className="split-items-stage"><Back dispatch={dispatch} to="bill" /><p className="eyebrow">CHOOSE YOUR ITEMS · TABLE {s?.tableLabel ?? ''}</p><h1>Pick what<br /><em>you had.</em></h1>
     <p className="muted">Tap the items you ordered. Everyone at the table picks theirs, and the bill clears once it all adds up.</p>
     <div className="item-board">{items.map((it: any) => {
       const mine = myUnitsOn(it)
@@ -183,7 +184,7 @@ export function SplitItems({ s, dispatch }: any) {
           : <button className={`item-take${mine > 0 ? ' on' : ''}`} disabled={mine === 0 && !canAdd} onClick={() => dispatch(mine > 0 ? { type: 'split-unassign', billItemId: it.billItemId } : { type: 'split-assign', billItemId: it.billItemId, units: 1 })}>{mine > 0 ? <Check /> : 'Take'}</button>}
       </div>
     })}</div>
-    <div className="split-share"><span>You&apos;re paying</span><b>{pes(myAmount)}</b></div>
+    <div className="split-share"><span>{pickedCount} {pickedCount === 1 ? 'item' : 'items'} · You pay</span><b>{pes(myAmount)}</b></div>
     <div className="split-progress"><span>{pes(paid)} of {pes(total)} settled{unassigned > 0 ? ` · ${pes(unassigned)} unassigned` : ''}</span><div className="bar"><i style={{ width: `${total ? Math.min(100, Math.round((paid / total) * 100)) : 0}%` }} /></div></div>
     {unassigned > 0 && !iPaid && <button className="text-link" onClick={() => dispatch({ type: 'assign-remaining' })}>I&apos;ll cover the rest</button>}
     {done ? <div className="notice-card"><Check /><span>Every item is in — thank you.</span></div>
