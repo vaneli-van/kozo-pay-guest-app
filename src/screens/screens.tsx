@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, ChevronRight, Clock3, CreditCard, Heart, Info, Minus, Plus, QrCode, RotateCcw, Search, Send, Smartphone, Star, Users, X } from 'lucide-react'
+import { Check, ChevronRight, Clock3, CreditCard, Heart, Info, LockKeyhole, Minus, Plus, QrCode, RotateCcw, Search, Send, Smartphone, Star, Users, X } from 'lucide-react'
 import { FaApple } from 'react-icons/fa6'
 import { go, screens, type Screen } from '../session/machine'
 import { money } from '../lib/format'
@@ -247,7 +247,18 @@ export function SplitLobby({ s, dispatch }: any) {
   </section>
 }
 
-export function Tip({ s, dispatch }: any) { const share = s?.claimedShareId ? (s?.split?.mode === 'items' ? s?.split?.myShareAmountPesewas : s?.split?.shares?.find((sh: any) => sh.id === s.claimedShareId)?.amountPesewas) ?? s?.quote?.sharePesewas ?? 0 : s?.quote?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0; const chosen = s?.tipPercent ?? 10; const server = (s?.bill?.serverName || '').toString().trim(); return <section className="payment-stage"><Back dispatch={dispatch} to={s?.claimedShareId ? s?.split?.mode === 'items' ? 'split-items' : 'split-lobby' : 'bill'} /><p className="eyebrow">TIP · {s?.restaurantName || 'YOUR TABLE'}</p><h1>Say thanks<br /><em>to your team.</em></h1><p className="muted">{server ? `Your tip goes to ${server} and the ${s?.restaurantName || ''} team.` : `Your tip goes to the ${s?.restaurantName || ''} team.`}</p><div className="tip-amount">{pes(Math.round(share * chosen / 100))}</div><div className="tip-grid">{[0, 10, 12.5, 15].map(n => <button className={n === chosen ? 'selected' : ''} key={n} aria-pressed={n === chosen} onClick={() => dispatch({ type: 'patch', value: { tipPercent: n } })}>{n === 0 ? 'No tip' : `${n}%`}<small>{n ? pes(Math.round(share * n / 100)) : ''}</small></button>)}</div><div className="split-share"><span>Your share</span><b>{pes(share)}</b></div><div className="split-share"><span>With tip</span><b>{pes(share + Math.round(share * chosen / 100))}</b></div><Action onClick={() => dispatch(go('review'))}>Review &amp; pay</Action></section> }
+export function Tip({ s, dispatch }: any) {
+  const share = s?.claimedShareId ? (s?.split?.mode === 'items' ? s?.split?.myShareAmountPesewas : s?.split?.shares?.find((sh: any) => sh.id === s.claimedShareId)?.amountPesewas) ?? s?.quote?.sharePesewas ?? 0 : s?.quote?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0
+  const chosen = s?.tipPercent ?? 10
+  const tip = Math.round(share * chosen / 100)
+  const server = (s?.bill?.serverName || '').toString().trim()
+  return <section className="payment-stage tip-screen">
+    <div className="tip-header"><div><Back dispatch={dispatch} to={s?.claimedShareId ? s?.split?.mode === 'items' ? 'split-items' : 'split-lobby' : 'bill'} /><div><h2>Payment</h2><span>{s?.claimedShareId ? 'Your split' : 'Full bill'}{s?.tableLabel ? ` · Table ${s.tableLabel}` : ''}</span></div></div><span className="tip-secure"><LockKeyhole aria-hidden="true" /> Secured by Klown</span></div>
+    <div className="tip-due"><p className="eyebrow">AMOUNT DUE</p><strong>{pes(share + tip)}</strong><p className="tip-due-note">{chosen ? `Includes ${pes(tip)} tip` : 'No tip added'}</p><div className="tip-due-lines"><div><span>{s?.claimedShareId ? 'Your share' : 'Bill amount'}</span><b>{pes(share)}</b></div><div><span>Tip ({chosen}%)</span><b>{pes(tip)}</b></div></div></div>
+    <div className="tip-section"><p className="eyebrow">LEAVE A TIP</p><div className="tip-team"><div className="tip-team-icon"><Heart aria-hidden="true" /></div><div><strong>Say thanks to your team</strong><span>{server ? `For ${server} and the ${s?.restaurantName || 'restaurant'} team` : `For the ${s?.restaurantName || 'restaurant'} team`}</span></div></div><div className="tip-grid">{[0, 10, 12.5, 15].map(n => <button type="button" className={n === chosen ? 'selected' : ''} key={n} aria-pressed={n === chosen} onClick={() => dispatch({ type: 'patch', value: { tipPercent: n } })}>{n === 0 ? 'No tip' : `${n}%`}<small>{pes(Math.round(share * n / 100))}</small></button>)}</div></div>
+    <Action onClick={() => dispatch(go('review'))}>Review &amp; pay · {pes(share + tip)}</Action>
+  </section>
+}
 
 export function Review({ s, dispatch }: any) { const q = s?.quote; return <section className="payment-stage"><Back dispatch={dispatch} to="tip" /><p className="eyebrow">REVIEW &amp; PAY</p><h1>Ready when<br /><em>you are.</em></h1><div className="summary-card"><p className="section-label">PAYMENT SUMMARY</p><div><span>Your share{s?.claimedShareId ? ' · split' : ''}</span><b>{pes(q?.sharePesewas)}</b></div><div><span>Tip · {s?.tipPercent ?? 10}%</span><b>{pes(q?.tipPesewas)}</b></div><div className="grand-total"><span>You pay</span><b>{pes(q?.grandTotalPesewas)}</b></div></div><Action disabled={!q} onClick={() => dispatch(go('method'))}>Choose payment method · {pes(q?.grandTotalPesewas)}</Action></section> }
 
