@@ -99,7 +99,7 @@ export function Pay({ s, dispatch }: any) { const due = s?.quote?.remainingPesew
 
 export function Split({ s, dispatch }: any) {
   const due = s?.bill?.totalPesewas ?? s?.quote?.remainingPesewas ?? 0
-  const [mode, setMode] = useState<'even' | 'amounts' | 'items' | null>(null)
+  const [mode, setMode] = useState<'even' | 'amounts' | 'named' | null>(null)
   const [people, setPeople] = useState(Math.max(2, s?.people ?? 2))
   const [custom, setCustom] = useState('')
   const [rows, setRows] = useState<{ label: string; amount: string }[]>([{ label: '', amount: '' }, { label: '', amount: '' }])
@@ -127,8 +127,8 @@ export function Split({ s, dispatch }: any) {
           <label className="split-amount-field">GH₵ <input aria-label="Your amount in cedis" inputMode="decimal" placeholder="0.00" value={custom} onChange={e => setCustom(e.target.value)} /></label>
           <div className="split-share"><span>Remaining for the table</span><b>{pes(Math.max(0, due - customPesewas))}</b></div>
           <Action disabled={!validCustom} onClick={() => validCustom && dispatch({ type: 'split-create', mode: 'amounts', amounts: [{ label: 'Your share', amount: customPesewas }, { label: 'Remaining', amount: due - customPesewas }] })}>Confirm split</Action>
-          <button className="split-advanced" onClick={() => setMode('items')}>Assign named shares instead</button></>}
-        {mode === 'items' && <><p className="split-intro">Assign amounts for everyone at the table. Shares must add up to {pes(due)}.</p><div className="amount-rows">{rows.map((r, i) => <div className="amount-row" key={i}><input aria-label={`Share ${i + 1} name`} placeholder={`Name ${i + 1}`} value={r.label} onChange={e => setRow(i, 'label', e.target.value)} /><input aria-label={`Share ${i + 1} amount`} placeholder="0.00" inputMode="decimal" value={r.amount} onChange={e => setRow(i, 'amount', e.target.value)} />{rows.length > 2 && <button className="row-x" aria-label="Remove share" onClick={() => setRows(rows.filter((_, j) => j !== i))}><X /></button>}</div>)}</div><button className="text-link" onClick={() => setRows([...rows, { label: '', amount: '' }])}>+ Add a share</button><div className="split-share"><span>Assigned</span><b>{pes(assigned)} / {pes(due)}</b></div><Action disabled={!reconciled} onClick={() => reconciled && dispatch({ type: 'split-create', mode: 'amounts', amounts: rows.map(r => ({ label: r.label, amount: Math.round((parseFloat(r.amount) || 0) * 100) })) })}>Confirm split</Action></>}
+          <button className="split-advanced" onClick={() => setMode('named')}>Assign named shares instead</button></>}
+        {mode === 'named' && <><p className="split-intro">Assign amounts for everyone at the table. Shares must add up to {pes(due)}.</p><div className="amount-rows">{rows.map((r, i) => <div className="amount-row" key={i}><input aria-label={`Share ${i + 1} name`} placeholder={`Name ${i + 1}`} value={r.label} onChange={e => setRow(i, 'label', e.target.value)} /><input aria-label={`Share ${i + 1} amount`} placeholder="0.00" inputMode="decimal" value={r.amount} onChange={e => setRow(i, 'amount', e.target.value)} />{rows.length > 2 && <button className="row-x" aria-label="Remove share" onClick={() => setRows(rows.filter((_, j) => j !== i))}><X /></button>}</div>)}</div><button className="text-link" onClick={() => setRows([...rows, { label: '', amount: '' }])}>+ Add a share</button><div className="split-share"><span>Assigned</span><b>{pes(assigned)} / {pes(due)}</b></div><Action disabled={!reconciled} onClick={() => reconciled && dispatch({ type: 'split-create', mode: 'amounts', amounts: rows.map(r => ({ label: r.label, amount: Math.round((parseFloat(r.amount) || 0) * 100) })) })}>Confirm split</Action></>}
         {s?.splitError && <div className="error"><X />{s.splitError}</div>}
         {mode && <button className="split-advanced" onClick={() => setMode(null)}>Back to split options</button>}
       </div>
