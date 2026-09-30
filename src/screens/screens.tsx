@@ -249,12 +249,13 @@ export function Method({ s, dispatch }: any) {
   const [applePay, setApplePay] = useState(false)
   const [selected, setSelected] = useState<'momo' | 'card' | 'applepay'>('momo')
   useEffect(() => { try { const A = (window as any).ApplePaySession; setApplePay(!!A && A.canMakePayments()) } catch { setApplePay(false) } }, [])
+  const momoOption = { id: 'momo' as const, name: 'Mobile Money', detail: 'MTN MoMo · Telecel · AirtelTigo', icon: <Smartphone /> }
   const options = [
     ...(applePay ? [{ id: 'applepay' as const, name: 'Apple Pay', detail: 'Confirm with Face ID or Touch ID', icon: <FaApple /> }] : []),
-    { id: 'momo' as const, name: 'Mobile Money', detail: 'MTN MoMo · Telecel · AirtelTigo', icon: <Smartphone /> },
+    momoOption,
     { id: 'card' as const, name: 'Credit / Debit Card', detail: 'Visa · Mastercard', icon: <CreditCard /> },
   ]
-  const active = options.find(option => option.id === selected) ?? options[0]
+  const active = options.find(option => option.id === selected) ?? momoOption
   const confirm = () => dispatch({ type: 'patch-go', value: { method: active.id }, to: active.id === 'momo' ? 'momo' : 'processing' })
   return <section className="method-screen"><Back dispatch={dispatch} to="review" /><p className="eyebrow">PAYMENT METHOD</p><h1>Choose how<br /><em>to pay.</em></h1>
     <div className="method-total"><span>You pay</span><strong>{pes(s?.quote?.grandTotalPesewas)}</strong></div>
