@@ -124,4 +124,3 @@
 .split-items-stage .split-share{background:var(--accent);border:0;margin:22px -20px 0;padding:18px 20px;align-items:center;color:var(--foreground)}
 .split-items-stage .split-share b{font-size:22px;letter-spacing:0}
 .split-items-stage .action{border-radius:0}.split-items-stage .action:disabled{opacity:.55;cursor:not-allowed}
-.app-shell{padding-bottom:calc(28px + env(safe-area-inset-bottom))}
