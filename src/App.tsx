@@ -36,7 +36,12 @@ function optimisticUnits(split: any, billItemId: string, units: number) {
     const unit = it.qty > 0 ? it.lineTotalPesewas / it.qty : it.lineTotalPesewas
     return a + u * unit
   }, 0)
-  return { ...split, myShareId: myId, items, myShareAmountPesewas: Math.round(myAmount) }
+  // Gross the raw item value up to the bill's tax/service-inclusive basis (total / subtotal),
+  // matching the server's allocation, so "You pay" doesn't jump when the server confirms.
+  const subtotal = items.reduce((a: number, it: any) => a + (it.lineTotalPesewas || 0), 0)
+  const total = split.totalPesewas ?? subtotal
+  const gross = subtotal > 0 ? total / subtotal : 1
+  return { ...split, myShareId: myId, items, myShareAmountPesewas: Math.round(myAmount * gross) }
 }
 
 function openCheckout(url: string) {
