@@ -89,8 +89,8 @@
 .bill-screen{padding-bottom:calc(96px + env(safe-area-inset-bottom))}.bill-cta{position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:10;width:min(100%,480px);display:flex;gap:10px;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:var(--background);border-top:1px solid var(--line)}.bill-cta .action{margin-top:0;flex:1;justify-content:center;text-align:center;padding:14px 10px;min-width:0}.bill-cta .action.pay{flex:1.5;font-variant-numeric:tabular-nums}.split-bill-underlay .bill-cta{display:none}@media(min-width:700px){.bill-cta{bottom:30px}}
 
 /* Checkout composition: a bill-backed split sheet, with the existing Klown palette. */
-.split-overlay{position:relative;min-height:calc(100dvh - 200px);margin:-12px -20px -28px;isolation:isolate}
-.split-bill-underlay{padding:12px 20px 120px;pointer-events:none;user-select:none}
+.split-overlay{position:fixed;inset:0;z-index:20;overflow:hidden;isolation:isolate}
+.split-bill-underlay{position:absolute;inset:0;width:min(100%,480px);margin:0 auto;padding:12px 20px 120px;overflow:hidden;pointer-events:none;user-select:none}
 .split-scrim{position:absolute;inset:0;background:color-mix(in srgb,var(--foreground) 46%,transparent)}
 .split-sheet{position:fixed;z-index:21;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,480px);max-height:min(82dvh,700px);overflow-y:auto;overscroll-behavior:contain;background:var(--background);border-radius:24px 24px 0 0;padding:10px 20px max(24px,env(safe-area-inset-bottom));box-shadow:0 -10px 36px color-mix(in srgb,var(--foreground) 14%,transparent)}
 .split-sheet-handle{width:36px;height:3px;margin:0 auto 22px;background:var(--line)}
