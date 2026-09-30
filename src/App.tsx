@@ -33,16 +33,11 @@ const stageFor = (screen: Screen): number => {
 
 function DiningHeader({ s }: { s: State }) {
   if (!headerScreens.has(s.screen)) return null
-  const page = pageNames[s.screen] ?? screens.find(([key]) => key === s.screen)?.[1] ?? 'Your table'
   const stage = stageFor(s.screen)
-  return <header className="dining-header" aria-label="Current restaurant and page">
-    <div className="dining-header-top">
-      <div className="dining-header-name">
-        <span className="dining-header-restaurant">{s.restaurantName || 'Klown Pay'}</span>
-        <strong>{page}</strong>
-      </div>
-      {s.tableLabel && <span className="dining-header-table">{s.mode === 'order' ? 'Order' : 'Table'} <b>{s.tableLabel}</b></span>}
-    </div>
+  return <header className="dining-header" aria-label="Payment progress">
+    {s.logoUrl
+      ? <img className="dining-header-logo" src={s.logoUrl} alt={s.restaurantName || 'Restaurant'} />
+      : <span className="dining-header-logo-text">{s.restaurantName || 'Klown Pay'}</span>}
     <ol className="dining-header-stages" aria-label="Payment progress">
       {payStages.map((label, i) => (
         <li key={label} className={i < stage ? 'done' : i === stage ? 'current' : ''} aria-current={i === stage ? 'step' : undefined}>
