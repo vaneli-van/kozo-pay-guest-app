@@ -27,14 +27,43 @@ const pageNames: Partial<Record<Screen, string>> = {
   'review-handoff': 'Rate & review', complete: 'Thank you',
 }
 
+// The banner appears only once the diner is on the bill-to-payment path.
+const headerScreens = new Set<Screen>([
+  'waiting-bill', 'bill-ready', 'bill', 'bill-issue', 'full-check', 'pay',
+  'split', 'split-share', 'split-lobby', 'split-items',
+  'tip', 'review', 'method', 'momo', 'authorise', 'processing', 'payment-error',
+  'success', 'receipt-choice', 'guest-receipt', 'review-handoff', 'complete',
+])
+
+// Stage of the payment journey shown in the banner: 0 = Bill, 1 = Tip, 2 = Pay.
+const payStages = ['Bill', 'Tip', 'Pay'] as const
+const stageFor = (screen: Screen): number => {
+  if (screen === 'tip') return 1
+  if (['review', 'method', 'momo', 'authorise', 'processing', 'payment-error', 'success',
+    'receipt-choice', 'guest-receipt', 'review-handoff', 'complete'].includes(screen)) return 2
+  return 0
+}
+
 function DiningHeader({ s }: { s: State }) {
+  if (!headerScreens.has(s.screen)) return null
   const page = pageNames[s.screen] ?? screens.find(([key]) => key === s.screen)?.[1] ?? 'Your table'
+  const stage = stageFor(s.screen)
   return <header className="dining-header" aria-label="Current restaurant and page">
-    <div className="dining-header-name">
-      <span className="dining-header-restaurant">{s.restaurantName || 'Klown Pay'}</span>
-      <strong>{page}</strong>
+    <div className="dining-header-top">
+      <div className="dining-header-name">
+        <span className="dining-header-restaurant">{s.restaurantName || 'Klown Pay'}</span>
+        <strong>{page}</strong>
+      </div>
+      {s.tableLabel && <span className="dining-header-table">{s.mode === 'order' ? 'Order' : 'Table'} <b>{s.tableLabel}</b></span>}
     </div>
-    {s.tableLabel && <span className="dining-header-table">{s.mode === 'order' ? 'Order' : 'Table'} <b>{s.tableLabel}</b></span>}
+    <ol className="dining-header-stages" aria-label="Payment progress">
+      {payStages.map((label, i) => (
+        <li key={label} className={i < stage ? 'done' : i === stage ? 'current' : ''} aria-current={i === stage ? 'step' : undefined}>
+          <span className="stage-dot" />
+          {label}
+        </li>
+      ))}
+    </ol>
   </header>
 }
 
@@ -533,7 +562,6 @@ export default function App({
       )}
       {s.screen === 'welcome' ? (
         <div className="welcome-shell" style={accentStyle(s.accentColor)}>
-          <DiningHeader s={s} />
           <Welcome s={s} dispatch={navigate} />
         </div>
       ) : s.screen === 'connect' ? (
