@@ -81,7 +81,7 @@
 .welcome-btn{width:100%;min-height:54px;height:54px;border:0;border-radius:14px;font:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;letter-spacing:-.01em}
 .welcome-btn svg{width:18px;height:18px}
 .welcome-btn-primary{background:var(--foreground);color:var(--background)}
-.welcome-btn-outline{background:transparent;color:var(--foreground);border:1px solid var(--line);margin-top:11px}
+.welcome-btn-outline{background:var(--soft);color:var(--foreground);border:0;margin-top:11px}
 .welcome-secured{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:16px;color:var(--muted);font-size:12px;font-weight:500}
 .welcome-secured img{height:13px;width:auto;filter:grayscale(1) contrast(.9);opacity:.85}
 .welcome-secured svg{width:12px;height:12px}
