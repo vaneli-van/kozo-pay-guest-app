@@ -28,15 +28,40 @@ export const Route = createFileRoute('/api/connector/sync')({
         for (const t of rtables ?? []) { idByLabel.set(String(t.label), t.id); idByLabel.set(String(parseInt(t.label, 10)), t.id); allIds.push(t.id) }
 
         // Refresh: clear this restaurant's open bills, then write the current snapshot.
+        // PRESERVE any bill a diner is mid-paying (payment_attempts.bill_id is SET NULL on delete,
+        // which severs the settle/auto-close link) or has an in-progress split on (bill_splits
+        // cascade-deletes, stranding the diner on "setting up the split"). Protect by TABLE and skip
+        // recreating those, so we never leave two open bills on one table. Bounded by freshness so an
+        // abandoned payment/split can't freeze a table forever.
+        const protectedTableIds = new Set<string>()
         if (allIds.length) {
-          const { data: open } = await supabaseAdmin.from('bills').select('id').in('table_id', allIds).in('status', ['open', 'ready'])
-          const openIds = (open ?? []).map((b: any) => b.id)
-          if (openIds.length) { await supabaseAdmin.from('bill_items').delete().in('bill_id', openIds); await supabaseAdmin.from('bills').delete().in('id', openIds) }
+          const { data: open } = await supabaseAdmin.from('bills').select('id,table_id').in('table_id', allIds).in('status', ['open', 'ready'])
+          const billTable = new Map<string, string>()
+          for (const b of open ?? []) billTable.set(b.id, b.table_id!)
+          const openBillIds = [...billTable.keys()]
+          if (openBillIds.length) {
+            const FRESH_MS = 60 * 60 * 1000
+            const nowMs = Date.now()
+            const splitCutoff = new Date(nowMs - FRESH_MS).toISOString()
+            const { data: pays } = await supabaseAdmin.from('payment_attempts').select('bill_id,status,created_at').in('bill_id', openBillIds).in('status', ['pending', 'captured'])
+            for (const p of pays ?? []) {
+              const t = p.bill_id ? billTable.get(p.bill_id) : undefined
+              if (t && (p.status === 'captured' || nowMs - new Date(p.created_at as string).getTime() < 15 * 60 * 1000)) protectedTableIds.add(t)
+            }
+            const { data: liveSplits } = await supabaseAdmin.from('bill_splits').select('bill_id').in('bill_id', openBillIds).eq('status', 'open').gt('created_at', splitCutoff)
+            for (const sp of liveSplits ?? []) {
+              const t = sp.bill_id ? billTable.get(sp.bill_id) : undefined
+              if (t) protectedTableIds.add(t)
+            }
+          }
+          const deleteIds = (open ?? []).filter((b: any) => !protectedTableIds.has(b.table_id)).map((b: any) => b.id)
+          if (deleteIds.length) { await supabaseAdmin.from('bill_items').delete().in('bill_id', deleteIds); await supabaseAdmin.from('bills').delete().in('id', deleteIds) }
         }
         let written = 0
         for (const t of tables) {
           const tid = idByLabel.get(String(t.label)) || idByLabel.get(String(parseInt(t.label, 10)))
           if (!tid) continue
+          if (protectedTableIds.has(tid)) continue // diner mid-payment or mid-split — leave their bill intact
           const total = Math.round(Number(t.total_pesewas) || 0)
           const { data: nb } = await supabaseAdmin.from('bills').insert({ table_id: tid, status: 'open', subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total, opened_at: new Date().toISOString() }).select('id').single()
           if (!nb) continue

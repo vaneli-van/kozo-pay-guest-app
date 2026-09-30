@@ -89,6 +89,16 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                     const active = pmt.status === 'captured' || (nowMs - new Date(pmt.created_at as string).getTime() < FRESH_MS)
                     if (active) protectedTableIds.add(t)
                   }
+                  // A diner mid-split holds the bill too: deleting it cascades the split
+                  // (its shares + item assignments) away and strands them on "setting up the
+                  // split". Bounded so an abandoned split can't freeze the table indefinitely.
+                  const SPLIT_FRESH_MS = 60 * 60 * 1000
+                  const splitCutoff = new Date(Date.now() - SPLIT_FRESH_MS).toISOString()
+                  const { data: liveSplits } = await supabaseAdmin.from('bill_splits').select('bill_id').in('bill_id', billIds).eq('status', 'open').gt('created_at', splitCutoff)
+                  for (const sp of liveSplits ?? []) {
+                    const t = sp.bill_id ? billTable.get(sp.bill_id) : undefined
+                    if (t) protectedTableIds.add(t)
+                  }
                 }
                 const deleteIds = (existBills ?? [])
                   .filter((b: any) => (b.status === 'open' || b.status === 'ready') && !protectedTableIds.has(b.table_id))
