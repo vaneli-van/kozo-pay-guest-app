@@ -163,8 +163,8 @@ export function SplitItems({ s, dispatch }: any) {
   const done = total > 0 && paid >= total
   const myUnitsOn = (it: any) => (it.takers.find((t: any) => t.shareId === myId)?.units ?? 0)
   const pickedCount = items.reduce((count: number, it: any) => count + myUnitsOn(it), 0)
-  return <section className="split-items-stage"><Back dispatch={dispatch} to="bill" /><p className="eyebrow">CHOOSE YOUR ITEMS · TABLE {s?.tableLabel ?? ''}</p><h1>Pick what<br /><em>you had.</em></h1>
-    <p className="muted">Tap the items you ordered. Everyone at the table picks theirs, and the bill clears once it all adds up.</p>
+  return <div className="split-overlay"><div className="split-bill-underlay" aria-hidden="true" inert><Bill s={s} dispatch={dispatch} /></div><div className="split-scrim" onClick={() => dispatch(go('bill'))} /><section className="split-sheet split-items-stage" role="dialog" aria-modal="true" aria-label="Pay for your items">
+    <div className="split-sheet-handle" /><header className="split-sheet-header"><h2>Pay for your items</h2><button className="split-close" aria-label="Close item split" onClick={() => dispatch(go('bill'))}><X /></button></header>
     <div className="item-board">{items.map((it: any) => {
       const mine = myUnitsOn(it)
       const others = it.takers.filter((t: any) => t.shareId !== myId)
@@ -172,26 +172,22 @@ export function SplitItems({ s, dispatch }: any) {
       const soldOut = it.unitsFree <= 0 && mine === 0
       return <div className={`item-row${soldOut ? ' dim' : ''}`} key={it.billItemId}>
         <div className="item-main">
-          <strong>{it.qty > 1 ? `${it.qty}× ` : ''}{it.name}</strong>
-          <small>{pes(it.lineTotalPesewas)}{others.length ? ` · ${others.map((t: any) => `${t.name}${t.units > 1 ? ` ×${t.units}` : ''}${t.paid ? ' ✓' : ''}`).join(', ')}` : ''}</small>
+          <strong>{it.name}{it.qty > 1 ? ` · ${it.qty} available` : ''}</strong>
+          {others.length > 0 && <small>{others.map((t: any) => `${t.name}${t.units > 1 ? ` ×${t.units}` : ''}${t.paid ? ' ✓' : ''}`).join(', ')}</small>}
         </div>
-        {it.qty > 1
-          ? <div className="item-step">
-              <button aria-label="Remove one" disabled={mine <= 0 || iPaid} onClick={() => dispatch({ type: 'split-assign', billItemId: it.billItemId, units: mine - 1 })}><Minus /></button>
-              <strong>{mine}</strong>
-              <button aria-label="Add one" disabled={!canAdd} onClick={() => dispatch({ type: 'split-assign', billItemId: it.billItemId, units: mine + 1 })}><Plus /></button>
-            </div>
-          : <button className={`item-take${mine > 0 ? ' on' : ''}`} disabled={mine === 0 && !canAdd} onClick={() => dispatch(mine > 0 ? { type: 'split-unassign', billItemId: it.billItemId } : { type: 'split-assign', billItemId: it.billItemId, units: 1 })}>{mine > 0 ? <Check /> : 'Take'}</button>}
+        <b className="item-price">{pes(it.qty > 0 ? Math.round(it.lineTotalPesewas / it.qty) : it.lineTotalPesewas)}</b>
+        <div className="item-step">{mine > 0 && <button aria-label={`Remove one ${it.name}`} disabled={iPaid} onClick={() => dispatch({ type: 'split-assign', billItemId: it.billItemId, units: mine - 1 })}><Minus /></button>}{mine > 0 && <strong>{mine}</strong>}<button aria-label={`Add one ${it.name}`} disabled={!canAdd} onClick={() => dispatch({ type: 'split-assign', billItemId: it.billItemId, units: mine + 1 })}><Plus /></button></div>
       </div>
     })}</div>
-    <div className="split-share"><span>{pickedCount} {pickedCount === 1 ? 'item' : 'items'} · You pay</span><b>{pes(myAmount)}</b></div>
+    <div className="item-summary"><div><span>Your items ({pickedCount})</span><b>{pes(myAmount)}</b></div><div className="item-summary-total"><strong>You pay</strong><strong>{pes(myAmount)}</strong></div></div>
     <div className="split-progress"><span>{pes(paid)} of {pes(total)} settled{unassigned > 0 ? ` · ${pes(unassigned)} unassigned` : ''}</span><div className="bar"><i style={{ width: `${total ? Math.min(100, Math.round((paid / total) * 100)) : 0}%` }} /></div></div>
     {unassigned > 0 && !iPaid && <button className="text-link" onClick={() => dispatch({ type: 'assign-remaining' })}>I&apos;ll cover the rest</button>}
+    {s?.splitError && <div className="error"><X />{s.splitError}</div>}
     {done ? <div className="notice-card"><Check /><span>Every item is in — thank you.</span></div>
       : iPaid ? <div className="notice-card"><Check /><span>Your part is paid. Waiting on the rest of the table.</span></div>
-       : <Action disabled={!myId || myId === '__local_pending__' || myAmount <= 0} onClick={() => { if (myId && myId !== '__local_pending__' && myAmount > 0) dispatch({ type: 'patch-go', value: { claimedShareId: myId }, to: 'tip' }) }}>{myAmount > 0 ? `Continue · ${pes(myAmount)}` : 'Pick an item to pay'}</Action>}
+        : <Action disabled={!myId || myId === '__local_pending__' || myAmount <= 0 || !!s?.splitError} onClick={() => { if (myId && myId !== '__local_pending__' && myAmount > 0) dispatch({ type: 'patch-go', value: { claimedShareId: myId }, to: 'tip' }) }}>{myAmount > 0 ? `Confirm · ${pes(myAmount)}` : 'Pick an item to pay'}</Action>}
     <div className="split-actions"><button className="text-link" onClick={copyInvite}>Copy table link</button><button className="text-link" onClick={waInvite}>Invite on WhatsApp</button></div>
-  </section>
+  </section></div>
 }
 
 export function SplitLobby({ s, dispatch }: any) {
