@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { reducer, initial, go, screens, type State, type Screen } from './session/machine'
+import { reducer, initial, go, type State, type Screen } from './session/machine'
 import { Shell, accentStyle, ConnBanner } from './ui/primitives'
 import { postResilient } from './lib/net'
 import { track } from './lib/track'
@@ -13,19 +13,6 @@ const POST = (url: string, body: unknown): Promise<any> =>
 // Sentinel share id used only for the optimistic (pre-server) local update on the first tap.
 // It is never a real share and must never be sent to the pay path (see the patch-go guard).
 const LOCAL_PENDING = '__local_pending__'
-
-const pageNames: Partial<Record<Screen, string>> = {
-  welcome: 'Welcome', empty: 'Your table', menu: 'Menu', category: 'Menu', dish: 'Menu',
-  waiter: 'Call a waiter', 'waiter-notified': 'Waiter notified', 'waiting-bill': 'Your bill',
-  'bill-ready': 'Your bill', bill: 'Your bill', 'bill-issue': 'Your bill',
-  'full-check': 'Your bill', recommendation: 'Your bill', pay: 'Your bill',
-  split: 'Split the bill', 'split-share': 'Your share', 'split-lobby': 'Your split',
-  'split-items': 'Pay for your items', tip: 'Add a tip', review: 'Review & pay',
-  method: 'Select payment', momo: 'Mobile Money', authorise: 'Confirm payment',
-  processing: 'Processing payment', 'payment-error': 'Payment', success: 'Payment complete',
-  'receipt-choice': 'Your receipt', 'guest-receipt': 'Download receipt',
-  'review-handoff': 'Rate & review', complete: 'Thank you',
-}
 
 // The banner appears only once the diner is on the bill-to-payment path.
 const headerScreens = new Set<Screen>([
