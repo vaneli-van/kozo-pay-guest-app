@@ -86,7 +86,7 @@
 .welcome-secured img{height:13px;width:auto;filter:grayscale(1) contrast(.9);opacity:.85}
 .welcome-secured svg{width:12px;height:12px}
 
-.bill-cta{display:flex;gap:10px;margin-top:24px}.bill-cta .action{margin-top:0;flex:1;justify-content:center;text-align:center;padding-left:12px;padding-right:12px}.bill-cta .action.pay{flex:1.5;font-variant-numeric:tabular-nums}
+.bill-screen{padding-bottom:calc(96px + env(safe-area-inset-bottom))}.bill-cta{position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:10;width:min(100%,480px);display:flex;gap:10px;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:var(--background);border-top:1px solid var(--line)}.bill-cta .action{margin-top:0;flex:1;justify-content:center;text-align:center;padding:14px 10px;min-width:0}.bill-cta .action.pay{flex:1.5;font-variant-numeric:tabular-nums}.split-bill-underlay .bill-cta{display:none}@media(min-width:700px){.bill-cta{bottom:30px}}
 
 /* Checkout composition: a bill-backed split sheet, with the existing Klown palette. */
 .split-overlay{position:relative;min-height:calc(100dvh - 200px);margin:-12px -20px -28px;isolation:isolate}
