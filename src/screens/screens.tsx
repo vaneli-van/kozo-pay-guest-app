@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Check, ChevronRight, Clock3, CreditCard, Heart, Info, Minus, Plus, QrCode, RotateCcw, Search, Send, Star, Users, X } from 'lucide-react'
+import { Check, ChevronRight, Clock3, CreditCard, Heart, Info, Minus, Plus, QrCode, RotateCcw, Search, Send, Smartphone, Star, Users, X } from 'lucide-react'
+import { FaApple } from 'react-icons/fa6'
 import { go, screens, type Screen } from '../session/machine'
 import { money } from '../lib/format'
 import { taxBreakdown } from '../integrations/billing/tax'
@@ -244,7 +245,23 @@ export function Tip({ s, dispatch }: any) { const share = s?.claimedShareId ? (s
 
 export function Review({ s, dispatch }: any) { const q = s?.quote; return <section className="payment-stage"><Back dispatch={dispatch} to="tip" /><p className="eyebrow">REVIEW &amp; PAY</p><h1>Ready when<br /><em>you are.</em></h1><div className="summary-card"><p className="section-label">PAYMENT SUMMARY</p><div><span>Your share{s?.claimedShareId ? ' · split' : ''}</span><b>{pes(q?.sharePesewas)}</b></div><div><span>Tip · {s?.tipPercent ?? 10}%</span><b>{pes(q?.tipPesewas)}</b></div><div className="grand-total"><span>You pay</span><b>{pes(q?.grandTotalPesewas)}</b></div></div><Action disabled={!q} onClick={() => dispatch(go('method'))}>Choose payment method · {pes(q?.grandTotalPesewas)}</Action></section> }
 
-export function Method({ s, dispatch }: any) { const [applePay, setApplePay] = useState(false); useEffect(() => { try { const A = (window as any).ApplePaySession; setApplePay(!!A && A.canMakePayments()) } catch { setApplePay(false) } }, []); return <section><Back dispatch={dispatch} to="review" /><p className="eyebrow">PAYMENT METHOD</p><h1>Almost<br /><em>there.</em></h1><div className="summary-line"><span>Total</span><b>{pes(s?.quote?.grandTotalPesewas)}</b></div><button className="choice selected"><span className="choice-icon momo">M</span><span><b>Mobile Money</b><small>MTN MoMo, Telecel, AirtelTigo</small></span><Check /></button><button className="choice" onClick={() => dispatch({ type: 'patch-go', value: { method: 'card' }, to: 'processing' })}><span className="choice-icon"><CreditCard /></span><span><b>Bank card</b><small>Visa, Mastercard</small></span><ChevronRight /></button>{applePay && <button className="choice" onClick={() => dispatch({ type: 'patch-go', value: { method: 'applepay' }, to: 'processing' })}><span className="choice-icon"><CreditCard /></span><span><b>Apple Pay</b><small>Pay with Face ID or Touch ID</small></span><ChevronRight /></button>}<Action onClick={() => dispatch({ type: 'patch-go', value: { method: 'momo' }, to: 'momo' })}>Continue</Action></section> }
+export function Method({ s, dispatch }: any) {
+  const [applePay, setApplePay] = useState(false)
+  const [selected, setSelected] = useState<'momo' | 'card' | 'applepay'>('momo')
+  useEffect(() => { try { const A = (window as any).ApplePaySession; setApplePay(!!A && A.canMakePayments()) } catch { setApplePay(false) } }, [])
+  const options = [
+    ...(applePay ? [{ id: 'applepay' as const, name: 'Apple Pay', detail: 'Confirm with Face ID or Touch ID', icon: <FaApple /> }] : []),
+    { id: 'momo' as const, name: 'Mobile Money', detail: 'MTN MoMo · Telecel · AirtelTigo', icon: <Smartphone /> },
+    { id: 'card' as const, name: 'Credit / Debit Card', detail: 'Visa · Mastercard', icon: <CreditCard /> },
+  ]
+  const active = options.find(option => option.id === selected) ?? options[0]
+  const confirm = () => dispatch({ type: 'patch-go', value: { method: active.id }, to: active.id === 'momo' ? 'momo' : 'processing' })
+  return <section className="method-screen"><Back dispatch={dispatch} to="review" /><p className="eyebrow">PAYMENT METHOD</p><h1>Choose how<br /><em>to pay.</em></h1>
+    <div className="method-total"><span>You pay</span><strong>{pes(s?.quote?.grandTotalPesewas)}</strong></div>
+    <div className="method-options" role="radiogroup" aria-label="Payment method">{options.map(option => <button key={option.id} type="button" role="radio" aria-checked={active.id === option.id} className={`method-option${active.id === option.id ? ' selected' : ''}`} onClick={() => setSelected(option.id)}><span className={`method-icon method-icon-${option.id}`}>{option.icon}</span><span className="method-option-copy"><b>{option.name}</b><small>{option.detail}</small></span><span className="method-radio" aria-hidden="true">{active.id === option.id && <Check />}</span></button>)}</div>
+    <Action onClick={confirm}><span className="method-action-content"><span className="method-action-icon">{active.icon}</span><span className="method-action-label"><b>{active.id === 'momo' ? 'Continue with Mobile Money' : 'Confirm payment'}</b><small>{active.name}</small></span><strong className="method-action-amount">{pes(s?.quote?.grandTotalPesewas)}</strong></span></Action>
+  </section>
+}
 
 export function Momo({ dispatch, error = false }: any) { const [number, setNumber] = useState(''); return <section><Back dispatch={dispatch} to="method" /><p className="eyebrow">MOBILE MONEY · TRANSACTION ONLY</p><h1>Enter your<br /><em>number.</em></h1><p className="muted">This number is only used to send the payment prompt. We will not save it.</p>{error && <div className="error"><X />Payment didn&apos;t go through. Check your balance and try again.<div className="error-actions"><button onClick={() => dispatch(go('authorise'))}>Retry payment</button><button onClick={() => dispatch(go('method'))}>Change method</button></div></div>}<label className="field-label">Mobile number<input value={number} onChange={e => setNumber(e.target.value)} placeholder="024 000 0000" inputMode="tel" /></label><Action onClick={() => dispatch(number ? { type: 'patch-go', value: { momoNumber: number, method: 'momo' }, to: 'authorise' } : { type: 'error' })}>Continue</Action></section> }
 
