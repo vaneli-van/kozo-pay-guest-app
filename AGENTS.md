@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 Item-split selection writes are serialized in the diner app, because the first pick creates the diner's share and parallel writes can race that creation.
+The diner screen banner is rendered once by App using the current screen and resolved restaurant/table state, so every screen stays consistent without changing payment or split logic.
