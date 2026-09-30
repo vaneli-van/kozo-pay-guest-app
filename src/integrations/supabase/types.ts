@@ -121,6 +121,42 @@ export type Database = {
           },
         ]
       }
+      admin_notification_acks: {
+        Row: {
+          acked_at: string
+          item_key: string
+          staff_id: string
+        }
+        Insert: {
+          acked_at?: string
+          item_key: string
+          staff_id: string
+        }
+        Update: {
+          acked_at?: string
+          item_key?: string
+          staff_id?: string
+        }
+        Relationships: []
+      }
+      admin_workspace_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           branch_id: string | null
