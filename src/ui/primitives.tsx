@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ArrowLeft, ChevronRight, ReceiptText, Utensils } from 'lucide-react'
+import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { go, type State } from '../session/machine'
 import { money } from '../lib/format'
 
@@ -7,9 +7,9 @@ export function accentStyle(accentColor?: string) {
   return { ['--accent' as any]: accentColor || '#f3c744' } as React.CSSProperties
 }
 
-export function Shell({ children, s, dispatch }: { children: React.ReactNode; s: State; dispatch: React.Dispatch<any> }) {
+export function Shell({ children, s }: { children: React.ReactNode; s: State; dispatch: React.Dispatch<any> }) {
   const style = accentStyle(s?.accentColor)
-  return <><main className="app-shell" style={style}>{!(s?.screen === 'menu' && s?.menu?.source === 'studio') && <div className="topline"><img className="wordmark-logo" src={s?.logoUrl || '/klown-logo.png'} alt={s?.restaurantName || 'Klown'} /><span className="table-pill">TABLE {s?.tableLabel ?? '07'} <span className="dot" /></span></div>}{children}</main><nav className="bottom-nav" style={style}><button onClick={() => dispatch(go('menu'))}><Utensils />Menu</button><button onClick={() => dispatch(go(s.hasOrder ? 'bill' : 'empty'))}><ReceiptText />Pay Bill</button></nav></>
+  return <main className="app-shell" style={style}>{!(s?.screen === 'menu' && s?.menu?.source === 'studio') && <div className="topline"><img className="wordmark-logo" src={s?.logoUrl || '/klown-logo.png'} alt={s?.restaurantName || 'Klown'} /><span className="table-pill">TABLE {s?.tableLabel ?? '07'} <span className="dot" /></span></div>}{children}</main>
 }
 
 export function Back({ dispatch, to = 'menu' }: any) { return <button className="back" onClick={() => dispatch(go(to))}><ArrowLeft />Back</button> }

@@ -89,10 +89,10 @@
 .bill-cta{display:flex;gap:10px;margin-top:24px}.bill-cta .action{margin-top:0;flex:1;justify-content:center;text-align:center;padding-left:12px;padding-right:12px}.bill-cta .action.pay{flex:1.5;font-variant-numeric:tabular-nums}
 
 /* Checkout composition: a bill-backed split sheet, with the existing Klown palette. */
-.split-overlay{position:relative;min-height:calc(100dvh - 200px);margin:-12px -20px -100px;isolation:isolate}
+.split-overlay{position:relative;min-height:calc(100dvh - 200px);margin:-12px -20px -28px;isolation:isolate}
 .split-bill-underlay{padding:12px 20px 120px;pointer-events:none;user-select:none}
 .split-scrim{position:absolute;inset:0;background:color-mix(in srgb,var(--foreground) 46%,transparent)}
-.split-sheet{position:fixed;z-index:21;bottom:calc(64px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(100%,480px);max-height:min(calc(82dvh - 64px),700px);overflow-y:auto;overscroll-behavior:contain;background:var(--background);border-radius:0;padding:10px 20px 24px;box-shadow:0 -10px 36px color-mix(in srgb,var(--foreground) 14%,transparent)}
+.split-sheet{position:fixed;z-index:21;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,480px);max-height:min(82dvh,700px);overflow-y:auto;overscroll-behavior:contain;background:var(--background);border-radius:0;padding:10px 20px max(24px,env(safe-area-inset-bottom));box-shadow:0 -10px 36px color-mix(in srgb,var(--foreground) 14%,transparent)}
 .split-sheet-handle{width:36px;height:3px;margin:0 auto 22px;background:var(--line)}
 .split-sheet-header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding-bottom:19px;border-bottom:1px solid var(--line)}
 .split-sheet-header h2{font-family:Arial,Helvetica,sans-serif;font-size:23px;letter-spacing:0;min-width:0}
@@ -115,7 +115,7 @@
 .split-advanced{display:block;background:transparent;color:var(--muted);border-radius:0;text-decoration:underline;text-underline-offset:3px;margin:14px auto 0;font-size:12px}
 .split-sheet .amount-rows{margin-top:0}.split-sheet .error{margin-top:16px}
 .payment-stage .tip-amount{font-size:42px;font-weight:700;margin-top:32px;font-variant-numeric:tabular-nums}.payment-stage .tip-grid{margin:20px 0 28px;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.payment-stage .tip-grid button{border-radius:0;padding:12px 6px;text-align:center;font-size:13px;min-width:0}.payment-stage .tip-grid small{font-size:9px;white-space:nowrap}.payment-stage .split-share{margin-top:0;padding:14px 0;align-items:center}.payment-stage .split-share b{font-size:16px;letter-spacing:0}.payment-stage .summary-card{background:transparent;padding:0;margin-top:34px}.payment-stage .summary-card .section-label{color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:15px}.payment-stage .summary-card>div:not(.grand-total){padding:17px 0;border-bottom:1px solid var(--line);font-size:13px}.payment-stage .summary-card .grand-total{margin-top:0;padding:22px 0;font-size:18px}.payment-stage .action:disabled{opacity:.55;cursor:not-allowed}
-@media(min-width:700px){.split-sheet{bottom:88px}} 
+@media(min-width:700px){.split-sheet{bottom:30px}} 
 .split-items-stage .item-board{gap:0;border-top:1px solid var(--line)}
 .split-items-stage .item-row,.split-items-stage .item-row.dim{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:17px 0}
 .split-items-stage .item-row:has(.item-take.on){background:transparent;border-color:var(--line)}
@@ -124,3 +124,4 @@
 .split-items-stage .split-share{background:var(--accent);border:0;margin:22px -20px 0;padding:18px 20px;align-items:center;color:var(--foreground)}
 .split-items-stage .split-share b{font-size:22px;letter-spacing:0}
 .split-items-stage .action{border-radius:0}.split-items-stage .action:disabled{opacity:.55;cursor:not-allowed}
+.app-shell{padding-bottom:calc(28px + env(safe-area-inset-bottom))}
