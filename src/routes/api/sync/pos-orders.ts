@@ -120,7 +120,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                   if (settledIds.length) await supabaseAdmin.from('bills').update({ status: 'settled' }).in('id', settledIds)
                   if (voidIds.length) await supabaseAdmin.from('bills').update({ status: 'void' }).in('id', voidIds)
                   await supabaseAdmin.from('dining_sessions').update({ active_bill_id: null, bill_status: 'none' }).in('active_bill_id', ids)
-                  for (const b of closedOnPos) protectedTableIds.delete(b.table_id)
+                  for (const b of closedOnPos) protectedTableIds.delete(b.table_id as string)
                 }
                 const deleteIds = (existBills ?? [])
                   .filter((b: any) => (b.status === 'open' || b.status === 'ready') && !protectedTableIds.has(b.table_id))
