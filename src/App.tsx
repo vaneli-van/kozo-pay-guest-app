@@ -275,7 +275,7 @@ export default function App({
 
   // Live bill from the POS — refreshed whenever the diner is on a bill/payment screen.
   useEffect(() => {
-    const billScreens = ['welcome', 'bill', 'bill-ready', 'waiting-bill', 'full-check', 'pay', 'split', 'split-share', 'tip', 'review', 'method']
+    const billScreens = ['welcome', 'empty', 'bill', 'bill-ready', 'waiting-bill', 'full-check', 'pay', 'split', 'split-share', 'tip', 'review', 'method']
     if (!sessionToken || !billScreens.includes(s.screen)) return
     let cancelled = false
     const load = async () => {
@@ -284,10 +284,12 @@ export default function App({
       if (r?.ok && r.bill) {
         patch({ bill: r.bill })
         if (s.screen === 'waiting-bill') goScreen('bill-ready')
+        // Waiting on the empty screen? The first order has landed — show the live bill.
+        else if (s.screen === 'empty' && (r.bill.items?.length ?? 0) > 0) goScreen('bill')
       }
     }
     load()
-    const id = window.setInterval(load, s.screen === 'waiting-bill' ? 8000 : 30000)
+    const id = window.setInterval(load, (s.screen === 'waiting-bill' || s.screen === 'empty') ? 8000 : 30000)
     return () => { cancelled = true; window.clearInterval(id) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, sessionToken])

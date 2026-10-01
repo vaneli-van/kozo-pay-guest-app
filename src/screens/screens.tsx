@@ -68,7 +68,7 @@ export function Welcome({ s, dispatch }: any) {
       </div>
       <div className="welcome-sheet">
         <p className="welcome-copy">{s?.tableLabel ? <><b>You are at table {s.tableLabel}.</b> </> : ''}{copy}</p>
-        <button className="welcome-btn welcome-btn-primary" onClick={() => dispatch(go('bill'))}>
+        <button className="welcome-btn welcome-btn-primary" onClick={() => dispatch(go((s?.hasOrder || (s?.bill?.items?.length ?? 0) > 0) ? 'bill' : 'empty'))}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M9 7h6M9 11h6M9 15h4" /></svg>
           View &amp; pay your bill
         </button>
