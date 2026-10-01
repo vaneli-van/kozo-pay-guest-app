@@ -93,7 +93,7 @@ export function Welcome({ s, dispatch }: any) {
   const oc = openState(dig.hours);
   const hrs = hoursLine(dig.hours);
   const name = s?.taglineTop || s?.restaurantName || "Welcome";
-  const copy = s?.welcomeCopy || `Welcome to ${s?.restaurantName || "us"}. Scan, view your bill, split and pay — right from your table.`;
+  const copy = s?.welcomeCopy || `Welcome to ${s?.restaurantName || "us"}. Scan, view your bill, split and pay right from your table.`;
   const hero = s?.heroUrl || "/assets/restaurant-hero.png";
   const meta = dig.info || s?.city || "";
   return (
