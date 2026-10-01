@@ -232,12 +232,6 @@ body {
   width: auto;
   max-width: 148px;
   object-fit: contain;
-  /* Restaurant logos are uploaded as opaque rectangles of unpredictable
-     polarity (some light-on-black, some dark-on-white). A light plate keeps
-     every logo legible on the dark header instead of bleeding into it. */
-  background: #fff;
-  border-radius: 8px;
-  padding: 6px 9px;
 }
 .kz-head-eyebrow {
   font-size: 11px;
