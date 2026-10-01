@@ -26,15 +26,28 @@ export const Route = createFileRoute('/api/public/split-create')({
         const total = Math.trunc(bill.totalPesewas)
         if (total <= 0) return json({ ok: false, reason: 'nothing_due' })
         // Items mode: no shares up front — diners create their own share as they pick items.
+        // Return the full item board in the create response so the client renders immediately
+        // without a second /split round trip (and on a pre-existing split, hand back its board).
         if (mode === 'items') {
+          const { itemsSplitPayload } = await import('@/integrations/billing/itemsplit.server')
           const { data: created, error: insErr } = await supabaseAdmin.from('bill_splits').insert({
             bill_id: bill.id, mode: 'items', total_pesewas: total, status: 'open', created_by_session: session.id,
           }).select('id').single()
           if (insErr || !created) {
-            if (insErr && /uq_bill_splits_open|duplicate key/.test(insErr.message)) return json({ ok: false, reason: 'split_exists' })
+            if (insErr && /uq_bill_splits_open|duplicate key/.test(insErr.message)) {
+              // A split is already open for this bill. If it's an items split, return its board so
+              // the diner lands straight on it; otherwise surface the conflict as before.
+              const { data: existing } = await supabaseAdmin.from('bill_splits')
+                .select('id,mode,total_pesewas,status,bill_id')
+                .eq('bill_id', bill.id).eq('status', 'open').eq('mode', 'items')
+                .order('created_at', { ascending: false }).limit(1).maybeSingle()
+              if (existing) return json({ ...(await itemsSplitPayload(supabaseAdmin, existing, session.id)), splitId: existing.id })
+              return json({ ok: false, reason: 'split_exists' })
+            }
             return json({ ok: false, reason: 'error' })
           }
-          return json({ ok: true, splitId: created.id, mode: 'items', totalPesewas: total })
+          const split = { id: created.id, mode: 'items', total_pesewas: total, bill_id: bill.id, status: 'open' }
+          return json({ ...(await itemsSplitPayload(supabaseAdmin, split, session.id)), splitId: created.id })
         }
 
 

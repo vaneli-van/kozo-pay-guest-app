@@ -153,7 +153,12 @@ export default function App({
         patch({ splitError: undefined })
         if (action.mode === 'items') goScreen(dest)
         POST('/api/public/split-create', { sessionToken, mode: action.mode, partySize: action.people, amounts: action.amounts }).then((r) => {
-          if (r?.ok) { patch({ splitId: r.splitId }); goScreen(dest) }
+          if (r?.ok) {
+            if (action.mode === 'items' && r.split) {
+              // Server returns the full item board on create — render it now, skip the extra /split.
+              patch({ splitId: r.splitId, split: (splitRef.current = { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas }), splitError: undefined, claimedShareId: undefined })
+            } else { patch({ splitId: r.splitId }); goScreen(dest) }
+          }
            else if (r?.reason === 'split_exists') {
              POST('/api/public/split', { sessionToken }).then((current) => {
                if (current?.ok && current.split?.mode === action.mode) { patch({ splitError: undefined }); goScreen(dest) }
