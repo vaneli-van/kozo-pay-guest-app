@@ -476,7 +476,7 @@ function StudioMenu({ s, dispatch }: any) {
 
   return (
     <section className="studio-menu" style={{ background: t.colors.paper, color: t.colors.ink, fontFamily: t.fonts.body, margin: '-22px -20px 0', padding: '22px 20px', minHeight: 'calc(100dvh - 60px)' }}>
-      <button onClick={() => dispatch(go('welcome'))} aria-label="Back to welcome" style={{ position: 'sticky', top: 10, zIndex: 20, display: 'inline-flex', alignItems: 'center', gap: 7, background: t.colors.paper, border: '1px solid ' + t.colors.ink + '22', color: t.colors.ink, fontFamily: t.fonts.item, fontSize: 12, fontWeight: 700, padding: '8px 13px', borderRadius: 999, marginBottom: 14, boxShadow: '0 4px 14px rgba(0,0,0,.10)', cursor: 'pointer' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>Back</button>
+      <button onClick={() => dispatch(go('welcome'))} className="back" style={{ marginBottom: 14 }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>Back</button>
       <div style={{ position: 'fixed', top: 0, left: '50%', width: 'min(100%, 480px)', zIndex: 30, background: t.colors.paper, borderBottom: '1px solid rgba(0,0,0,0.08)', transform: scrolled ? 'translate(-50%, 0)' : 'translate(-50%, -110%)', transition: 'transform .22s ease', paddingTop: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px 8px' }}>
           <strong style={{ fontFamily: t.fonts.title, color: t.colors.heading, fontSize: 15 }}>{dig.biz_name || s?.restaurantName || 'Menu'}</strong>
