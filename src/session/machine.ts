@@ -41,6 +41,7 @@ export type State = {
   splitId?: string
   splitError?: string | undefined
   claimedShareId?: string | undefined
+  pendingConfirm?: boolean
   split?: {
     id: string; mode: string; totalPesewas: number; status: string
     paidPesewas: number; remainingPesewas: number
@@ -88,7 +89,7 @@ export const screens: [Screen, string, string, string, string, string][] = [
 export function go(screen: Screen) { return { type: 'screen', value: screen } as const }
 
 export function reducer(s: State, a: { type: string; value?: any }): State {
-  if (a.type === 'screen') return { ...s, screen: a.value, paymentError: false, connLost: false }
+  if (a.type === 'screen') return { ...s, screen: a.value, paymentError: false, connLost: false, pendingConfirm: false }
   if (a.type === 'patch') return { ...s, ...a.value }
   if (a.type === 'toggleOrder') return { ...s, hasOrder: !s.hasOrder, screen: !s.hasOrder ? 'welcome' : 'welcome' }
   if (a.type === 'dish') return { ...s, dish: a.value, screen: 'dish' }

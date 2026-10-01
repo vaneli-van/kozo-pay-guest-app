@@ -250,14 +250,25 @@ export default function App({
         if (sessionToken) POST('/api/public/bill-dispute', { sessionToken, note: action.note })
         goScreen('waiter-notified')
         return
-      case 'patch-go':
-        // Safety: never carry an optimistic (not-yet-real) share id into the pay path. If the
-        // diner taps "Pay my share" in the split second before the server share is created,
-        // ignore it — the real id lands within ~1s and the button works then.
-        if (action.value?.claimedShareId === LOCAL_PENDING) return
+      case 'patch-go': {
+        // If the diner confirms before the server has minted their share id, don't ignore the
+        // tap. Show a brief "getting ready" state and proceed the moment the real id lands (the
+        // in-flight assign resolves within ~1-2s), or surface an error if it never does.
+        if (action.value?.claimedShareId === LOCAL_PENDING) {
+          patch({ pendingConfirm: true })
+          const waitForShare = (tries = 0) => {
+            const id = splitRef.current?.myShareId
+            if (id && id !== LOCAL_PENDING) { patch({ claimedShareId: id }); goScreen((action.to as Screen) ?? 'tip'); return }
+            if (!splitRef.current || tries > 40) { patch({ pendingConfirm: false, splitError: 'Could not prepare your share. Please try again.' }); return }
+            window.setTimeout(() => waitForShare(tries + 1), 150)
+          }
+          waitForShare()
+          return
+        }
         patch(action.value ?? {})
         if (action.to) goScreen(action.to as Screen)
         return
+      }
       case 'otp-send':
         // Legacy WhatsApp path — no longer used by the receipt flow. No message is sent.
         if (action.value?.phone) patch({ phone: action.value.phone })

@@ -1249,13 +1249,17 @@ export function SplitItems({ s, dispatch }: any) {
           </div>
         ) : (
           <Action
-            disabled={!myId || myId === "__local_pending__" || myAmount <= 0 || !!s?.splitError}
+            disabled={myAmount <= 0 || !!s?.splitError || !!s?.pendingConfirm}
             onClick={() => {
-              if (myId && myId !== "__local_pending__" && myAmount > 0)
-                dispatch({ type: "patch-go", value: { claimedShareId: myId }, to: "tip" });
+              if (myAmount > 0)
+                dispatch({ type: "patch-go", value: { claimedShareId: myId ?? "__local_pending__" }, to: "tip" });
             }}
           >
-            {myAmount > 0 ? `Confirm · ${pes(myAmount)}` : "Pick an item to pay"}
+            {s?.pendingConfirm
+              ? "Getting your share ready…"
+              : myAmount > 0
+                ? `Confirm · ${pes(myAmount)}`
+                : "Pick an item to pay"}
           </Action>
         )}
         <div className="split-actions">
