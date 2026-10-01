@@ -67,5 +67,16 @@ export function hoursLine(hours: any): string | null {
   const norm = (d: string) => (hours[d] && hours[d].open && hours[d].close ? `${hours[d].open}-${hours[d].close}` : 'x')
   const allSame = norm('mon') !== 'x' && days.every((d) => norm(d) === norm('mon'))
   if (allSame) return `Open daily ${to12(hours.mon.open)}–${to12(hours.mon.close)}`
+  // Varied day-by-day schedule: show today's hours (Africa/Accra), or nothing if closed today.
+  try {
+    const wd = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Accra', weekday: 'short' })
+      .format(new Date())
+      .toLowerCase()
+      .slice(0, 3)
+    const td = hours[wd]
+    if (td && td.open && td.close) return `Today ${to12(td.open)}–${to12(td.close)}`
+  } catch {
+    // fall through
+  }
   return null
 }
