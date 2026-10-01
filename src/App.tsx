@@ -73,6 +73,9 @@ export default function App({
   const editWindowRef = useRef(0)
   const assignTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const itemWritesRef = useRef<Promise<unknown>>(Promise.resolve())
+  // How many item-assignment writes are in flight. While > 0 (or a debounce timer is pending),
+  // the background /split poll must not overwrite the diner's optimistic picks.
+  const inFlightWritesRef = useRef(0)
   // Latest split state for async callbacks (avoids stale closures in timers/polls).
   const splitRef = useRef<any>(undefined)
   splitRef.current = s.split
@@ -183,9 +186,15 @@ export default function App({
         assignTimersRef.current[action.billItemId] = setTimeout(() => {
           delete assignTimersRef.current[action.billItemId]
            const t0 = Date.now()
+           inFlightWritesRef.current++
            itemWritesRef.current = itemWritesRef.current.catch(() => {}).then(async () => {
-             const r = await POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name })
-             applyItemsSplit(r, t0)
+             try {
+               const r = await POST('/api/public/split-assign', { sessionToken, billItemId: action.billItemId, units: action.units, name: action.name })
+               applyItemsSplit(r, t0)
+             } finally {
+               inFlightWritesRef.current = Math.max(0, inFlightWritesRef.current - 1)
+               editWindowRef.current = Date.now()
+             }
            })
         }, 300)
         return
@@ -195,9 +204,14 @@ export default function App({
         if (!sessionToken) return
         editWindowRef.current = Date.now()
         patch({ split: (splitRef.current = optimisticUnits(splitRef.current, action.billItemId, 0)) })
-         { const t0 = Date.now(); itemWritesRef.current = itemWritesRef.current.catch(() => {}).then(async () => {
-           const r = await POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId })
-           applyItemsSplit(r, t0)
+         { const t0 = Date.now(); inFlightWritesRef.current++; itemWritesRef.current = itemWritesRef.current.catch(() => {}).then(async () => {
+           try {
+             const r = await POST('/api/public/split-unassign', { sessionToken, billItemId: action.billItemId })
+             applyItemsSplit(r, t0)
+           } finally {
+             inFlightWritesRef.current = Math.max(0, inFlightWritesRef.current - 1)
+             editWindowRef.current = Date.now()
+           }
          }) }
         return
       case 'assign-remaining':
@@ -212,7 +226,8 @@ export default function App({
         }
         if (!sessionToken) return
         editWindowRef.current = Date.now()
-        POST('/api/public/assign-remaining', { sessionToken, name: action.name }).then(applyItemsSplit)
+        inFlightWritesRef.current++
+        POST('/api/public/assign-remaining', { sessionToken, name: action.name }).then(applyItemsSplit).finally(() => { inFlightWritesRef.current = Math.max(0, inFlightWritesRef.current - 1); editWindowRef.current = Date.now() })
         return
       case 'split-claim':
         if (demo && s.split) {
@@ -352,7 +367,7 @@ export default function App({
       inFlight = false
       if (cancelled) return
       // Ignore responses that started before (or during) the diner's latest tap — they're stale.
-      if (startedAt <= editWindowRef.current || Date.now() - editWindowRef.current < 2500) return schedule()
+      if (startedAt <= editWindowRef.current || Date.now() - editWindowRef.current < 2500 || inFlightWritesRef.current > 0 || Object.keys(assignTimersRef.current).length > 0) return schedule()
       if (r?.ok && r.split) patch({ split: { ...r.split, paidPesewas: r.paidPesewas, remainingPesewas: r.remainingPesewas, shares: r.shares, items: r.items, myShareId: r.myShareId, myShareAmountPesewas: r.myShareAmountPesewas, unassignedPesewas: r.unassignedPesewas } })
       else if (r?.ok && !r.split && splitRef.current) patch({ split: undefined, splitError: 'That split could not be found. Please start it again.' })
       schedule()
