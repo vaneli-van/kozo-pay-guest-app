@@ -227,7 +227,12 @@ export function Menu({ s, dispatch }: any) {
   if (!s?.menu)
     return (
       <section className="center-screen">
-        <div className="loader large" />
+        <div className="menu-loading" role="status" aria-label="Loading menu">
+          <span className="menu-loading-dot" />
+          <span className="menu-loading-dot" />
+          <span className="menu-loading-dot" />
+        </div>
+        <p className="menu-loading-text">Loading menu…</p>
       </section>
     );
   if (s?.menu?.source === "studio") return <StudioMenu s={s} dispatch={dispatch} />;
@@ -282,7 +287,10 @@ export function Menu({ s, dispatch }: any) {
         return (
           <div className="menu-group" key={c.id}>
             <div className="section-label">
-              {c.name.toUpperCase()} <span>{items.length} items</span>
+              {c.name.toUpperCase()}{" "}
+              <span>
+                {items.length} {items.length === 1 ? "item" : "items"}
+              </span>
             </div>
             {items.map((i: any) => (
               <button
@@ -2448,7 +2456,12 @@ function StudioMenu({ s, dispatch }: any) {
         const vis = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (vis) setActive((vis.target as HTMLElement).dataset["sid"] || null);
+        if (vis)
+          setActive(
+            window.scrollY < 40
+              ? sections[0]?.id ?? null
+              : (vis.target as HTMLElement).dataset["sid"] || null,
+          );
       },
       { rootMargin: "-45% 0px -50% 0px", threshold: 0 },
     );
@@ -2738,7 +2751,10 @@ function StudioMenu({ s, dispatch }: any) {
               className="section-label"
               style={{ fontFamily: t.fonts.heading, color: t.colors.heading }}
             >
-              {(section.name || "").toUpperCase()} <span>{(section.items ?? []).length} items</span>
+              {(section.name || "").toUpperCase()}{" "}
+              <span>
+                {(section.items ?? []).length} {(section.items ?? []).length === 1 ? "item" : "items"}
+              </span>
             </div>
           )}
           {(section.items ?? []).map((it: any) => (

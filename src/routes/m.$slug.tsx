@@ -220,7 +220,7 @@ function PublicMenu() {
                     <div style={{ flex: 1, height: 1, background: t.colors.ink, opacity: 0.85 }} />
                   </div>
                 ) : (
-                  <div className="section-label" style={{ fontFamily: t.fonts.heading, color: t.colors.heading }}>{(section.name || '').toUpperCase()} <span>{(section.items ?? []).length} items</span></div>
+                  <div className="section-label" style={{ fontFamily: t.fonts.heading, color: t.colors.heading }}>{(section.name || '').toUpperCase()} <span>{(section.items ?? []).length} {(section.items ?? []).length === 1 ? 'item' : 'items'}</span></div>
                 )}
                 {(section.items ?? []).map((it: any) => (
                   <div className="dish-row" key={it.id} style={{ opacity: it.sold_out || it.available === false ? 0.5 : 1, cursor: 'default' }}>
