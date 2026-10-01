@@ -1625,7 +1625,7 @@ export function Method({ s, dispatch }: any) {
 export function Momo({ s, dispatch, error = false }: any) {
   const [number, setNumber] = useState("");
   return (
-    <section>
+    <section className="momo-screen">
       <CheckoutHeader s={s} dispatch={dispatch} title="Mobile Money" step="pay" back="method" />
       <h1>
         Enter your
