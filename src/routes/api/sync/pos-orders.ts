@@ -100,6 +100,28 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                     if (t) protectedTableIds.add(t)
                   }
                 }
+                // Odoo is the source of truth: once a table has NO open (draft) order on the POS,
+                // its Klown bill is finished — even if a diner left a split or an abandoned prompt
+                // on it. Close it (settled if anything was captured, else void) instead of keeping it live.
+                const odooOpenKlownIds = new Set<string>()
+                for (const o of seated) {
+                  const n = numByOdooTable.get(o.table_id[0])
+                  const k = n == null ? undefined : klownByNum.get(n)
+                  if (k) odooOpenKlownIds.add(k)
+                }
+                const closedOnPos = (existBills ?? []).filter((b: any) => protectedTableIds.has(b.table_id) && !odooOpenKlownIds.has(b.table_id))
+                if (closedOnPos.length) {
+                  const ids = closedOnPos.map((b: any) => b.id)
+                  const { data: cap } = await supabaseAdmin.from('payment_attempts').select('bill_id').in('bill_id', ids).eq('status', 'captured')
+                  const paid = new Set((cap ?? []).map((p: any) => p.bill_id))
+                  const settledIds = ids.filter((id: string) => paid.has(id))
+                  const voidIds = ids.filter((id: string) => !paid.has(id))
+                  await supabaseAdmin.from('bill_splits').update({ status: 'cancelled' }).in('bill_id', ids).eq('status', 'open')
+                  if (settledIds.length) await supabaseAdmin.from('bills').update({ status: 'settled' }).in('id', settledIds)
+                  if (voidIds.length) await supabaseAdmin.from('bills').update({ status: 'void' }).in('id', voidIds)
+                  await supabaseAdmin.from('dining_sessions').update({ active_bill_id: null, bill_status: 'none' }).in('active_bill_id', ids)
+                  for (const b of closedOnPos) protectedTableIds.delete(b.table_id as string)
+                }
                 const deleteIds = (existBills ?? [])
                   .filter((b: any) => (b.status === 'open' || b.status === 'ready') && !protectedTableIds.has(b.table_id))
                   .map((b: any) => b.id)
