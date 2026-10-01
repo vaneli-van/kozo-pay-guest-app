@@ -77,8 +77,8 @@ function PublicMenu() {
       },
       colors: {
         ink: th.colors?.ink || '#171717',
-        paper: th.colors?.paper || '#f7f5f0',
-        accent: th.colors?.accent || '#f3c744',
+        paper: th.colors?.paper || '#f2f3f5',
+        accent: th.colors?.accent || '#cfb37b',
         heading: th.colors?.heading || '#171717',
         price: th.colors?.price || '#171717',
       },
@@ -246,7 +246,7 @@ const frame: React.CSSProperties = {
   maxWidth: 480,
   margin: '0 auto',
   minHeight: '100dvh',
-  background: '#f7f5f0',
+  background: '#f2f3f5',
 }
 
 function PoweredBy() {
