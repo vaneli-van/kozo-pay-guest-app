@@ -51,7 +51,11 @@ export function KzHeader({
           <ChevronLeft />
         </button>
         <div className="kz-head-id">
-          <p className="kz-head-eyebrow">{s?.restaurantName || "Your table"}</p>
+          {s?.logoUrl ? (
+            <img className="kz-head-logo" src={s.logoUrl} alt={s?.restaurantName || "Restaurant"} />
+          ) : (
+            <p className="kz-head-eyebrow">{s?.restaurantName || "Your table"}</p>
+          )}
           <h1 className="kz-head-title">{title}</h1>
         </div>
         {s?.tableLabel && (
