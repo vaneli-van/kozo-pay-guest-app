@@ -476,7 +476,6 @@ function StudioMenu({ s, dispatch }: any) {
 
   return (
     <section className="studio-menu" style={{ background: t.colors.paper, color: t.colors.ink, fontFamily: t.fonts.body, margin: '-22px -20px 0', padding: '22px 20px', minHeight: 'calc(100dvh - 60px)' }}>
-      <button onClick={() => dispatch(go('welcome'))} className="back" style={{ marginBottom: 14 }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>Back</button>
       <div style={{ position: 'fixed', top: 0, left: '50%', width: 'min(100%, 480px)', zIndex: 30, background: t.colors.paper, borderBottom: '1px solid rgba(0,0,0,0.08)', transform: scrolled ? 'translate(-50%, 0)' : 'translate(-50%, -110%)', transition: 'transform .22s ease', paddingTop: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px 8px' }}>
           <strong style={{ fontFamily: t.fonts.title, color: t.colors.heading, fontSize: 15 }}>{dig.biz_name || s?.restaurantName || 'Menu'}</strong>
@@ -485,8 +484,9 @@ function StudioMenu({ s, dispatch }: any) {
         {tabsEl}
       </div>
 
-      {dig.welcome_alert && <div style={{ background: dig.banner_bg || t.colors.accent, color: '#fff', margin: '-22px -20px 14px', padding: '9px 20px', fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textAlign: 'center' }}>{dig.welcome_alert}</div>}
-      {dig.banner_url && <div style={{ height: 150, margin: (dig.welcome_alert ? '0' : '-22px') + ' -20px 14px', backgroundImage: `url(${dig.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />}
+      {dig.welcome_alert && <div style={{ background: dig.banner_bg || t.colors.accent, color: '#fff', margin: '-22px -20px 0', padding: '9px 20px', fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textAlign: 'center' }}>{dig.welcome_alert}</div>}
+      {dig.banner_url && <div style={{ height: 150, margin: (dig.welcome_alert ? '0' : '-22px') + ' -20px 0', backgroundImage: `url(${dig.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />}
+      <button onClick={() => dispatch(go('welcome'))} className="back" style={{ marginTop: 12, marginBottom: 14 }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>Back</button>
       {!dig.banner_url && dig.logo_url && <div style={{ textAlign: 'center', marginBottom: 12 }}><img src={dig.logo_url} alt={dig.biz_name || ''} style={{ height: 104, width: 'auto', objectFit: 'contain', display: 'block', margin: '0 auto' }} /></div>}
       {(dig.biz_name || dig.info || dig.phone || dig.link_url) && <div style={{ textAlign: 'center', marginBottom: 14 }}>{dig.biz_name && <div style={{ fontFamily: t.fonts.title, fontSize: 22, color: t.colors.heading }}>{dig.biz_name}</div>}{dig.info && <div style={{ opacity: .75, fontSize: 12, marginTop: 3 }}>{dig.info}</div>}{(dig.phone || dig.link_url) && <div style={{ opacity: .75, fontSize: 12, marginTop: 2 }}>{dig.phone}{dig.phone && dig.link_url ? ' · ' : ''}{dig.link_url && <a href={dig.link_url} target="_blank" rel="noopener noreferrer" style={{ color: t.colors.accent }}>{dig.link_text || 'Website'}</a>}</div>}</div>}
       {oc && (
