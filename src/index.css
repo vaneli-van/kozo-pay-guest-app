@@ -159,3 +159,7 @@
 .action:active:not(:disabled){transform:scale(.98);opacity:.92}
 .split-modes button,.tip-grid button,.method-option{transition:transform .12s ease}
 .split-modes button:active,.tip-grid button:active,.method-option:active{transform:scale(.985)}
+.momo-screen .kz-head{margin-bottom:36px}
+.momo-screen .field-label{margin-top:44px}
+.momo-screen .error{margin-top:24px}
+.momo-screen .action{margin-top:32px}
