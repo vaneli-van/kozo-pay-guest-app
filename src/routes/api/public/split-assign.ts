@@ -42,9 +42,8 @@ export const Route = createFileRoute('/api/public/split-assign')({
             .upsert({ split_id: split.id, bill_item_id: line.id, share_id: share.id, weight }, { onConflict: 'split_id,bill_item_id,share_id' })
         }
 
-        await recomputeItemSplit(supabaseAdmin, split.id)
-        const { data: fresh } = await supabaseAdmin.from('bill_splits').select('id,mode,total_pesewas,status,bill_id').eq('id', split.id).maybeSingle()
-        return json(await itemsSplitPayload(supabaseAdmin, fresh ?? split, session.id))
+        await recomputeItemSplit(supabaseAdmin, split.id, split)
+        return json(await itemsSplitPayload(supabaseAdmin, split, session.id))
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },
   } },

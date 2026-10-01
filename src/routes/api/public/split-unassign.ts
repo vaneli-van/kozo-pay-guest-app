@@ -34,7 +34,7 @@ export const Route = createFileRoute('/api/public/split-unassign')({
           if ((left ?? []).length === 0) await supabaseAdmin.from('bill_split_shares').delete().eq('id', share.id)
         }
 
-        await recomputeItemSplit(supabaseAdmin, split.id)
+        await recomputeItemSplit(supabaseAdmin, split.id, split)
         return json(await itemsSplitPayload(supabaseAdmin, split, session.id))
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },

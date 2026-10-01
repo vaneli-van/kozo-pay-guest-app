@@ -44,7 +44,7 @@ export const Route = createFileRoute('/api/public/assign-remaining')({
         // One bulk write instead of one request per line.
         if (rows.length) await supabaseAdmin.from('bill_split_item_assignments').upsert(rows, { onConflict: 'split_id,bill_item_id,share_id' })
 
-        await recomputeItemSplit(supabaseAdmin, split.id)
+        await recomputeItemSplit(supabaseAdmin, split.id, split)
         return json(await itemsSplitPayload(supabaseAdmin, split, session.id))
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },

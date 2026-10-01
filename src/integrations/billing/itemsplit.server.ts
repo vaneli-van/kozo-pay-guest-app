@@ -21,9 +21,12 @@ export function allocate(total: number, weights: number[]): number[] {
 type Admin = any
 
 // Recompute + persist share amounts for an items-mode split. Idempotent.
-export async function recomputeItemSplit(supabaseAdmin: Admin, splitId: string): Promise<void> {
-  const { data: split } = await supabaseAdmin.from('bill_splits')
-    .select('id,bill_id,mode,status').eq('id', splitId).maybeSingle()
+export async function recomputeItemSplit(supabaseAdmin: Admin, splitId: string, knownSplit?: any): Promise<void> {
+  // Reuse the caller's split row when it carries what we need — recompute never changes the
+  // split row itself, so re-selecting it is a wasted round trip on the tap/poll hot path.
+  const split = (knownSplit && knownSplit.id === splitId && knownSplit.bill_id)
+    ? knownSplit
+    : (await supabaseAdmin.from('bill_splits').select('id,bill_id,mode,status').eq('id', splitId).maybeSingle()).data
   if (!split || split.mode !== 'items' || split.status !== 'open') return
 
   // Independent reads run in parallel — this runs on every tap and every poll.
@@ -131,8 +134,12 @@ export async function itemsSplitPayload(supabaseAdmin: Admin, split: any, sessio
 
 // Resolve the OPEN items split for a session's table, confirming it matches the active bill.
 export async function resolveOpenItemsSplit(supabaseAdmin: Admin, session: { id: string; table_id: string }) {
-  const { posProvider } = await import('@/integrations/pos/provider')
-  const bill = await posProvider.getActiveBillForTable(session.table_id)
+  // Callers only need the active bill's id, so read the bill row directly instead of
+  // getActiveBillForTable (which also fetches every line) — one fewer round trip per tap.
+  const { data: bill } = await supabaseAdmin.from('bills')
+    .select('id,subtotal_pesewas,service_charge_pesewas,total_pesewas,status')
+    .eq('table_id', session.table_id).in('status', ['open', 'ready'])
+    .order('opened_at', { ascending: false }).maybeSingle()
   if (!bill) return { error: 'no_bill' as const }
   const { data: split } = await supabaseAdmin.from('bill_splits')
     .select('id,mode,total_pesewas,status,bill_id')

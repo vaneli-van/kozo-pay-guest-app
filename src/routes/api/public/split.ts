@@ -37,9 +37,8 @@ export const Route = createFileRoute('/api/public/split')({
         // Items mode: amounts are derived from item picks — recompute, then return the items board.
         if (split.mode === 'items') {
           const { recomputeItemSplit, itemsSplitPayload } = await import('@/integrations/billing/itemsplit.server')
-          await recomputeItemSplit(supabaseAdmin, split.id)
-          const { data: fresh } = await supabaseAdmin.from('bill_splits').select('id,mode,total_pesewas,status,bill_id').eq('id', split.id).maybeSingle()
-          return json(await itemsSplitPayload(supabaseAdmin, fresh ?? split, session.id))
+          await recomputeItemSplit(supabaseAdmin, split.id, split)
+          return json(await itemsSplitPayload(supabaseAdmin, split, session.id))
         }
 
         // Lazy auto-release: claimed-but-unpaid shares idle > 10 min become unclaimed (open splits only).
