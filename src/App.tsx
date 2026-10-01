@@ -4,6 +4,7 @@ import { Shell, accentStyle, ConnBanner } from './ui/primitives'
 import { postResilient } from './lib/net'
 import { track } from './lib/track'
 import { Connect, Welcome, map } from './screens/screens'
+import { DEMO_MODE_ENABLED, DEMO_BILL, createDemoSplit, demoQuote } from './lib/demo-bill'
 
 const POST = (url: string, body: unknown): Promise<any> =>
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -76,7 +77,13 @@ export default function App({
   const splitRef = useRef<any>(undefined)
   splitRef.current = s.split
 
+  const demo = DEMO_MODE_ENABLED && !sessionToken
+
   useEffect(() => { if (sessionToken && s.sessionToken !== sessionToken) patch({ sessionToken }) }, [sessionToken])
+  useEffect(() => {
+    if (demo && hydrated && !s.bill) patch({ bill: DEMO_BILL })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, hydrated, s.bill])
   // A retry after a failed/declined attempt must not reuse the burned attempt or its idempotency key.
   useEffect(() => { if (!s.paymentRef) idemRef.current = '' }, [s.paymentRef])
   // Track connectivity so the pay path can retry safely instead of showing a false failure.
@@ -131,9 +138,20 @@ export default function App({
     }
     switch (action.type) {
       case 'split-create': {
-        if (!sessionToken) return
-        patch({ splitError: undefined })
         const dest: Screen = action.mode === 'items' ? 'split-items' : 'split-lobby'
+        if (demo) {
+          const split = createDemoSplit(action.mode, { people: action.people, amounts: action.amounts })
+          patch({ split: (splitRef.current = split), splitId: split.id, splitError: undefined, claimedShareId: undefined })
+          goScreen(dest)
+          return
+        }
+        if (!sessionToken) {
+          patch({ splitError: 'Scan the QR code on your table to split this bill.' })
+          if (action.mode === 'items') goScreen(dest)
+          return
+        }
+        patch({ splitError: undefined })
+        if (action.mode === 'items') goScreen(dest)
         POST('/api/public/split-create', { sessionToken, mode: action.mode, partySize: action.people, amounts: action.amounts }).then((r) => {
           if (r?.ok) { patch({ splitId: r.splitId }); goScreen(dest) }
            else if (r?.reason === 'split_exists') {
@@ -147,6 +165,7 @@ export default function App({
         return
       }
       case 'split-assign': {
+        if (demo) { patch({ split: (splitRef.current = optimisticUnits(splitRef.current, action.billItemId, action.units)) }); return }
         if (!sessionToken) return
         editWindowRef.current = Date.now()
         // Instant feedback: apply the tapped count locally right away — even before the server
@@ -167,6 +186,7 @@ export default function App({
         return
       }
       case 'split-unassign':
+        if (demo) { patch({ split: (splitRef.current = optimisticUnits(splitRef.current, action.billItemId, 0)) }); return }
         if (!sessionToken) return
         editWindowRef.current = Date.now()
         patch({ split: (splitRef.current = optimisticUnits(splitRef.current, action.billItemId, 0)) })
@@ -176,14 +196,31 @@ export default function App({
          }) }
         return
       case 'assign-remaining':
+        if (demo) {
+          let next = splitRef.current
+          for (const it of next?.items ?? []) {
+            const mine = (it.takers || []).find((t: any) => t.shareId === next?.myShareId)?.units || 0
+            if (it.unitsFree > 0) next = optimisticUnits(next, it.billItemId, mine + it.unitsFree)
+          }
+          patch({ split: (splitRef.current = next) })
+          return
+        }
         if (!sessionToken) return
         editWindowRef.current = Date.now()
         POST('/api/public/assign-remaining', { sessionToken, name: action.name }).then(applyItemsSplit)
         return
       case 'split-claim':
+        if (demo && s.split) {
+          patch({ claimedShareId: action.shareId, split: { ...s.split, shares: s.split.shares.map((sh) => ({ ...sh, mine: sh.id === action.shareId, claimedByName: sh.id === action.shareId ? 'You' : null })) } })
+          return
+        }
         if (sessionToken) POST('/api/public/split-claim', { sessionToken, shareId: action.shareId }).then((r) => { if (r?.ok) patch({ claimedShareId: r.shareId }) })
         return
       case 'split-release':
+        if (demo && s.split) {
+          patch({ claimedShareId: undefined, split: { ...s.split, shares: s.split.shares.map((sh) => ({ ...sh, mine: false, claimedByName: null })) } })
+          return
+        }
         if (sessionToken) POST('/api/public/split-release', { sessionToken, shareId: action.shareId }).then(() => patch({ claimedShareId: undefined }))
         return
       case 'waiter':
@@ -347,8 +384,9 @@ export default function App({
 
   // Server-authoritative quote (share + tip) behind every amount shown during checkout.
   useEffect(() => {
-    if (!sessionToken) return
     const quoteScreens = ['pay', 'split', 'split-share', 'tip', 'review', 'method', 'momo', 'authorise']
+    if (demo) { if (quoteScreens.includes(s.screen)) patch({ quote: demoQuote(s) }); return }
+    if (!sessionToken) return
     if (!quoteScreens.includes(s.screen)) return
     const preTip = s.screen === 'pay' || s.screen === 'split' || s.screen === 'split-share' || s.screen === 'tip'
     // Only the latest request may update the amount — stepper taps used to race.
@@ -363,10 +401,14 @@ export default function App({
     }).then((r) => { if (!cancelled && r?.ok && r.quote) patch({ quote: r.quote }) }), 150)
     return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, s.claimedShareId, sessionToken])
+  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, s.claimedShareId, sessionToken, demo, s.split?.myShareAmountPesewas])
 
   // Initiate the payment server-side (idempotent) when the diner commits — amounts are computed on the server.
   useEffect(() => {
+    if (demo && s.screen === 'processing') {
+      const t = setTimeout(() => { patch({ paymentRef: 'DEMO-PAYMENT', receiptNumber: 'DEMO-0001' }); goScreen('success') }, 1500)
+      return () => clearTimeout(t)
+    }
     if (!sessionToken) return
     if ((s.screen === 'authorise' || s.screen === 'processing') && !s.paymentRef) {
       if (!idemRef.current) idemRef.current = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`
@@ -403,7 +445,7 @@ export default function App({
     }
     return undefined
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, s.paymentRef, s.claimedShareId, sessionToken, retryTick])
+  }, [s.screen, s.paymentRef, s.claimedShareId, sessionToken, retryTick, demo])
 
   // Poll payment status while processing — success is reached only when the server confirms capture.
   useEffect(() => {
@@ -469,7 +511,7 @@ export default function App({
   // Fetch the Google review link when the combined review screen opens.
   useEffect(() => {
     if (!sessionToken) return
-    if (s.screen === 'review-handoff' && s.reviewUrl === undefined) {
+    if ((s.screen === 'review-handoff' || s.screen === 'success') && s.reviewUrl === undefined) {
       POST('/api/public/review-link', { sessionToken }).then((r) => patch({ reviewUrl: r?.url ?? null }))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,32 +1,89 @@
-import * as React from 'react'
-import { ArrowLeft, ChevronRight } from 'lucide-react'
-import { go, type State } from '../session/machine'
-import { money } from '../lib/format'
+import * as React from "react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
+import { go, type State } from "../session/machine";
+import { money } from "../lib/format";
 
 export function accentStyle(accentColor?: string) {
-  return { ['--accent' as any]: accentColor || '#f3c744' } as React.CSSProperties
+  return { ["--accent" as any]: accentColor || "#cfb37b" } as React.CSSProperties;
 }
 
-export function Shell({ children, s }: { children: React.ReactNode; s: State; dispatch: React.Dispatch<any> }) {
-  const style = accentStyle(s?.accentColor)
-  return <main className="app-shell" style={style}>{children}</main>
+export function Shell({
+  children,
+  s,
+}: {
+  children: React.ReactNode;
+  s: State;
+  dispatch: React.Dispatch<any>;
+}) {
+  const style = accentStyle(s?.accentColor);
+  return (
+    <main className="app-shell" style={style}>
+      {children}
+    </main>
+  );
 }
 
-export function Back({ dispatch, to = 'menu' }: any) { return <button className="back" onClick={() => dispatch(go(to))}><ArrowLeft />Back</button> }
+export function Back({ dispatch, to = "menu" }: any) {
+  return (
+    <button className="back" onClick={() => dispatch(go(to))}>
+      <ArrowLeft />
+      Back
+    </button>
+  );
+}
 
-export function Action({ children, onClick, secondary = false, disabled = false, style }: any) { return <button className={`action ${secondary ? 'secondary' : ''}`} onClick={onClick} disabled={disabled} style={style}>{children}<ChevronRight /></button> }
+export function Action({ children, onClick, secondary = false, disabled = false, style }: any) {
+  return (
+    <button
+      className={`action ${secondary ? "secondary" : ""}`}
+      onClick={onClick}
+      disabled={disabled}
+      style={style}
+    >
+      {children}
+      <ChevronRight />
+    </button>
+  );
+}
 
-export function Center({ eyebrow, title, copy, children, icon = 'K', logoUrl, alt }: any) { return <section className="center-screen"><div className="brand-mark"><img src={logoUrl || '/klown-logo.png'} alt={alt || 'Klown'} /></div><p className="eyebrow">{eyebrow}</p><h1 dangerouslySetInnerHTML={{ __html: title }} /><p className="muted">{copy}</p>{children}</section> }
+export function Center({ eyebrow, title, copy, children, icon = "K", logoUrl, alt }: any) {
+  return (
+    <section className="center-screen">
+      <div className="brand-mark">
+        <img src={logoUrl || "/klown-logo.png"} alt={alt || "Klown"} />
+      </div>
+      <p className="eyebrow">{eyebrow}</p>
+      <h1 dangerouslySetInnerHTML={{ __html: title }} />
+      <p className="muted">{copy}</p>
+      {children}
+    </section>
+  );
+}
 
-export function BillRow({ name, qty, price }: any) { return <div className="bill-row"><span><small>{qty} ×</small>{name}</span><b>{money(price)}</b></div> }
-
+export function BillRow({ name, qty, price }: any) {
+  return (
+    <div className="bill-row">
+      <span>
+        <small>{qty} ×</small>
+        {name}
+      </span>
+      <b>{money(price)}</b>
+    </div>
+  );
+}
 
 export function ConnBanner({ offline, onRetry }: { offline: boolean; onRetry: () => void }) {
   return (
     <div className="conn-banner" role="status" aria-live="polite">
       <span className="conn-dot" />
-      <span className="conn-text">{offline ? 'You’re offline — we’ll continue when you reconnect.' : 'Weak connection — keeping your payment safe and retrying…'}</span>
-      <button className="conn-retry" onClick={onRetry}>Retry</button>
+      <span className="conn-text">
+        {offline
+          ? "You’re offline — we’ll continue when you reconnect."
+          : "Weak connection — keeping your payment safe and retrying…"}
+      </span>
+      <button className="conn-retry" onClick={onRetry}>
+        Retry
+      </button>
     </div>
-  )
+  );
 }

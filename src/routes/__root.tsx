@@ -9,6 +9,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import "../index.css";
+import "../styles/kozo-ui.css";
 
 function NotFoundComponent() {
   return (

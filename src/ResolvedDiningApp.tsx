@@ -9,6 +9,10 @@ export default function ResolvedDiningApp({ token }: { token: string }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   if (!mounted) return null
+  // The "demo" token has no qr_tokens row; in dev, render the diner UI directly so the preview is viewable.
+  if (token === 'demo' && import.meta.env.DEV) {
+    return <App initialState={{ screen: 'welcome', mode: 'table', tableLabel: '12', restaurantName: 'Klown Kitchen' }} storageKey="klown-dining:demo-preview" />
+  }
   return <ResolvedInner token={token} />
 }
 
