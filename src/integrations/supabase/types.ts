@@ -5047,6 +5047,8 @@ export type Database = {
       owner_recent_payments: { Args: { p_limit?: number }; Returns: Json }
       owner_remove_member: { Args: { p_email: string }; Returns: Json }
       owner_restaurant_ids: { Args: never; Returns: string[] }
+      owner_reviews: { Args: { p_limit?: number }; Returns: Json }
+      owner_reviews_summary: { Args: { p_days?: number }; Returns: Json }
       owner_save_bank: {
         Args: {
           p_account_name: string
