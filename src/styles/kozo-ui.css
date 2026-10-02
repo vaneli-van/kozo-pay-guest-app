@@ -1753,7 +1753,7 @@ body {
   box-shadow: none;
 }
 .kz-success-card strong { display: block; font-size: 15px; color: var(--kz-ink); }
-.kz-success-card span { display: block; font-size: 13px; line-height: 1.5; color: var(--kz-muted); }
+.kz-success-card-text span { display: block; font-size: 13px; line-height: 1.5; color: var(--kz-muted); }
 .kz-success-icon {
   flex: none;
   display: grid;
