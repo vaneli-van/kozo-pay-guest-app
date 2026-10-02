@@ -16,9 +16,15 @@ export const Route = createFileRoute('/api/public/feedback')({
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
         const sentiment = r >= 4 ? 'positive' : r <= 2 ? 'negative' : 'neutral'
-        const safeComment = typeof comment === 'string' ? comment.slice(0, 1000) : null
-        await supabaseAdmin.from('feedback').insert({ session_id: session.id, rating: r, comment: safeComment, sentiment })
-        await supabaseAdmin.from('audit_events').insert({ session_id: session.id, type: 'feedback.submitted', data: { rating: r, sentiment } })
+        const safeComment = typeof comment === 'string' && comment.trim() ? comment.slice(0, 1000) : null
+        // One feedback row per session: the star tap records the rating, a later note fills the comment.
+        const { data: existing } = await supabaseAdmin.from('feedback').select('id,comment').eq('session_id', session.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
+        if (existing) {
+          await supabaseAdmin.from('feedback').update({ rating: r, sentiment, comment: safeComment ?? existing.comment }).eq('id', existing.id)
+        } else {
+          await supabaseAdmin.from('feedback').insert({ session_id: session.id, rating: r, comment: safeComment, sentiment })
+        }
+        await supabaseAdmin.from('audit_events').insert({ session_id: session.id, type: 'feedback.submitted', data: { rating: r, sentiment, hasComment: !!safeComment } })
         return json({ ok: true, sentiment })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },

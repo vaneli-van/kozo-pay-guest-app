@@ -1772,6 +1772,8 @@ export function Success({ s, dispatch }: any) {
   const name = s?.restaurantName || "the restaurant";
   const rating: number = s?.rating ?? 0;
   const [showSummary, setShowSummary] = useState(false);
+  const [note, setNote] = useState("");
+  const [noteSent, setNoteSent] = useState(false);
   const isShare = Boolean(s?.claimedShareId);
   const reviewUrl =
     s?.reviewUrl ||
@@ -1860,9 +1862,31 @@ export function Success({ s, dispatch }: any) {
               Post it on Google
             </a>
           )}
-          {rating > 0 && rating < 4 && (
-            <p className="kz-rate-note">Thanks — we&apos;ve shared this privately with the team.</p>
-          )}
+          {rating > 0 && rating < 4 &&
+            (noteSent ? (
+              <p className="kz-rate-note">Thanks — we&apos;ve shared this privately with {name}. The team will see it.</p>
+            ) : (
+              <div className="kz-rate-note-form">
+                <textarea
+                  className="kz-rate-note-input"
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="What could we have done better? (optional)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="kz-rate-send"
+                  onClick={() => {
+                    dispatch({ type: "feedback", value: { rating, comment: note } });
+                    setNoteSent(true);
+                  }}
+                >
+                  Send to the team
+                </button>
+              </div>
+            ))}
         </div>
 
         <div className="kz-success-actions">

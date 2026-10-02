@@ -1915,3 +1915,9 @@ button.kz-success-card {
 .split-items-stage .split-progress .bar { background: var(--soft); border-radius: 999px; }
 .split-items-stage .split-progress .bar i { border-radius: 999px; background: var(--accent); }
 .split-items-stage .action { border-radius: 999px; }
+
+/* Low-rating private feedback box on the success screen */
+.kz-rate-note-form { display: flex; flex-direction: column; gap: 10px; }
+.kz-rate-note-input { width: 100%; resize: vertical; min-height: 64px; border: 1px solid var(--kz-line); border-radius: var(--kz-r-sm); padding: 12px; font: inherit; font-size: 14px; line-height: 1.4; color: var(--kz-ink); background: var(--kz-surface); box-sizing: border-box; }
+.kz-rate-note-input:focus { outline: 2px solid var(--kz-ink); outline-offset: 1px; }
+.kz-rate-send { align-self: flex-start; background: var(--kz-ink); color: #fff; border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 700; font-size: 13px; cursor: pointer; min-height: 40px; }

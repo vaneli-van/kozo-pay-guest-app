@@ -313,8 +313,9 @@ export default function App({
       case 'feedback': {
         // Persists the star rating in place — the combined review screen stays put.
         const rating = action.value?.rating ?? 5
+        const comment = typeof action.value?.comment === 'string' ? action.value.comment : undefined
         patch({ rating })
-        if (sessionToken) POST('/api/public/feedback', { sessionToken, rating })
+        if (sessionToken) POST('/api/public/feedback', { sessionToken, rating, comment })
         return
       }
 
