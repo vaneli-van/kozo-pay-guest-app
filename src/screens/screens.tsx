@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { ReceiptImage } from "./receipt-image";
 import {
   Check,
   CheckCircle2,
@@ -1906,37 +1907,7 @@ export function Success({ s, dispatch }: any) {
 }
 
 export function DownloadReceiptButton({ s }: any) {
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | undefined>(undefined);
-  const onClick = () => {
-    if (busy) return;
-    setErr(undefined);
-    setBusy(true);
-    fetch("/api/public/receipt-pdf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionToken: s?.sessionToken }),
-    })
-      .then((r) => r.json())
-      .catch(() => null)
-      .then((r) => {
-        setBusy(false);
-        if (r?.ok && r.url) {
-          // A new tab is nicer on desktop, but mobile / in-app browsers routinely block a
-          // deferred popup — so fall back to navigating this tab, which always opens the PDF.
-          const w = typeof window !== "undefined" ? window.open(r.url, "_blank", "noopener") : null;
-          if (!w && typeof window !== "undefined") window.location.href = r.url;
-        } else setErr("Could not prepare the receipt. Please try again.");
-      });
-  };
-  return (
-    <>
-      <button className="outline-button" onClick={onClick} disabled={busy}>
-        {busy ? "Preparing receipt…" : "Download / print receipt"}
-      </button>
-      {err && <p className="muted receipt-error">{err}</p>}
-    </>
-  );
+  return <ReceiptImage s={s} />;
 }
 
 export function ReceiptChoice({ s, dispatch }: any) {
@@ -2116,17 +2087,6 @@ export function GuestReceipt({ s, dispatch }: any) {
       <h1>
         All <em>done.</em>
       </h1>
-      <div className="receipt-card">
-        <div className="receipt-head">
-          <span>{s?.restaurantName || ""}</span>
-          <b>PAID</b>
-        </div>
-        <p>Your receipt is available for this session.</p>
-        <div className="grand-total">
-          <span>Total paid</span>
-          <b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b>
-        </div>
-      </div>
       <DownloadReceiptButton s={s} />
       <Action onClick={() => dispatch(go("review-handoff"))}>Continue</Action>
     </section>
