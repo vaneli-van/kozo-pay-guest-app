@@ -33,6 +33,7 @@ import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/publi
 import { Route as ApiPublicQrResolveRouteImport } from './routes/api/public/qr-resolve'
 import { Route as ApiPublicQuoteRouteImport } from './routes/api/public/quote'
 import { Route as ApiPublicReceiptRouteImport } from './routes/api/public/receipt'
+import { Route as ApiPublicReceiptDataRouteImport } from './routes/api/public/receipt-data'
 import { Route as ApiPublicReceiptPdfRouteImport } from './routes/api/public/receipt-pdf'
 import { Route as ApiPublicReceiptWhatsappRouteImport } from './routes/api/public/receipt-whatsapp'
 import { Route as ApiPublicReviewLinkRouteImport } from './routes/api/public/review-link'
@@ -173,6 +174,11 @@ const ApiPublicReceiptRoute = ApiPublicReceiptRouteImport.update({
   path: '/api/public/receipt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicReceiptDataRoute = ApiPublicReceiptDataRouteImport.update({
+  id: '/api/public/receipt-data',
+  path: '/api/public/receipt-data',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicReceiptPdfRoute = ApiPublicReceiptPdfRouteImport.update({
   id: '/api/public/receipt-pdf',
   path: '/api/public/receipt-pdf',
@@ -281,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/receipt-data': typeof ApiPublicReceiptDataRoute
   '/api/public/receipt-pdf': typeof ApiPublicReceiptPdfRoute
   '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
@@ -323,6 +330,7 @@ export interface FileRoutesByTo {
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/receipt-data': typeof ApiPublicReceiptDataRoute
   '/api/public/receipt-pdf': typeof ApiPublicReceiptPdfRoute
   '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
@@ -366,6 +374,7 @@ export interface FileRoutesById {
   '/api/public/qr-resolve': typeof ApiPublicQrResolveRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/receipt': typeof ApiPublicReceiptRoute
+  '/api/public/receipt-data': typeof ApiPublicReceiptDataRoute
   '/api/public/receipt-pdf': typeof ApiPublicReceiptPdfRoute
   '/api/public/receipt-whatsapp': typeof ApiPublicReceiptWhatsappRoute
   '/api/public/review-link': typeof ApiPublicReviewLinkRoute
@@ -410,6 +419,7 @@ export interface FileRouteTypes {
     | '/api/public/qr-resolve'
     | '/api/public/quote'
     | '/api/public/receipt'
+    | '/api/public/receipt-data'
     | '/api/public/receipt-pdf'
     | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
@@ -452,6 +462,7 @@ export interface FileRouteTypes {
     | '/api/public/qr-resolve'
     | '/api/public/quote'
     | '/api/public/receipt'
+    | '/api/public/receipt-data'
     | '/api/public/receipt-pdf'
     | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
@@ -494,6 +505,7 @@ export interface FileRouteTypes {
     | '/api/public/qr-resolve'
     | '/api/public/quote'
     | '/api/public/receipt'
+    | '/api/public/receipt-data'
     | '/api/public/receipt-pdf'
     | '/api/public/receipt-whatsapp'
     | '/api/public/review-link'
@@ -537,6 +549,7 @@ export interface RootRouteChildren {
   ApiPublicQrResolveRoute: typeof ApiPublicQrResolveRoute
   ApiPublicQuoteRoute: typeof ApiPublicQuoteRoute
   ApiPublicReceiptRoute: typeof ApiPublicReceiptRoute
+  ApiPublicReceiptDataRoute: typeof ApiPublicReceiptDataRoute
   ApiPublicReceiptPdfRoute: typeof ApiPublicReceiptPdfRoute
   ApiPublicReceiptWhatsappRoute: typeof ApiPublicReceiptWhatsappRoute
   ApiPublicReviewLinkRoute: typeof ApiPublicReviewLinkRoute
@@ -725,6 +738,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicReceiptRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/receipt-data': {
+      id: '/api/public/receipt-data'
+      path: '/api/public/receipt-data'
+      fullPath: '/api/public/receipt-data'
+      preLoaderRoute: typeof ApiPublicReceiptDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/receipt-pdf': {
       id: '/api/public/receipt-pdf'
       path: '/api/public/receipt-pdf'
@@ -866,6 +886,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicQrResolveRoute: ApiPublicQrResolveRoute,
   ApiPublicQuoteRoute: ApiPublicQuoteRoute,
   ApiPublicReceiptRoute: ApiPublicReceiptRoute,
+  ApiPublicReceiptDataRoute: ApiPublicReceiptDataRoute,
   ApiPublicReceiptPdfRoute: ApiPublicReceiptPdfRoute,
   ApiPublicReceiptWhatsappRoute: ApiPublicReceiptWhatsappRoute,
   ApiPublicReviewLinkRoute: ApiPublicReviewLinkRoute,
