@@ -58,7 +58,7 @@ export type State = {
   firstName?: string
   totalPaidPesewas?: number
   reviewUrl?: string | null
-  bill?: { status?: string; serverName?: string | null; items: { name: string; qty: number; lineTotalPesewas: number }[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number } | undefined
+  bill?: { status?: string; serverName?: string | null; items: { name: string; qty: number; lineTotalPesewas: number }[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number; paidPesewas?: number; remainingPesewas?: number } | undefined
   quote?: { billTotalPesewas: number; remainingPesewas: number; sharePesewas: number; tipPesewas: number; grandTotalPesewas: number } | undefined
   // Menu (fetched once from /api/public/menu; all optional)
   menu?: {

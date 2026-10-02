@@ -23,14 +23,22 @@ export const Route = createFileRoute('/api/public/bill')({
             const { data: bill } = await supabaseAdmin.from('bills').select('status,subtotal_pesewas,service_charge_pesewas,total_pesewas').eq('id', sync.billId).maybeSingle()
             const { data: items } = await supabaseAdmin.from('bill_items').select('name,qty,line_total_pesewas').eq('bill_id', sync.billId).order('sort')
             if (!bill) return json({ ok: true, bill: null, orderStatus: 'waiting' })
-            return json({ ok: true, orderStatus: 'ready', bill: { status: bill.status, items: (items ?? []).map((i: any) => ({ name: i.name, qty: i.qty, lineTotalPesewas: i.line_total_pesewas })), subtotalPesewas: bill.subtotal_pesewas, serviceChargePesewas: bill.service_charge_pesewas, totalPesewas: bill.total_pesewas, serverName: null } })
+            const { amountPaidForBill: paidFor } = await import('@/integrations/payments/provider')
+            const qPaid = await paidFor(sync.billId)
+            const qRemaining = Math.max(0, (bill.total_pesewas ?? 0) - qPaid)
+            return json({ ok: true, orderStatus: 'ready', bill: { status: bill.status, items: (items ?? []).map((i: any) => ({ name: i.name, qty: i.qty, lineTotalPesewas: i.line_total_pesewas })), subtotalPesewas: bill.subtotal_pesewas, serviceChargePesewas: bill.service_charge_pesewas, totalPesewas: bill.total_pesewas, paidPesewas: qPaid, remainingPesewas: qRemaining, serverName: null } })
           }
 
           const { posProvider } = await import('@/integrations/pos/provider')
           const bill = await posProvider.getActiveBillForTable(session.table_id!)
           if (!bill) return json({ ok: true, bill: null })
+          // Partial payments (e.g. a paid split share) reduce what's left: surface paid/remaining so
+          // the bill screen shows the remaining balance rather than the original total.
+          const { amountPaidForBill } = await import('@/integrations/payments/provider')
+          const paidPesewas = await amountPaidForBill(bill.id)
+          const remainingPesewas = Math.max(0, (bill.totalPesewas ?? 0) - paidPesewas)
           // Read-only: the diner can never mutate bill items.
-          return json({ ok: true, bill: { status: bill.status, items: bill.items, subtotalPesewas: bill.subtotalPesewas, serviceChargePesewas: bill.serviceChargePesewas, totalPesewas: bill.totalPesewas, serverName: bill.serverName ?? null } })
+          return json({ ok: true, bill: { status: bill.status, items: bill.items, subtotalPesewas: bill.subtotalPesewas, serviceChargePesewas: bill.serviceChargePesewas, totalPesewas: bill.totalPesewas, paidPesewas, remainingPesewas, serverName: bill.serverName ?? null } })
         } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
       },
     },

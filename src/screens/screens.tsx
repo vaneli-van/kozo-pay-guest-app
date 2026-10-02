@@ -501,6 +501,9 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
   const items = b?.items ?? [];
   const count = items.reduce((a: number, i: any) => a + (Number(i.qty) || 0), 0);
   const isOrder = s?.mode === "order";
+  const paid = b?.paidPesewas ?? 0;
+  const remaining = b?.remainingPesewas ?? b?.totalPesewas ?? 0;
+  const partial = paid > 0 && remaining > 0;
   return (
     <>
       <section className="bill-screen">
@@ -517,9 +520,11 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
               <span className="kz-live-dot" aria-hidden="true" />
               {ready ? "Bill ready" : "Live from POS"}
             </span>
-            <span className="kz-bill-hero-label">Total to pay</span>
-            <Money value={b?.totalPesewas} className="kz-bill-hero-amount kz-cur-gold" />
-            <span className="kz-total-sub">Incl. taxes, levies &amp; service</span>
+            <span className="kz-bill-hero-label">{partial ? "Remaining to pay" : "Total to pay"}</span>
+            <Money value={remaining} className="kz-bill-hero-amount kz-cur-gold" />
+            <span className="kz-total-sub">
+              {partial ? `${pes(paid)} already paid of ${pes(b?.totalPesewas)}` : "Incl. taxes, levies & service"}
+            </span>
           </div>
 
           <h2 className="kz-group-title">
@@ -566,6 +571,18 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
               <span>Total</span>
               <span>{pes(b?.totalPesewas)}</span>
             </div>
+            {paid > 0 && (
+              <>
+                <div className="kz-row">
+                  <span>Paid so far</span>
+                  <span>−{pes(paid)}</span>
+                </div>
+                <div className="kz-row is-total">
+                  <span>Remaining</span>
+                  <span>{pes(remaining)}</span>
+                </div>
+              </>
+            )}
           </div>
 
           <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
@@ -596,8 +613,8 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
                 )
               }
             >
-              <span>Pay in full</span>
-              <span className="kz-btn-amount">{pes(b?.totalPesewas)}</span>
+              <span>{partial ? "Pay the rest" : "Pay in full"}</span>
+              <span className="kz-btn-amount">{pes(remaining)}</span>
             </button>
           </div>,
           document.body,
@@ -745,7 +762,7 @@ export function Recommendation({ s, dispatch }: any) {
 }
 
 export function Pay({ s, dispatch }: any) {
-  const due = s?.quote?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0;
+  const due = s?.quote?.remainingPesewas ?? s?.bill?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0;
   return (
     <section>
       <Back dispatch={dispatch} to="bill" />
@@ -788,7 +805,7 @@ export function Pay({ s, dispatch }: any) {
 
 export function Split({ s, dispatch }: any) {
   useSplitScrollLock();
-  const due = s?.bill?.totalPesewas ?? s?.quote?.remainingPesewas ?? 0;
+  const due = s?.bill?.remainingPesewas ?? s?.quote?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0;
   const [mode, setMode] = useState<"even" | "amounts" | "named" | null>(null);
   const [people, setPeople] = useState(Math.max(2, s?.people ?? 2));
   const [custom, setCustom] = useState("");
@@ -1387,7 +1404,7 @@ export function Tip({ s, dispatch }: any) {
         : s?.split?.shares?.find((sh: any) => sh.id === s.claimedShareId)?.amountPesewas) ??
       s?.quote?.sharePesewas ??
       0)
-    : (s?.quote?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0);
+    : (s?.quote?.remainingPesewas ?? s?.bill?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0);
   const chosen = s?.tipPercent ?? 10;
   const tip = Math.round((share * chosen) / 100);
   const server = (s?.bill?.serverName || "").toString().trim();
