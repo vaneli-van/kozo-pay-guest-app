@@ -269,14 +269,6 @@ export default function App({
         if (action.to) goScreen(action.to as Screen)
         return
       }
-      case 'otp-send':
-        // Legacy WhatsApp path — no longer used by the receipt flow. No message is sent.
-        if (action.value?.phone) patch({ phone: action.value.phone })
-        return
-      case 'otp-verify':
-        return
-
-
       case 'whatsapp-receipt': {
         const wp = action.value?.phone
         if (!sessionToken || !wp) { patch({ waStatus: 'error', waError: 'Enter a valid number.' }); return }

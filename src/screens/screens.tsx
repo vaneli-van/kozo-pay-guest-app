@@ -94,7 +94,7 @@ export function Welcome({ s, dispatch }: any) {
   const oc = openState(dig.hours);
   const hrs = hoursLine(dig.hours);
   const name = s?.taglineTop || s?.restaurantName || "Welcome";
-  const copy = s?.welcomeCopy || `Welcome to ${s?.restaurantName || "us"}. Scan, view your bill, split and pay right from your table.`;
+  const copy = s?.welcomeCopy || `Welcome to ${s?.restaurantName || "the table"}. View your bill, split it with friends and pay without waiting.`;
   const hero = s?.heroUrl || "/assets/restaurant-hero.png";
   const meta = dig.info || s?.city || "";
   return (
@@ -429,7 +429,7 @@ export function WaiterNotified({ s, dispatch }: any) {
       alt={s?.restaurantName}
       eyebrow="REQUEST SENT"
       title={"On the<br /><em>way.</em>"}
-      copy="Your waiter has been notified. No need to wave — we will come to you."
+      copy="Your waiter has been notified and is on the way. No need to wave."
     >
       <div className="notice-card">
         <Clock3 />
@@ -1258,7 +1258,7 @@ export function SplitItems({ s, dispatch }: any) {
         {done ? (
           <div className="notice-card">
             <Check />
-            <span>Every item is in — thank you.</span>
+            <span>Every item is covered. Thank you!</span>
           </div>
         ) : iPaid ? (
           <div className="notice-card">
@@ -1390,7 +1390,7 @@ export function SplitLobby({ s, dispatch }: any) {
       {done && (
         <div className="notice-card">
           <Check />
-          <span>Every share is in — thank you.</span>
+          <span>Every share is covered. Thank you!</span>
         </div>
       )}
     </section>
@@ -1796,7 +1796,7 @@ export function Success({ s, dispatch }: any) {
   const reviewUrl =
     s?.reviewUrl ||
     `https://www.google.com/search?q=${encodeURIComponent(`${s?.restaurantName || ""} reviews`)}`;
-  const ratingCopy = ["Tap a star to rate your visit", "Sorry it wasn't great", "Thanks for the honesty", "Glad it was good", "Great — thank you!", "Amazing — thank you!"][rating];
+  const ratingCopy = ["Tap a star to rate your visit", "Sorry it wasn't great", "Thanks for the honesty", "Glad it was good", "Great, thank you!", "Amazing, thank you!"][rating];
   return (
     <section className="payment-stage kz-success">
       <div className="kz-page">
@@ -1848,7 +1848,7 @@ export function Success({ s, dispatch }: any) {
         <div className="kz-card kz-rate">
           <div className="kz-rate-head">
             <div>
-              <strong>{rating >= 4 ? `${rating}-star — thank you!` : "How was your visit?"}</strong>
+              <strong>{rating >= 4 ? `${rating} stars, thank you!` : "How was your visit?"}</strong>
               <span>{rating >= 4 ? "Would you say it on Google too?" : `Rate ${name}`}</span>
             </div>
             {rating > 0 && (
@@ -1882,7 +1882,7 @@ export function Success({ s, dispatch }: any) {
           )}
           {rating > 0 && rating < 4 &&
             (noteSent ? (
-              <p className="kz-rate-note">Thanks — we&apos;ve shared this privately with {name}. The team will see it.</p>
+              <p className="kz-rate-note">Thank you. We&apos;ve passed this privately to the {name} team.</p>
             ) : (
               <div className="kz-rate-note-form">
                 <textarea
@@ -1928,6 +1928,8 @@ export function DownloadReceiptButton({ s }: any) {
 }
 
 export function ReceiptChoice({ s, dispatch }: any) {
+  const share = s?.quote?.sharePesewas ?? 0;
+  const paidPesewas = s?.totalPaidPesewas ?? share + Math.round((share * (s?.tipPercent ?? 10)) / 100);
   const [name, setName] = useState(s?.firstName ?? "");
   const [phone, setPhone] = useState(s?.phone ?? s?.momoNumber ?? "");
   const submit = () => {
@@ -1937,7 +1939,7 @@ export function ReceiptChoice({ s, dispatch }: any) {
   return (
     <section>
       <p className="eyebrow">
-        {(s?.restaurantName || "").toUpperCase()} · RECEIPT {s?.receiptNumber ?? "#2841"}
+        {(s?.restaurantName || "").toUpperCase()}{s?.receiptNumber ? ` · RECEIPT ${s.receiptNumber}` : " · RECEIPT"}
       </p>
       <h1>
         Need a <em>receipt?</em>
@@ -1950,7 +1952,7 @@ export function ReceiptChoice({ s, dispatch }: any) {
         </div>
         <div className="grand-total">
           <span>Total paid</span>
-          <b>{money((s?.totalPaidPesewas ?? 38115) / 100)}</b>
+          <b>{money(paidPesewas / 100)}</b>
         </div>
       </div>
       <label className="field-label">
@@ -1980,127 +1982,10 @@ export function ReceiptChoice({ s, dispatch }: any) {
   );
 }
 
-export function Phone({ s, dispatch }: any) {
-  const [phone, setPhone] = useState(s?.phone ?? "");
-  const [err, setErr] = useState(false);
-  const submit = () => {
-    if (phone.replace(/\D/g, "").length < 9) {
-      setErr(true);
-      return;
-    }
-    dispatch({ type: "patch-go", value: { phone }, to: "name" });
-  };
-  return (
-    <section>
-      <Back dispatch={dispatch} to="receipt-choice" />
-      <p className="eyebrow">OPTIONAL · REWARDS</p>
-      <h1>
-        Save your
-        <br />
-        <em>rewards.</em>
-      </h1>
-      <p className="muted">
-        Add your phone number to save this receipt and collect {s?.restaurantName || ""} rewards. No
-        account or sign-in needed.
-      </p>
-      <label className="field-label">
-        Phone number
-        <input
-          value={phone}
-          onChange={(e) => {
-            setPhone(e.target.value);
-            setErr(false);
-          }}
-          placeholder="024 000 0000"
-          inputMode="tel"
-        />
-      </label>
-      {err && (
-        <p className="muted" style={{ color: "#c0392b" }}>
-          Enter a valid phone number.
-        </p>
-      )}
-      <Action onClick={submit}>Save &amp; earn rewards</Action>
-    </section>
-  );
-}
-
-export function OtpRewards({ dispatch }: any) {
-  const [code, setCode] = useState("");
-  return (
-    <section>
-      <Back dispatch={dispatch} to="phone" />
-      <p className="eyebrow">VERIFY YOUR NUMBER</p>
-      <h1>
-        Check your
-        <br />
-        <em>messages.</em>
-      </h1>
-      <p className="muted">Enter the six-digit demo code sent to your phone.</p>
-      <input
-        className="otp"
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        placeholder="123456"
-        inputMode="numeric"
-      />
-      <Action onClick={() => dispatch({ type: "otp-verify", value: { code } })}>
-        Verify number
-      </Action>
-    </section>
-  );
-}
-
-export function Name({ s, dispatch }: any) {
-  const [name, setName] = useState("");
-  return (
-    <section>
-      <Back dispatch={dispatch} to="phone" />
-      <p className="eyebrow">OPTIONAL</p>
-      <h1>
-        One name,
-        <br />
-        <em>if you like.</em>
-      </h1>
-      <p className="muted">
-        Personalise your next {s?.restaurantName || ""} visit. You can skip this.
-      </p>
-      <label className="field-label">
-        Your name
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ama" />
-      </label>
-      <Action onClick={() => dispatch({ type: "rewards-consent", value: { firstName: name } })}>
-        Save rewards
-      </Action>
-      <button
-        className="outline-button"
-        onClick={() => dispatch({ type: "rewards-consent", value: {} })}
-      >
-        Skip for now
-      </button>
-    </section>
-  );
-}
-
-export function Rewards({ s, dispatch }: any) {
-  return (
-    <Center
-      logoUrl={s?.logoUrl}
-      alt={s?.restaurantName}
-      eyebrow="REWARDS SAVED"
-      title={"See you<br /><em>again.</em>"}
-      copy={`Your receipt is saved and 120 ${s?.restaurantName || ""} points have been added.`}
-      icon="★"
-    >
-      <Action onClick={() => dispatch(go("feedback"))}>Share feedback</Action>
-    </Center>
-  );
-}
-
 export function GuestReceipt({ s, dispatch }: any) {
   return (
     <section>
-      <p className="eyebrow">RECEIPT · {s?.receiptNumber ?? "#2841"}</p>
+      <p className="eyebrow">{s?.receiptNumber ? `RECEIPT · ${s.receiptNumber}` : "RECEIPT"}</p>
       <h1>
         All <em>done.</em>
       </h1>
@@ -2138,7 +2023,7 @@ export function ReviewHandoff({ s, dispatch }: any) {
         ))}
       </div>
       <p className="muted">
-        {rating ? "Thanks — your rating is saved." : "Tap a star to share how it felt."}
+        {rating ? "Thanks, your rating is saved." : "Tap a star to share how it felt."}
       </p>
       {s?.reviewUrl && (
         <Action
@@ -2393,10 +2278,6 @@ export const map: Record<string, any> = {
   "payment-error": (p: any) => <PaymentError {...p} />,
   success: Success,
   "receipt-choice": ReceiptChoice,
-  phone: Phone,
-  "otp-rewards": OtpRewards,
-  name: Name,
-  rewards: Rewards,
   "guest-receipt": GuestReceipt,
   feedback: Feedback,
   "review-handoff": ReviewHandoff,
