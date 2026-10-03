@@ -21,7 +21,8 @@ export default defineConfig({
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    // Money-path unit/contract tests need no browser; run them once.
+    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: /tests\/money\// },
   ],
   // Locally this boots the dev server for you. In CI the workflow starts it
   // first, and reuseExistingServer makes Playwright attach to that one.

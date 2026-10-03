@@ -13,8 +13,15 @@ test("home route serves the diner app shell", async ({ page }) => {
   // proves build + boot + routing. A hard crash would fail server startup above.
   expect(status, `unexpected status ${status}`).toBeLessThan(501);
 
-  const bodyText = await page.locator("body").innerText();
-  expect(bodyText.trim().length, "body should not be blank").toBeGreaterThan(0);
+  // The diner app is client-rendered: SSR ships an empty Suspense shell and the
+  // first visible text only appears after hydration + the session lookup
+  // (several seconds on a cold dev server). Poll instead of reading once.
+  await expect
+    .poll(async () => (await page.locator("body").innerText()).trim().length, {
+      message: "body should render text after hydration",
+      timeout: 30_000,
+    })
+    .toBeGreaterThan(0);
 
   if (status === 200) {
     await expect(page).toHaveTitle(/Klown/i);

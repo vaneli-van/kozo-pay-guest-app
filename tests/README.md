@@ -2,7 +2,10 @@
 
 These smoke tests run in GitHub Actions on every push (`.github/workflows/ci.yml`)
 and gate every build. They check that the app builds, the dev server boots, and
-the key routes serve real HTML. They are not business-logic or payment tests.
+the key routes serve real HTML. `tests/money/` adds the money-path checks: unit tests for the split allocation,
+quote, tax and Paystack gross-up math (`math.spec.ts`) and contract tests that
+every public money endpoint refuses a missing session with a JSON `{ok:false}`
+(`api.spec.ts`). They run against the same dev server and need no secrets.
 
 ## Run locally
 
