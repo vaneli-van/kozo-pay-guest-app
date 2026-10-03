@@ -4957,6 +4957,26 @@ export type Database = {
       }
     }
     Functions: {
+      items_split_assign: {
+        Args: { p_session_token: string; p_bill_item_id: string; p_units: number; p_name?: string | null }
+        Returns: Json
+      }
+      items_split_assign_remaining: {
+        Args: { p_session_token: string; p_name?: string | null }
+        Returns: Json
+      }
+      items_split_payload: {
+        Args: { p_split_id: string; p_session_id: string }
+        Returns: Json
+      }
+      items_split_recompute: {
+        Args: { p_split_id: string }
+        Returns: undefined
+      }
+      split_board: {
+        Args: { p_session_token: string }
+        Returns: Json
+      }
       _split_bills_feed: {
         Args: { p_days: number; p_restaurant_id: string }
         Returns: Json
