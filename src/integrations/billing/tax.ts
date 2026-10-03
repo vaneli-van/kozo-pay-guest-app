@@ -38,3 +38,34 @@ export function taxBreakdown(inclusivePesewas: number, rates: TaxRates = GH_TAX_
   const [net, nhil, getfund, vat, tourism] = allocate(total, w)
   return { net: net!, nhil: nhil!, getfund: getfund!, vat: vat!, tourism: tourism!, total, rates }
 }
+
+// One tax/levy line as shown on the bill and receipt. `rate` is a percentage or null when unknown.
+export type TaxLine = { name: string; rate: number | null; amountPesewas: number }
+export type BillTax = { net: number; total: number; lines: TaxLine[]; estimated: boolean }
+
+// What the bill/receipt should show for taxes. Prefers the breakdown the POS reported for the
+// bill (bills.tax_lines / tax_pesewas, written by the sync); otherwise falls back to the statutory
+// Ghana decomposition of the inclusive amount, flagged `estimated` so the UI can say so.
+export function billTax(inclusivePesewas: number, stored?: { tax_lines?: unknown; tax_pesewas?: number | null } | null): BillTax {
+  const inclusive = Math.max(0, Math.round(inclusivePesewas || 0))
+  const raw = stored?.tax_lines
+  if (Array.isArray(raw) && raw.length) {
+    const lines: TaxLine[] = raw
+      .map((l: any) => ({ name: String(l?.name ?? 'Tax'), rate: typeof l?.rate === 'number' ? l.rate : null, amountPesewas: Math.round(Number(l?.amountPesewas ?? l?.amount_pesewas ?? 0)) }))
+      .filter((l) => Number.isFinite(l.amountPesewas))
+    const total = lines.reduce((s, l) => s + l.amountPesewas, 0)
+    if (lines.length && total >= 0 && total <= inclusive) return { net: inclusive - total, total, lines, estimated: false }
+  }
+  const tb = taxBreakdown(inclusive)
+  return {
+    net: tb.net,
+    total: tb.nhil + tb.getfund + tb.vat + tb.tourism,
+    lines: [
+      { name: `NHIL ${tb.rates.nhil}%`, rate: tb.rates.nhil, amountPesewas: tb.nhil },
+      { name: `GETFund ${tb.rates.getfund}%`, rate: tb.rates.getfund, amountPesewas: tb.getfund },
+      { name: `VAT ${tb.rates.vat}%`, rate: tb.rates.vat, amountPesewas: tb.vat },
+      { name: `Tourism Levy ${tb.rates.tourism}%`, rate: tb.rates.tourism, amountPesewas: tb.tourism },
+    ],
+    estimated: true,
+  }
+}

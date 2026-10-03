@@ -511,6 +511,8 @@ export type Database = {
           service_charge_pesewas: number
           status: string
           subtotal_pesewas: number
+          tax_lines: Json | null
+          tax_pesewas: number | null
           table_id: string | null
           total_pesewas: number
         }
@@ -527,6 +529,8 @@ export type Database = {
           service_charge_pesewas?: number
           status?: string
           subtotal_pesewas?: number
+          tax_lines?: Json | null
+          tax_pesewas?: number | null
           table_id?: string | null
           total_pesewas?: number
         }
@@ -543,6 +547,8 @@ export type Database = {
           service_charge_pesewas?: number
           status?: string
           subtotal_pesewas?: number
+          tax_lines?: Json | null
+          tax_pesewas?: number | null
           table_id?: string | null
           total_pesewas?: number
         }

@@ -336,7 +336,7 @@ export default function App({
 
   // Live bill from the POS — refreshed whenever the diner is on a bill/payment screen.
   useEffect(() => {
-    const billScreens = ['welcome', 'empty', 'bill', 'bill-ready', 'waiting-bill', 'full-check', 'pay', 'split', 'split-share', 'tip', 'review', 'method']
+    const billScreens = ['welcome', 'empty', 'bill', 'bill-ready', 'waiting-bill', 'pay', 'split', 'split-share', 'tip', 'review', 'method']
     if (!sessionToken || !billScreens.includes(s.screen)) return
     let cancelled = false
     const load = async () => {

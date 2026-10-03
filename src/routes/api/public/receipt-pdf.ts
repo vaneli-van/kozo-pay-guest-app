@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { taxBreakdown } from '@/integrations/billing/tax'
+import { billTax } from '@/integrations/billing/tax'
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, 'Content-Type': 'application/json' } })
@@ -48,7 +48,8 @@ export const Route = createFileRoute('/api/public/receipt-pdf')({
           : { data: [] }
         const lines = (items ?? []).map((i: any) => ({ name: String(i.name ?? 'Item'), qty: i.qty ?? 1, amount: i.line_total_pesewas ?? 0 }))
         const itemsTotal = lines.reduce((s, l) => s + l.amount, 0)
-        const tax = taxBreakdown(itemsTotal)
+        const { data: taxBill } = session.active_bill_id ? await supabaseAdmin.from('bills').select('tax_lines,tax_pesewas').eq('id', session.active_bill_id).maybeSingle() : { data: null }
+        const tax = billTax(itemsTotal, taxBill as any)
 
         // ---- 80mm thermal-style PDF ----
         const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
@@ -168,10 +169,7 @@ export const Route = createFileRoute('/api/public/receipt-pdf')({
         left('TAX BREAKDOWN', 8, monoB, grey); y -= 12
         const taxRow = (label: string, amt: number) => { left(label, 8, mono, grey); right(`GHS ${ghs(amt)}`, 8, mono); y -= 12 }
         taxRow('Net (excl. tax)', tax.net)
-        taxRow('NHIL 2.5%', tax.nhil)
-        taxRow('GETFund 2.5%', tax.getfund)
-        taxRow('VAT 15%', tax.vat)
-        taxRow('Tourism Levy 1%', tax.tourism)
+        for (const l of tax.lines) taxRow(l.name, l.amountPesewas)
         rule(); y -= 12
 
         left('Order total (incl. tax)', 8, mono); right(`GHS ${ghs(itemsTotal)}`, 8, mono); y -= 12

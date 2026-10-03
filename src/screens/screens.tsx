@@ -28,7 +28,7 @@ import {
 import { FaApple } from "react-icons/fa6";
 import { go, screens, type Screen } from "../session/machine";
 import { money } from "../lib/format";
-import { taxBreakdown } from "../integrations/billing/tax";
+import { billTax } from "../integrations/billing/tax";
 import { Back, Action, Center, BillRow } from "../ui/primitives";
 import { KzHeader, Money, Sheet } from "../ui/kz";
 import { openState, hoursLine } from "../lib/hours";
@@ -471,20 +471,16 @@ function CheckoutHeader({ s, dispatch, title, step, back }: any) {
   return <KzHeader s={s} dispatch={dispatch} title={title} step={step} back={back} />;
 }
 
-function TaxBreakdown({ inclusive }: { inclusive: number }) {
-  const tb = taxBreakdown(inclusive);
-  const rows: [string, number][] = [
-    ["Net (excl. tax)", tb.net],
-    ["NHIL 2.5%", tb.nhil],
-    ["GETFund 2.5%", tb.getfund],
-    ["VAT 15%", tb.vat],
-    ["Tourism Levy 1%", tb.tourism],
-  ];
+function TaxBreakdown({ bill }: { bill: any }) {
+  // Prefer the POS's own VAT/levy split for this bill; fall back to the statutory estimate.
+  const tb = billTax(bill?.subtotalPesewas ?? bill?.totalPesewas ?? 0, null);
+  const tax = bill?.tax && Array.isArray(bill.tax.lines) ? bill.tax : tb;
+  const rows: [string, number][] = [["Net (excl. tax)", tax.net], ...tax.lines.map((l: any) => [l.name, l.amountPesewas] as [string, number])];
   return (
     <div className="kz-tax" aria-label="Tax breakdown">
       <div className="kz-tax-title">
         <span>Taxes &amp; levies</span>
-        <span>Included</span>
+        <span>{tax.estimated ? "Included (estimated)" : "Included"}</span>
       </div>
       {rows.map(([label, v]) => (
         <div className="kz-row" key={label}>
@@ -563,7 +559,7 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
                   <span>Service charge</span>
                   <span>{pes(b?.serviceChargePesewas)}</span>
                 </div>
-                <TaxBreakdown inclusive={b?.subtotalPesewas ?? b?.totalPesewas ?? 0} />
+                <TaxBreakdown bill={b} />
                 <hr className="kz-divider" />
               </>
             )}
@@ -620,144 +616,6 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
           document.body,
         )}
     </>
-  );
-}
-
-export function FullCheck({ s, dispatch }: any) {
-  const b = s?.bill;
-  const tb = taxBreakdown(b?.subtotalPesewas ?? b?.totalPesewas ?? 0);
-  return (
-    <section>
-      <Back dispatch={dispatch} to="bill" />
-      <p className="eyebrow">FULL CHECK · TABLE 07</p>
-      <h1>
-        Everything
-        <br />
-        <em>looks good.</em>
-      </h1>
-      <div className="receipt-card">
-        <BillRow
-          name={`Dinner for ${s?.people ?? 2}`}
-          qty=""
-          price={(b?.subtotalPesewas ?? 0) / 100}
-        />
-        <BillRow name="Service charge" qty="" price={(b?.serviceChargePesewas ?? 0) / 100} />
-        <div className="tax-lines">
-          <div className="tax-row">
-            <span>Net (excl. tax)</span>
-            <span>{pes(tb.net)}</span>
-          </div>
-          <div className="tax-row">
-            <span>NHIL 2.5%</span>
-            <span>{pes(tb.nhil)}</span>
-          </div>
-          <div className="tax-row">
-            <span>GETFund 2.5%</span>
-            <span>{pes(tb.getfund)}</span>
-          </div>
-          <div className="tax-row">
-            <span>VAT 15%</span>
-            <span>{pes(tb.vat)}</span>
-          </div>
-          <div className="tax-row">
-            <span>Tourism Levy 1%</span>
-            <span>{pes(tb.tourism)}</span>
-          </div>
-        </div>
-        <div className="grand-total">
-          <span>Total</span>
-          <b>{pes(b?.totalPesewas)}</b>
-        </div>
-      </div>
-      <Action onClick={() => dispatch(go("recommendation"))}>Continue</Action>
-    </section>
-  );
-}
-
-export function Recommendation({ s, dispatch }: any) {
-  const dig = s?.menu?.digital || {};
-  const th = s?.menu?.theme || {};
-  const plain = th?.layout?.price_style === "plain";
-  const fmtP = (p: number | null | undefined) =>
-    p == null
-      ? ""
-      : plain
-        ? (p / 100).toLocaleString("en-GH", { maximumFractionDigits: 2 })
-        : pes(p);
-  const hasRec = !!(dig.rec_name && String(dig.rec_name).trim());
-  if (hasRec) {
-    return (
-      <section>
-        <Back dispatch={dispatch} to="full-check" />
-        <p className="eyebrow">BEFORE YOU GO</p>
-        <h1>
-          One last
-          <br />
-          <em>little thing?</em>
-        </h1>
-        <div className="recommend-card">
-          {dig.rec_image_url ? (
-            <img src={dig.rec_image_url} alt={dig.rec_name} onError={imgFallback} />
-          ) : null}
-          <div>
-            <p className="eyebrow">CHEF’S PICK</p>
-            <h2>{dig.rec_name}</h2>
-            {dig.rec_note ? <p>{dig.rec_note}</p> : null}
-            {dig.rec_price_pesewas != null ? <b>{fmtP(dig.rec_price_pesewas)}</b> : null}
-          </div>
-        </div>
-        <Action onClick={() => dispatch(go("pay"))}>Settle the bill</Action>
-      </section>
-    );
-  }
-  if (s?.menu?.source === "studio") {
-    return (
-      <section>
-        <Back dispatch={dispatch} to="full-check" />
-        <p className="eyebrow">BEFORE YOU GO</p>
-        <h1>
-          Ready to
-          <br />
-          <em>settle up?</em>
-        </h1>
-        <p className="muted">Review your check and pay whenever you’re ready.</p>
-        <Action onClick={() => dispatch(go("pay"))}>Settle the bill</Action>
-      </section>
-    );
-  }
-  const recs = s?.menu?.recommendations ?? [];
-  const rec = recs.find((r: any) => r.kind === "dessert") ?? recs[0];
-  const it = rec ? (s?.menu?.items ?? []).find((i: any) => i.id === rec.item_id) : undefined;
-  return (
-    <section>
-      <Back dispatch={dispatch} to="full-check" />
-      <p className="eyebrow">BEFORE YOU GO</p>
-      <h1>
-        One last
-        <br />
-        <em>little thing?</em>
-      </h1>
-      <div className="recommend-card">
-        <img src={menuImg(it)} alt={it?.name ?? "Chef recommendation"} onError={imgFallback} />
-        <div>
-          <p className="eyebrow">{(rec?.kind ?? "CHEF").toUpperCase()}</p>
-          <h2>{it?.name ?? rec?.title ?? "Chef’s pick"}</h2>
-          <p>{rec?.subtitle ?? ""}</p>
-          <b>{pes(it?.price_pesewas)}</b>
-        </div>
-      </div>
-      <Action onClick={() => dispatch(go("pay"))}>Settle the bill</Action>
-      {it && (
-        <button
-          className="outline-button"
-          onClick={() =>
-            dispatch({ type: "patch-go", value: { selectedItem: it, dish: it.name }, to: "dish" })
-          }
-        >
-          View details
-        </button>
-      )}
-    </section>
   );
 }
 
@@ -2261,8 +2119,6 @@ export const map: Record<string, any> = {
   "bill-ready": (p: any) => <Bill {...p} ready />,
   bill: Bill,
   "bill-issue": BillIssue,
-  "full-check": FullCheck,
-  recommendation: Recommendation,
   pay: Pay,
   split: Split,
   "split-share": (p: any) => <SplitShare {...p} />,

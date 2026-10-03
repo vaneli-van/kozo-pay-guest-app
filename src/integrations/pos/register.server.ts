@@ -76,6 +76,8 @@ export async function syncRegisterBill(session: SessionLike): Promise<RegisterBi
         subtotal_pesewas: order.amountPesewas,
         service_charge_pesewas: 0,
         total_pesewas: order.amountPesewas,
+        tax_lines: order.taxLines,
+        tax_pesewas: order.taxLines ? order.taxPesewas : null,
       })
       .select('id')
       .single()

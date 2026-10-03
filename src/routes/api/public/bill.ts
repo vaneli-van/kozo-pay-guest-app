@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { billTax } from '@/integrations/billing/tax'
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
 function json(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } }) }
@@ -20,13 +21,13 @@ export const Route = createFileRoute('/api/public/bill')({
             const { syncRegisterBill } = await import('@/integrations/pos/register.server')
             const sync = await syncRegisterBill({ id: session.id, register_id: session.register_id })
             if (sync.reason !== 'ready' || !sync.billId) return json({ ok: true, bill: null, orderStatus: sync.reason })
-            const { data: bill } = await supabaseAdmin.from('bills').select('status,subtotal_pesewas,service_charge_pesewas,total_pesewas').eq('id', sync.billId).maybeSingle()
+            const { data: bill } = await supabaseAdmin.from('bills').select('status,subtotal_pesewas,service_charge_pesewas,total_pesewas,tax_lines,tax_pesewas').eq('id', sync.billId).maybeSingle()
             const { data: items } = await supabaseAdmin.from('bill_items').select('name,qty,line_total_pesewas').eq('bill_id', sync.billId).order('sort')
             if (!bill) return json({ ok: true, bill: null, orderStatus: 'waiting' })
             const { amountPaidForBill: paidFor } = await import('@/integrations/payments/provider')
             const qPaid = await paidFor(sync.billId)
             const qRemaining = Math.max(0, (bill.total_pesewas ?? 0) - qPaid)
-            return json({ ok: true, orderStatus: 'ready', bill: { status: bill.status, items: (items ?? []).map((i: any) => ({ name: i.name, qty: i.qty, lineTotalPesewas: i.line_total_pesewas })), subtotalPesewas: bill.subtotal_pesewas, serviceChargePesewas: bill.service_charge_pesewas, totalPesewas: bill.total_pesewas, paidPesewas: qPaid, remainingPesewas: qRemaining, serverName: null } })
+            return json({ ok: true, orderStatus: 'ready', bill: { status: bill.status, items: (items ?? []).map((i: any) => ({ name: i.name, qty: i.qty, lineTotalPesewas: i.line_total_pesewas })), subtotalPesewas: bill.subtotal_pesewas, serviceChargePesewas: bill.service_charge_pesewas, totalPesewas: bill.total_pesewas, tax: billTax(bill.subtotal_pesewas, bill as any), paidPesewas: qPaid, remainingPesewas: qRemaining, serverName: null } })
           }
 
           const { posProvider } = await import('@/integrations/pos/provider')
@@ -38,7 +39,7 @@ export const Route = createFileRoute('/api/public/bill')({
           const paidPesewas = await amountPaidForBill(bill.id)
           const remainingPesewas = Math.max(0, (bill.totalPesewas ?? 0) - paidPesewas)
           // Read-only: the diner can never mutate bill items.
-          return json({ ok: true, bill: { status: bill.status, items: bill.items, subtotalPesewas: bill.subtotalPesewas, serviceChargePesewas: bill.serviceChargePesewas, totalPesewas: bill.totalPesewas, paidPesewas, remainingPesewas, serverName: bill.serverName ?? null } })
+          return json({ ok: true, bill: { status: bill.status, items: bill.items, subtotalPesewas: bill.subtotalPesewas, serviceChargePesewas: bill.serviceChargePesewas, totalPesewas: bill.totalPesewas, tax: bill.tax, paidPesewas, remainingPesewas, serverName: bill.serverName ?? null } })
         } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
       },
     },

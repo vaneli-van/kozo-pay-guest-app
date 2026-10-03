@@ -1,16 +1,17 @@
 import { supabaseAdmin } from '@/integrations/supabase/client.server'
+import { billTax, type BillTax } from '@/integrations/billing/tax'
 
 // POS provider adapter. The mock reads the bill that a restaurant POS/order-management
 // system has synced into Supabase. Swap MockPosProvider for a real adapter (Vend, Loyverse,
 // a custom POS webhook sync, etc.) without changing any route or UI code.
 export interface PosBillItem { name: string; qty: number; lineTotalPesewas: number }
-export interface PosBill { id: string; status: string; items: PosBillItem[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number; serverName?: string | null }
+export interface PosBill { id: string; status: string; items: PosBillItem[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number; serverName?: string | null; tax: BillTax }
 export interface PosProvider { getActiveBillForTable(tableId: string): Promise<PosBill | null> }
 
 export class MockPosProvider implements PosProvider {
   async getActiveBillForTable(tableId: string): Promise<PosBill | null> {
     const { data: bill } = await supabaseAdmin
-      .from('bills').select('id,status,subtotal_pesewas,service_charge_pesewas,total_pesewas,server_name')
+      .from('bills').select('id,status,subtotal_pesewas,service_charge_pesewas,total_pesewas,server_name,tax_lines,tax_pesewas')
       .eq('table_id', tableId).in('status', ['open', 'ready']).order('opened_at', { ascending: false }).maybeSingle()
     if (!bill) return null
     const { data: items } = await supabaseAdmin
@@ -18,6 +19,7 @@ export class MockPosProvider implements PosProvider {
     return {
       id: bill.id, status: bill.status, serverName: bill.server_name ?? null,
       subtotalPesewas: bill.subtotal_pesewas, serviceChargePesewas: bill.service_charge_pesewas, totalPesewas: bill.total_pesewas,
+      tax: billTax(bill.subtotal_pesewas, bill as any),
       items: (items ?? []).map((i) => ({ name: i.name, qty: i.qty, lineTotalPesewas: i.line_total_pesewas })),
     }
   }

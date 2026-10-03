@@ -66,15 +66,12 @@ export async function renderOdooReceiptPng(d: any): Promise<Blob> {
   divider();
   lr("Subtotal", ghs(d.subtotalPesewas), 15);
   if ((d.serviceChargePesewas || 0) > 0) lr("Service charge", ghs(d.serviceChargePesewas), 15);
-  const t = d.tax || {}, r = t.rates || {};
-  if (t.net != null) {
+  const t = d.tax || {};
+  if (t.net != null && Array.isArray(t.lines)) {
     gap(4);
-    lr("Taxes & levies (incl.)", "", 12, false, muted);
+    lr(t.estimated ? "Taxes & levies (incl., estimated)" : "Taxes & levies (incl.)", "", 12, false, muted);
     lr("  Net (excl. tax)", ghs(t.net), 12, false, muted);
-    lr(`  NHIL ${r.nhil ?? 2.5}%`, ghs(t.nhil), 12, false, muted);
-    lr(`  GETFund ${r.getfund ?? 2.5}%`, ghs(t.getfund), 12, false, muted);
-    lr(`  VAT ${r.vat ?? 15}%`, ghs(t.vat), 12, false, muted);
-    lr(`  Tourism ${r.tourism ?? 1}%`, ghs(t.tourism), 12, false, muted);
+    for (const l of t.lines) lr(`  ${l.name}`, ghs(l.amountPesewas), 12, false, muted);
   }
   divider();
   lr("TOTAL PAID", `GH₵ ${ghs(d.totalPaidPesewas)}`, 18, true);

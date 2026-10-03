@@ -25,7 +25,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
           const secret = secretRow?.value || process.env['SYNC_SECRET']
           if (!secret || request.headers.get('x-sync-secret') !== secret) return json({ ok: false, reason: 'unauthorized' }, 401)
 
-          const { searchRead } = await import('@/integrations/pos/odoo.server')
+          const { searchRead, loadOdooTaxes, odooTaxLines } = await import('@/integrations/pos/odoo.server')
 
           // All restaurants with active Odoo credentials.
           const { data: creds } = await supabaseAdmin.from('pos_odoo_credentials')
@@ -48,20 +48,23 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               for (const t of tables ?? []) { klownByNum.set(parseInt(t.label, 10), t.id); klownTableIds.push(t.id) }
 
               // Odoo open (draft) orders seated at a table.
-              const orders = await searchRead(cfg, 'pos.order', [['state', '=', 'draft']], ['id', 'table_id', 'amount_total', 'employee_id', 'cashier'])
+              const orders = await searchRead(cfg, 'pos.order', [['state', '=', 'draft']], ['id', 'table_id', 'amount_total', 'amount_tax', 'employee_id', 'cashier'])
               const seated = orders.filter((o: any) => Array.isArray(o.table_id))
               const odooTableIds = [...new Set(seated.map((o: any) => o.table_id[0]))]
               const otables = odooTableIds.length ? await searchRead(cfg, 'restaurant.table', [['id', 'in', odooTableIds]], ['id', 'table_number']) : []
               const numByOdooTable = new Map<number, number>()
               for (const t of otables) numByOdooTable.set(t.id, t.table_number)
               const orderIds = seated.map((o: any) => o.id)
-              const lines = orderIds.length ? await searchRead(cfg, 'pos.order.line', [['order_id', 'in', orderIds]], ['order_id', 'full_product_name', 'qty', 'price_subtotal_incl']) : []
+              const lines = orderIds.length ? await searchRead(cfg, 'pos.order.line', [['order_id', 'in', orderIds]], ['order_id', 'full_product_name', 'qty', 'price_subtotal', 'price_subtotal_incl', 'tax_ids']) : []
               const linesByOrder = new Map<number, any[]>()
               for (const l of lines) {
                 const oid = Array.isArray(l.order_id) ? l.order_id[0] : l.order_id
                 if (!linesByOrder.has(oid)) linesByOrder.set(oid, [])
                 linesByOrder.get(oid)!.push(l)
               }
+              // The taxes those lines carry, so the bill can show the POS's real VAT/levy split.
+              const taxIds = [...new Set(lines.flatMap((l: any) => (Array.isArray(l.tax_ids) ? l.tax_ids : [])))] as number[]
+              const taxes = taxIds.length ? await loadOdooTaxes(cfg, taxIds) : new Map()
 
               // Refresh open bills, but PRESERVE any bill a diner is mid-paying or has paid.
               // payment_attempts.bill_id is ON DELETE SET NULL, so deleting a bill under an
@@ -139,15 +142,17 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 if (!klownId) continue
                 if (protectedTableIds.has(klownId)) continue // diner mid-payment or paid — leave their bill intact
                 const total = Math.round((o.amount_total || 0) * 100)
+                const ol = linesByOrder.get(o.id) ?? []
+                const taxPesewas = Math.round((o.amount_tax || 0) * 100)
+                const taxLines = odooTaxLines(ol, taxes, taxPesewas)
                 // The waiter/server on the POS order — employee_id is the seated staff member;
                 // fall back to the cashier label. First name only keeps the tip prompt friendly.
                 const rawServer = (Array.isArray(o.employee_id) ? o.employee_id[1] : '') || (typeof o.cashier === 'string' ? o.cashier : '')
                 const serverName = rawServer ? String(rawServer).trim().split(/\s+/)[0] || null : null
                 const { data: nb } = await supabaseAdmin.from('bills')
-                  .insert({ table_id: klownId, status: 'open', subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total, server_name: serverName as string | null, opened_at: new Date().toISOString() })
+                  .insert({ table_id: klownId, status: 'open', subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total, tax_lines: taxLines, tax_pesewas: taxLines ? taxPesewas : null, server_name: serverName as string | null, opened_at: new Date().toISOString() })
                   .select('id').single()
                 if (!nb) continue
-                const ol = linesByOrder.get(o.id) ?? []
                 const items = ol.map((l: any, i: number) => ({
                   bill_id: nb.id,
                   name: String(l.full_product_name || 'Item').trim(),

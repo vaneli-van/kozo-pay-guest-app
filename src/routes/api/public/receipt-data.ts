@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { taxBreakdown } from '@/integrations/billing/tax'
+import { billTax } from '@/integrations/billing/tax'
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, 'Content-Type': 'application/json' } })
@@ -38,11 +38,11 @@ export const Route = createFileRoute('/api/public/receipt-data')({
           await supabaseAdmin.from('audit_events').insert({ session_id: session.id, type: 'receipt.issued', data: { total: totalPaid } })
         }
 
-        const { data: bill } = session.active_bill_id ? await supabaseAdmin.from('bills').select('subtotal_pesewas,service_charge_pesewas,total_pesewas,server_name').eq('id', session.active_bill_id).maybeSingle() : { data: null }
+        const { data: bill } = session.active_bill_id ? await supabaseAdmin.from('bills').select('subtotal_pesewas,service_charge_pesewas,total_pesewas,server_name,tax_lines,tax_pesewas').eq('id', session.active_bill_id).maybeSingle() : { data: null }
         const { data: items } = session.active_bill_id ? await supabaseAdmin.from('bill_items').select('name,qty,line_total_pesewas,sort').eq('bill_id', session.active_bill_id).order('sort') : { data: [] }
         const lines = (items ?? []).map((i: any) => ({ name: String(i.name ?? 'Item'), qty: i.qty ?? 1, amount: i.line_total_pesewas ?? 0 }))
         const itemsTotal = lines.reduce((s, l) => s + l.amount, 0)
-        const tax = taxBreakdown(itemsTotal)
+        const tax = billTax(itemsTotal, bill as any)
 
         return json({
           ok: true,
@@ -55,7 +55,7 @@ export const Route = createFileRoute('/api/public/receipt-data')({
           lines,
           subtotalPesewas: itemsTotal,
           serviceChargePesewas: bill?.service_charge_pesewas ?? 0,
-          tax: { net: tax.net, nhil: tax.nhil, getfund: tax.getfund, vat: tax.vat, tourism: tax.tourism, rates: tax.rates },
+          tax: { net: tax.net, total: tax.total, lines: tax.lines, estimated: tax.estimated },
           totalPaidPesewas: totalPaid,
           tipPesewas: tipPaid,
           method,
