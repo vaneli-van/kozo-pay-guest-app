@@ -73,7 +73,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               // without an order id are adopted by table on first sight.
               const nowMs = Date.now()
               const { data: existBills } = klownTableIds.length
-                ? await supabaseAdmin.from('bills').select('id, table_id, status, odoo_order_id, subtotal_pesewas, total_pesewas, tax_pesewas, server_name').in('table_id', klownTableIds).in('status', ['open', 'ready'])
+                ? await supabaseAdmin.from('bills').select('id, table_id, status, odoo_order_id, odoo_order_ids, subtotal_pesewas, total_pesewas, tax_pesewas, server_name').in('table_id', klownTableIds).in('status', ['open', 'ready'])
                 : { data: [] as any[] }
               const liveBills = (existBills ?? []) as any[]
               const billIds = liveBills.map((b) => b.id as string)
@@ -116,28 +116,39 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 }
               }
 
-              // Pair every seated Odoo order with a live Klown bill: by order id, else by table.
-              const seatedById = new Map<number, any>()
-              const klownIdForOrder = new Map<number, string>()
+              // ---- One Klown bill per table, covering EVERY open POS order on that table ----
+              // Odoo lets several orders sit on one table (a second round punched as a new ticket,
+              // or an older order nobody closed). Klown shows the table as one bill: items, totals
+              // and tax lines summed across those orders. Orders already paid in full through Klown
+              // (a settled bill that covered them) stay out until staff close them on the POS, so a
+              // paid order is never shown to the table again as unpaid.
+              const ordersByTable = new Map<string, any[]>()
               for (const o of seated) {
                 const num = numByOdooTable.get(o.table_id[0])
                 const klownId = num == null ? undefined : klownByNum.get(num)
                 if (!klownId) continue
-                seatedById.set(o.id, o)
-                klownIdForOrder.set(o.id, klownId)
+                if (!ordersByTable.has(klownId)) ordersByTable.set(klownId, [])
+                ordersByTable.get(klownId)!.push(o)
               }
-              const billForOrder = new Map<number, any>()
-              const unmatched: any[] = []
-              for (const b of liveBills) if (b.odoo_order_id != null && seatedById.has(b.odoo_order_id)) billForOrder.set(b.odoo_order_id, b); else unmatched.push(b)
-              for (const b of unmatched.filter((x) => x.odoo_order_id == null)) {
-                const oid = [...klownIdForOrder.entries()].find(([id, k]) => k === b.table_id && !billForOrder.has(id))?.[0]
-                if (oid != null) { billForOrder.set(oid, b); unmatched.splice(unmatched.indexOf(b), 1) }
+              const seatedIds = seated.map((o: any) => o.id as number)
+              const paidOrderIds = new Set<number>()
+              if (seatedIds.length && klownTableIds.length) {
+                const { data: settled } = await supabaseAdmin.from('bills').select('odoo_order_ids,odoo_order_id')
+                  .in('table_id', klownTableIds).eq('status', 'settled').overlaps('odoo_order_ids', seatedIds)
+                for (const b of (settled ?? []) as any[]) for (const id of (b.odoo_order_ids ?? [b.odoo_order_id])) if (id != null) paidOrderIds.add(id)
               }
+              for (const [k, list] of ordersByTable) {
+                const unpaid = list.filter((o) => !paidOrderIds.has(o.id)).sort((a, b) => a.id - b.id)
+                if (unpaid.length) ordersByTable.set(k, unpaid); else ordersByTable.delete(k)
+              }
+              const liveByTable = new Map<string, any>()
+              for (const b of liveBills) if (!liveByTable.has(b.table_id)) liveByTable.set(b.table_id, b)
 
-              // Live bills with no open order on the POS are finished: settled if anything was
-              // captured on them, void otherwise. Odoo is the source of truth for "still open".
-              // (A bill with a MoMo prompt still awaiting approval gets one more cycle before closing.)
-              const finished = unmatched.filter((b) => !pendingBillIds.has(b.id))
+              // Live bills on a table with no unpaid open order left on the POS are finished:
+              // settled if anything was captured on them, void otherwise. Odoo is the source of
+              // truth for "still open". (A bill with a MoMo prompt still awaiting approval gets one
+              // more cycle before closing.)
+              const finished = liveBills.filter((b) => !ordersByTable.has(b.table_id) && !pendingBillIds.has(b.id))
               if (finished.length) {
                 const ids = finished.map((b) => b.id as string)
                 const settledIds = ids.filter((id) => paidBillIds.has(id))
@@ -149,28 +160,49 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               }
 
               let written = 0
-              for (const [oid, o] of seatedById) {
-                const klownId = klownIdForOrder.get(oid)!
-                const total = Math.round((o.amount_total || 0) * 100)
-                const ol = linesByOrder.get(oid) ?? []
-                const taxPesewas = Math.round((o.amount_tax || 0) * 100)
-                const taxLines = odooTaxLines(ol, taxes, taxPesewas)
-                // The waiter/server on the POS order — employee_id is the seated staff member;
-                // fall back to the cashier label. First name only keeps the tip prompt friendly.
-                const rawServer = (Array.isArray(o.employee_id) ? o.employee_id[1] : '') || (typeof o.cashier === 'string' ? o.cashier : '')
+              for (const [klownId, orders] of ordersByTable) {
+                const orderIds = orders.map((o) => o.id as number)
+                let total = 0, taxPesewas = 0
+                const taxByName = new Map<string, { name: string; rate: number | null; amountPesewas: number }>()
+                let anyTaxLines = false
+                const items: { name: string; qty: number; line_total_pesewas: number; sort: number }[] = []
+                for (const o of orders) {
+                  total += Math.round((o.amount_total || 0) * 100)
+                  const ol = linesByOrder.get(o.id) ?? []
+                  const tp = Math.round((o.amount_tax || 0) * 100)
+                  taxPesewas += tp
+                  const tl = odooTaxLines(ol, taxes, tp)
+                  if (tl) {
+                    anyTaxLines = true
+                    for (const l of tl) {
+                      const cur = taxByName.get(l.name)
+                      if (cur) cur.amountPesewas += l.amountPesewas; else taxByName.set(l.name, { ...l })
+                    }
+                  }
+                  for (const l of ol) items.push({
+                    name: String(l.full_product_name || 'Item').trim(),
+                    qty: Math.max(1, Math.round(l.qty || 1)),
+                    line_total_pesewas: Math.round((l.price_subtotal_incl || 0) * 100),
+                    sort: (items.length + 1) * 10,
+                  })
+                }
+                const taxLines = anyTaxLines ? [...taxByName.values()].sort((a, b) => b.amountPesewas - a.amountPesewas) : null
+                // The waiter on the most recent order (employee_id = who punched it; cashier as fallback).
+                // First name only keeps the tip prompt friendly.
+                const latest = orders[orders.length - 1]
+                const rawServer = (Array.isArray(latest.employee_id) ? latest.employee_id[1] : '') || (typeof latest.cashier === 'string' ? latest.cashier : '')
                 const serverName = rawServer ? String(rawServer).trim().split(/\s+/)[0] || null : null
-                const items = ol.map((l: any, i: number) => ({
-                  name: String(l.full_product_name || 'Item').trim(),
-                  qty: Math.max(1, Math.round(l.qty || 1)),
-                  line_total_pesewas: Math.round((l.price_subtotal_incl || 0) * 100),
-                  sort: (i + 1) * 10,
-                }))
-                const header = { subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total, tax_lines: taxLines, tax_pesewas: taxLines ? taxPesewas : null, server_name: serverName as string | null, odoo_order_id: oid, odoo_session_id: Array.isArray(o.session_id) ? o.session_id[0] : null }
+                const header = {
+                  subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total,
+                  tax_lines: taxLines, tax_pesewas: taxLines ? taxPesewas : null, server_name: serverName as string | null,
+                  odoo_order_id: orderIds[0]!, odoo_order_ids: orderIds,
+                  odoo_session_id: Array.isArray(latest.session_id) ? latest.session_id[0] : null,
+                }
 
-                const existing = billForOrder.get(oid)
+                const existing = liveByTable.get(klownId)
                 if (!existing) {
-                  const { data: nb } = await supabaseAdmin.from('bills').insert({ table_id: klownId, status: 'open', opened_at: new Date().toISOString(), ...header }).select('id').single()
-                  if (!nb) continue
+                  const { data: nb, error: insErr } = await supabaseAdmin.from('bills').insert({ table_id: klownId, status: 'open', opened_at: new Date().toISOString(), ...header }).select('id').single()
+                  if (!nb) { if (insErr) console.error('pos-orders: bill insert failed', klownId, insErr.message); continue }
                   if (items.length) await supabaseAdmin.from('bill_items').insert(items.map((it) => ({ ...it, bill_id: nb.id })))
                   written++
                   continue
@@ -179,7 +211,8 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 // Existing bill: update in place. Items are replaced only when nothing references
                 // them (an item split assigns diners to bill_items rows). While a split is in use
                 // the totals still refresh, so the diner never sees a stale balance.
-                const changed = existing.total_pesewas !== total || existing.subtotal_pesewas !== total || (existing.tax_pesewas ?? null) !== (taxLines ? taxPesewas : null) || (existing.server_name ?? null) !== serverName || existing.odoo_order_id !== oid
+                const sameIds = JSON.stringify(existing.odoo_order_ids ?? (existing.odoo_order_id != null ? [existing.odoo_order_id] : [])) === JSON.stringify(orderIds)
+                const changed = !sameIds || existing.total_pesewas !== total || existing.subtotal_pesewas !== total || (existing.tax_pesewas ?? null) !== (taxLines ? taxPesewas : null) || (existing.server_name ?? null) !== serverName
                 const { data: curItems } = await supabaseAdmin.from('bill_items').select('name,qty,line_total_pesewas').eq('bill_id', existing.id).order('sort')
                 const sameItems = (curItems ?? []).length === items.length && (curItems ?? []).every((ci: any, i: number) => ci.name === items[i]!.name && ci.qty === items[i]!.qty && ci.line_total_pesewas === items[i]!.line_total_pesewas)
                 if (!changed && sameItems) continue

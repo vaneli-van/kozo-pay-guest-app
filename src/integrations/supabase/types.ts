@@ -502,6 +502,7 @@ export type Database = {
           created_at: string
           id: string
           odoo_order_id: number | null
+          odoo_order_ids: number[] | null
           odoo_pos_config_id: number | null
           odoo_session_id: number | null
           opened_at: string
@@ -520,6 +521,7 @@ export type Database = {
           created_at?: string
           id?: string
           odoo_order_id?: number | null
+          odoo_order_ids?: number[] | null
           odoo_pos_config_id?: number | null
           odoo_session_id?: number | null
           opened_at?: string
@@ -538,6 +540,7 @@ export type Database = {
           created_at?: string
           id?: string
           odoo_order_id?: number | null
+          odoo_order_ids?: number[] | null
           odoo_pos_config_id?: number | null
           odoo_session_id?: number | null
           opened_at?: string
