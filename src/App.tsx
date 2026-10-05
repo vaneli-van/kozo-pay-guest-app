@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { reducer, initial, go, type State, type Screen } from './session/machine'
 import { Shell, accentStyle, ConnBanner } from './ui/primitives'
+import { checkoutReturnRef } from './session/checkoutReturn'
 import { postResilient } from './lib/net'
 import { track } from './lib/track'
 import { Connect, Welcome, map } from './screens/screens'
@@ -71,6 +72,8 @@ export default function App({
   sessionToken,
 }: { initialState?: Partial<State>; storageKey?: string; sessionToken?: string } = {}) {
   const [s, dispatch] = useReducer(reducer, { ...initial, ...initialState })
+  // Captured once at load: the ?reference= effect strips the URL, so read it before that runs.
+  const checkoutRefAtLoad = useRef<string | null>(checkoutReturnRef())
   const [hydrated, setHydrated] = useState(false)
   const idemRef = useRef<string>('')
   const [retryTick, setRetryTick] = useState(0)
@@ -589,7 +592,7 @@ export default function App({
         // Keep the diner on whatever screen they were on, but let the freshly-resolved
         // table + order state win over a stale saved copy (order placed since last visit, etc.).
         const prev = JSON.parse(saved)
-        dispatch({ type: 'restore', value: { ...prev, screen: initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy, testMode: initialState?.testMode ?? false } })
+        dispatch({ type: 'restore', value: { ...prev, ...(checkoutRefAtLoad.current ? { paymentRef: prev.paymentRef ?? checkoutRefAtLoad.current } : {}), screen: checkoutRefAtLoad.current ? 'processing' : initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy, testMode: initialState?.testMode ?? false } })
       }
     } catch {}
     setHydrated(true)

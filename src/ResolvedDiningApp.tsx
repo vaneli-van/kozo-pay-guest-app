@@ -3,6 +3,7 @@ import App from './App'
 import { useDiningSession } from './session/useDiningSession'
 import { Connect } from './screens/screens'
 import { InvalidSession } from './screens/InvalidSession'
+import { checkoutReturnRef } from './session/checkoutReturn'
 
 // Client-only: the diner experience uses window/sessionStorage/history.
 export default function ResolvedDiningApp({ token }: { token: string }) {
@@ -31,6 +32,10 @@ function ResolvedInner({ token }: { token: string }) {
     ...(r.paymentMode === 'test' ? { testMode: true } : {}),
   }
   const isOrder = (s as any).mode === 'order'
-  const startScreen = isOrder ? (s.hasActiveBill ? 'bill' : 'waiting-bill') : (s.hasActiveBill ? 'bill' : 'welcome')
-  return <App initialState={{ screen: startScreen, hasOrder: s.hasActiveBill, mode: isOrder ? 'order' : 'table', tableLabel: s.table.label, restaurantName: s.restaurant.name, ...branding }} storageKey={`klown-dining:${token}`} sessionToken={s.sessionToken} />
+  // Coming back from Paystack's card / MoMo page (?reference=…): open straight on "processing"
+  // (with the reference already set, so no new payment is started) instead of flashing the
+  // bill or welcome screen before the success screen.
+  const checkoutRef = checkoutReturnRef()
+  const startScreen = checkoutRef ? 'processing' : isOrder ? (s.hasActiveBill ? 'bill' : 'waiting-bill') : (s.hasActiveBill ? 'bill' : 'welcome')
+  return <App initialState={{ screen: startScreen, ...(checkoutRef ? { paymentRef: checkoutRef } : {}), hasOrder: s.hasActiveBill, mode: isOrder ? 'order' : 'table', tableLabel: s.table.label, restaurantName: s.restaurant.name, ...branding }} storageKey={`klown-dining:${token}`} sessionToken={s.sessionToken} />
 }

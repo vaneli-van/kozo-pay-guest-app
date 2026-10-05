@@ -158,7 +158,8 @@ export class PaystackProvider implements PaymentProvider {
       // Direct charge unavailable (account/channel/test-mode restrictions) → fall through
       // to Paystack's hosted mobile-money checkout so the diner can still pay. Keep Paystack's
       // reason so it can be logged (no phone number is kept).
-      directChargeError = String(r?.message || r?.data?.message || r?.data?.gateway_response || 'direct_charge_failed').slice(0, 300)
+      directChargeError = [r?.message, r?.data?.status, r?.data?.message, r?.data?.gateway_response]
+        .filter((x) => typeof x === 'string' && x).join(' | ').slice(0, 300) || 'direct_charge_failed'
     }
 
     // Hosted mobile-money checkout. The reference is suffixed because Paystack burns a
