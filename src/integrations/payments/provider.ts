@@ -38,6 +38,7 @@ export interface InitiateResult {
   action: InitiateAction
   displayText?: string            // MoMo: instruction to show ("Approve on your phone")
   redirectUrl?: string            // card: Paystack hosted page URL
+  directChargeError?: string      // MoMo: why the direct prompt failed before falling back to the hosted page
 }
 export interface PaymentProvider {
   initiate(input: InitiateInput): Promise<InitiateResult>
@@ -142,6 +143,7 @@ export class PaystackProvider implements PaymentProvider {
     }
 
     // Mobile money: try the direct charge first — the diner approves the prompt on their own phone.
+    let directChargeError: string | undefined
     if (input.phone) {
       const r = await paystackPost('/charge', {
         email, amount, currency: 'GHS', reference,
@@ -154,7 +156,9 @@ export class PaystackProvider implements PaymentProvider {
         return { providerRef: r?.data?.reference || reference, status: 'pending', action, displayText: r?.data?.display_text }
       }
       // Direct charge unavailable (account/channel/test-mode restrictions) → fall through
-      // to Paystack's hosted mobile-money checkout so the diner can still pay.
+      // to Paystack's hosted mobile-money checkout so the diner can still pay. Keep Paystack's
+      // reason so it can be logged (no phone number is kept).
+      directChargeError = String(r?.message || r?.data?.message || r?.data?.gateway_response || 'direct_charge_failed').slice(0, 300)
     }
 
     // Hosted mobile-money checkout. The reference is suffixed because Paystack burns a
@@ -168,7 +172,7 @@ export class PaystackProvider implements PaymentProvider {
     }, mode)
     const hostedUrl = h?.data?.authorization_url
     if (!h?.status || !hostedUrl) throw new Error(h?.message || 'paystack_charge_failed')
-    return { providerRef: h?.data?.reference || hostedRef, status: 'pending', action: 'redirect', redirectUrl: hostedUrl }
+    return { providerRef: h?.data?.reference || hostedRef, status: 'pending', action: 'redirect', redirectUrl: hostedUrl, ...(directChargeError ? { directChargeError } : {}) }
   }
 }
 

@@ -122,7 +122,7 @@ export const Route = createFileRoute('/api/public/payment-init')({
           return json({ ok: false, reason: 'gateway_error', message: gatewayMsg, failureReason: gatewayMsg })
         }
         await supabaseAdmin.from('payment_attempts').update({ provider_ref: init.providerRef, status: 'pending', updated_at: new Date().toISOString() }).eq('id', attempt.id)
-        await supabaseAdmin.from('audit_events').insert({ session_id: session.id, type: 'payment.initiated', data: { paymentRef: attempt.id, provider, total: quote.grandTotalPesewas, mode: payMode } })
+        await supabaseAdmin.from('audit_events').insert({ session_id: session.id, type: 'payment.initiated', data: { paymentRef: attempt.id, provider, total: quote.grandTotalPesewas, mode: payMode, ...(init.directChargeError ? { directChargeFallback: init.directChargeError } : {}) } })
         return json({ ok: true, paymentRef: attempt.id, providerRef: init.providerRef, status: 'pending', action: init.action, displayText: init.displayText, redirectUrl: init.redirectUrl, amountPesewas: quote.sharePesewas, tipPesewas: quote.tipPesewas, totalPesewas: quote.grandTotalPesewas })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },
