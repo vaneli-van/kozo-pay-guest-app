@@ -38,6 +38,7 @@ export interface InitiateResult {
   action: InitiateAction
   displayText?: string            // MoMo: instruction to show ("Approve on your phone")
   redirectUrl?: string            // card: Paystack hosted page URL
+  accessCode?: string             // same checkout, opened in-page with Paystack's popup (InlineJS)
   directChargeError?: string      // MoMo: why the direct prompt failed before falling back to the hosted page
 }
 export interface PaymentProvider {
@@ -139,7 +140,7 @@ export class PaystackProvider implements PaymentProvider {
       }, mode)
       const url = r?.data?.authorization_url
       if (!r?.status || !url) throw new Error(r?.message || 'paystack_init_failed')
-      return { providerRef: r.data.reference || reference, status: 'pending', action: 'redirect', redirectUrl: url }
+      return { providerRef: r.data.reference || reference, status: 'pending', action: 'redirect', redirectUrl: url, ...(r.data.access_code ? { accessCode: String(r.data.access_code) } : {}) }
     }
 
     // Mobile money: try the direct charge first — the diner approves the prompt on their own phone.
@@ -173,7 +174,7 @@ export class PaystackProvider implements PaymentProvider {
     }, mode)
     const hostedUrl = h?.data?.authorization_url
     if (!h?.status || !hostedUrl) throw new Error(h?.message || 'paystack_charge_failed')
-    return { providerRef: h?.data?.reference || hostedRef, status: 'pending', action: 'redirect', redirectUrl: hostedUrl, ...(directChargeError ? { directChargeError } : {}) }
+    return { providerRef: h?.data?.reference || hostedRef, status: 'pending', action: 'redirect', redirectUrl: hostedUrl, ...(h?.data?.access_code ? { accessCode: String(h.data.access_code) } : {}), ...(directChargeError ? { directChargeError } : {}) }
   }
 }
 
@@ -203,7 +204,9 @@ export async function verifyPaystackTransaction(reference: string, mode: PayMode
   const st = r?.data?.status
   const reason = r?.data?.gateway_response || r?.data?.message || r?.message || undefined
   if (st === 'success') return { outcome: 'captured' }
-  if (st === 'failed' || st === 'abandoned' || st === 'reversed') return { outcome: 'failed', reason: reason || st }
+  // 'abandoned' only means the checkout was opened and not finished YET (Paystack reports it for
+  // every initialised-but-unpaid transaction), so it is not a failure: the diner may still pay.
+  if (st === 'failed' || st === 'reversed') return { outcome: 'failed', reason: reason || st }
   return { outcome: 'pending' }
 }
 
@@ -291,7 +294,9 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
   const attemptMode: PayMode = (attempt as any).payment_mode === 'test' ? 'test' : 'live'
   if (via === 'mock' ? !isMockRef : (isMockRef || via !== attemptMode))
     return { ok: false as const, reason: 'channel_mismatch' }
-  if (attempt.status === 'captured' || attempt.status === 'failed')
+  // Idempotent, except that a Paystack-confirmed capture always wins over an earlier "failed"
+  // mark (e.g. a timeout or an early check): if Paystack took the money, Klown must record it.
+  if (attempt.status === 'captured' || (attempt.status === 'failed' && !(outcome === 'captured' && via !== 'mock')))
     return { ok: true as const, idempotent: true, status: attempt.status }
   const status = outcome === 'captured' ? 'captured' : 'failed'
   await supabaseAdmin.from('payment_attempts')

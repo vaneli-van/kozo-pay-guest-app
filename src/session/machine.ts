@@ -29,6 +29,8 @@ export type State = {
   testMode?: boolean
   testBillBusy?: boolean
   testBillError?: string | undefined
+  // Paystack popup checkout is open over the app (status polling pauses meanwhile)
+  checkoutOpen?: boolean
   // payment + post-payment context (populated at runtime; all optional)
   shareMode?: ShareMode
   customAmountPesewas?: number

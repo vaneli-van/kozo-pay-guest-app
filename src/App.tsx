@@ -46,6 +46,39 @@ function optimisticUnits(split: any, billItemId: string, units: number) {
   return { ...split, myShareId: myId, items, myShareAmountPesewas: Math.round(myAmount * gross) }
 }
 
+// Paystack's checkout as a popup over Klown (InlineJS v2), so the diner never leaves the app and
+// lands straight on the success screen. Falls back to the full-page checkout if the script can't
+// load. The access code comes from our server's /transaction/initialize (amount, split, reference
+// all fixed server-side); no key is used in the browser.
+let paystackScript: Promise<boolean> | null = null
+function loadPaystackInline(): Promise<boolean> {
+  if (typeof window === 'undefined') return Promise.resolve(false)
+  if ((window as any).PaystackPop) return Promise.resolve(true)
+  if (paystackScript) return paystackScript
+  paystackScript = new Promise<boolean>((resolve) => {
+    const el = document.createElement('script')
+    el.src = 'https://js.paystack.co/v2/inline.js'
+    el.async = true
+    const timer = window.setTimeout(() => resolve(!!(window as any).PaystackPop), 6000)
+    el.onload = () => { window.clearTimeout(timer); resolve(!!(window as any).PaystackPop) }
+    el.onerror = () => { window.clearTimeout(timer); paystackScript = null; resolve(false) }
+    document.head.appendChild(el)
+  })
+  return paystackScript
+}
+async function openInlineCheckout(accessCode: string, cb: { onSuccess: () => void; onCancel: () => void; onUnavailable: () => void }) {
+  const ok = await loadPaystackInline()
+  if (!ok) { cb.onUnavailable(); return }
+  try {
+    const popup = new (window as any).PaystackPop()
+    popup.resumeTransaction(accessCode, {
+      onSuccess: () => cb.onSuccess(),
+      onCancel: () => cb.onCancel(),
+      onError: () => cb.onUnavailable(),
+    })
+  } catch { cb.onUnavailable() }
+}
+
 function openCheckout(url: string) {
   if (typeof window === 'undefined') return
   const framed = window.top !== window.self
@@ -481,7 +514,19 @@ export default function App({
         if (cancelled) return
         if (!r?.ok) { patch({ failureReason: r?.failureReason ?? r?.message }); goScreen('payment-error'); return }
         if (r.paymentRef) patch({ paymentRef: r.paymentRef, momoNumber: undefined, connLost: false })
-        if (r.redirectUrl) { openCheckout(r.redirectUrl); return } // card / hosted MoMo → Paystack page
+        if (r.redirectUrl) { // card / hosted MoMo → Paystack checkout
+          if (!r.accessCode) { openCheckout(r.redirectUrl); return }
+          // Popup over Klown. Polling pauses while it is open (an unfinished checkout is not a
+          // result); on success we confirm with the server and go straight to the success screen.
+          patch({ checkoutOpen: true })
+          if (s.screen !== 'processing') goScreen('processing')
+          openInlineCheckout(r.accessCode, {
+            onSuccess: () => { patch({ checkoutOpen: false }); checkStatusOnce(r.paymentRef) },
+            onCancel: () => { idemRef.current = ''; patch({ checkoutOpen: false, paymentRef: undefined }); goScreen('method') },
+            onUnavailable: () => { patch({ checkoutOpen: false }); openCheckout(r.redirectUrl) },
+          })
+          return
+        }
         if (r.action === 'otp') goScreen('otp') // MoMo send_otp path
       }).catch(() => {
         if (cancelled) return
@@ -500,7 +545,7 @@ export default function App({
   // back to the tab from their MoMo app / USSD prompt.
   useEffect(() => {
     const waiting = s.screen === 'processing' || s.screen === 'authorise'
-    if (!waiting || !sessionToken || !s.paymentRef) return
+    if (!waiting || !sessionToken || !s.paymentRef || s.checkoutOpen) return
     const onAuthorise = s.screen === 'authorise'
     let n = 0
     let stopped = false
@@ -541,7 +586,7 @@ export default function App({
     }
     return stop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, s.paymentRef, sessionToken])
+  }, [s.screen, s.paymentRef, sessionToken, s.checkoutOpen])
 
   // Returning from Paystack's hosted card page (?reference=…): verify server-side, then route.
   useEffect(() => {
@@ -592,7 +637,7 @@ export default function App({
         // Keep the diner on whatever screen they were on, but let the freshly-resolved
         // table + order state win over a stale saved copy (order placed since last visit, etc.).
         const prev = JSON.parse(saved)
-        dispatch({ type: 'restore', value: { ...prev, ...(checkoutRefAtLoad.current ? { paymentRef: prev.paymentRef ?? checkoutRefAtLoad.current } : {}), screen: checkoutRefAtLoad.current ? 'processing' : initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy, testMode: initialState?.testMode ?? false } })
+        dispatch({ type: 'restore', value: { ...prev, checkoutOpen: false, ...(checkoutRefAtLoad.current ? { paymentRef: prev.paymentRef ?? checkoutRefAtLoad.current } : {}), screen: checkoutRefAtLoad.current ? 'processing' : initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy, testMode: initialState?.testMode ?? false } })
       }
     } catch {}
     setHydrated(true)

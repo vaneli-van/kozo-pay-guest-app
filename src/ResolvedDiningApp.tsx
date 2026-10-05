@@ -4,6 +4,7 @@ import { useDiningSession } from './session/useDiningSession'
 import { Connect } from './screens/screens'
 import { InvalidSession } from './screens/InvalidSession'
 import { checkoutReturnRef } from './session/checkoutReturn'
+import { Center } from './ui/primitives'
 
 // Client-only: the diner experience uses window/sessionStorage/history.
 export default function ResolvedDiningApp({ token }: { token: string }) {
@@ -19,7 +20,11 @@ export default function ResolvedDiningApp({ token }: { token: string }) {
 
 function ResolvedInner({ token }: { token: string }) {
   const s = useDiningSession(token)
-  if (s.status === 'loading') return <div className="app-shell"><Connect dispatch={() => {}} /></div>
+  // Back from Paystack's full-page checkout (fallback path): say what is happening while the
+  // table session reloads, instead of the generic "connecting to your table" splash.
+  if (s.status === 'loading') return <div className="app-shell">{checkoutReturnRef()
+    ? <Center eyebrow="SECURE PAYMENT" title={"Confirming your<br /><em>payment.</em>"} copy="One moment while we check with your bank…"><div className="loader large" /></Center>
+    : <Connect dispatch={() => {}} />}</div>
   if (s.status === 'error') return <div className="app-shell"><InvalidSession reason={s.reason} onRetry={() => window.location.reload()} /></div>
   const r = s.restaurant
   const branding = {
