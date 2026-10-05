@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { paystackSecret, verifyPaystackSignature, isPaystackEnabled, paymentProvider } from "../../src/integrations/payments/provider";
+import { paystackSecret, verifyPaystackSignature, isPaystackEnabled, paymentProvider, isStagingHost } from "../../src/integrations/payments/provider";
 
 // Payment-mode guards: which Paystack key is used, and which key a webhook proves.
 // These run with fake keys only; nothing here talks to Paystack.
@@ -58,4 +58,11 @@ test("on staging a live-signed webhook is not accepted", async () => {
   const body = "{}";
   expect(await verifyPaystackSignature(body, await sign(LIVE, body))).toBeNull();
   expect(await verifyPaystackSignature(body, await sign(TEST, body))).toBe("test");
+});
+
+test("Lovable preview and sandbox hosts count as staging, the live hosts do not", () => {
+  for (const h of ["id-preview--7ca98bfa-f218-47af-a75e-d3dcbb505ee8.lovable.app", "preview--kozo-pay-guest-app.lovable.app", "abc.lovableproject.com", "localhost:4321"])
+    expect(isStagingHost(h)).toBe(true);
+  for (const h of ["app.klown.io", "klown.io", "kozo-pay-guest-app.lovable.app", "klown-table-pay.lovable.app"])
+    expect(isStagingHost(h)).toBe(false);
 });

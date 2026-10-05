@@ -58,6 +58,13 @@ function openCheckout(url: string) {
 
 
 
+// Lovable preview / sandbox / localhost: the unpublished build. Mirrors isStagingHost() on the server.
+function onPreviewHost(): boolean {
+  if (typeof window === 'undefined') return false
+  const h = window.location.hostname.toLowerCase()
+  return h.startsWith('id-preview--') || h.startsWith('preview--') || h.endsWith('.lovableproject.com') || h === 'localhost' || h === '127.0.0.1'
+}
+
 export default function App({
   initialState,
   storageKey = 'klown-dining-session',
@@ -589,9 +596,11 @@ export default function App({
 
   return (
     <>
-      {s.testMode && (
+      {s.testMode ? (
         <div className="test-banner" role="status">Test mode · Paystack test payments, no real money</div>
-      )}
+      ) : onPreviewHost() ? (
+        <div className="test-banner is-preview" role="status">Preview · payments only work at test restaurants</div>
+      ) : null}
       {(s.netOnline === false || s.connLost) && (
         <ConnBanner offline={s.netOnline === false} onRetry={() => setRetryTick((n) => n + 1)} />
       )}

@@ -75,6 +75,20 @@ export function isStaging(): boolean {
   return (process.env['KLOWN_ENV'] || '').toLowerCase() === 'staging'
 }
 
+// Lovable's preview (the unpublished build every push lands on) runs with the SAME secrets as
+// live, so it is recognised by host instead: id-preview--…/preview--… on lovable.app, the
+// *.lovableproject.com sandbox, and localhost. Requests there are treated as staging, so a
+// change can be tried end to end on the preview without ever charging a real restaurant.
+export function isStagingHost(host: string | null | undefined): boolean {
+  const h = (host || '').toLowerCase().split(':')[0] || ''
+  return h.startsWith('id-preview--') || h.startsWith('preview--') || h.endsWith('.lovableproject.com')
+    || h === 'localhost' || h === '127.0.0.1'
+}
+export function isStagingRequest(request: Request): boolean {
+  if (isStaging()) return true
+  try { return isStagingHost(new URL(request.url).host) } catch { return false }
+}
+
 function keyFor(mode: PayMode): string | undefined {
   const k = mode === 'test' ? process.env['PAYSTACK_TEST_SECRET_KEY'] : process.env['PAYSTACK_SECRET_KEY']
   return k && k.trim() ? k.trim() : undefined

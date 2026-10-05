@@ -37,10 +37,10 @@ export const Route = createFileRoute('/api/public/payment-init')({
           bill = await posProvider.getActiveBillForTable(session.table_id!)
         }
         if (!bill) return json({ ok: false, reason: 'no_bill' })
-        const { amountPaidForBill, paymentProvider, paymentModeForBill, isStaging } = await import('@/integrations/payments/provider')
+        const { amountPaidForBill, paymentProvider, paymentModeForBill, isStagingRequest } = await import('@/integrations/payments/provider')
         // Test-mode restaurants charge with the Paystack TEST key; staging refuses live restaurants.
         const payMode = await paymentModeForBill(bill.id)
-        if (payMode === 'live' && isStaging()) return json({ ok: false, reason: 'live_payments_disabled_on_staging', message: 'Staging only takes payments for test-mode restaurants.' })
+        if (payMode === 'live' && isStagingRequest(request)) return json({ ok: false, reason: 'live_payments_disabled_on_staging', message: 'This preview only takes payments for test-mode restaurants. Use the Klown Test Kitchen, or test on the live app.' })
         const amountPaidPesewas = await amountPaidForBill(bill.id)
 
         let shareBasePesewas: number | undefined
