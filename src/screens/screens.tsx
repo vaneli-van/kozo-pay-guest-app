@@ -1599,9 +1599,13 @@ export function Authorise({ s, dispatch }: any) {
       alt={s?.restaurantName}
       eyebrow="CHECK YOUR PHONE"
       title={"Approve the<br /><em>payment.</em>"}
-      copy={`A prompt is waiting on your mobile money phone. Enter your PIN to approve ${pes(s?.quote?.grandTotalPesewas)}.`}
+      copy={`A prompt is waiting on your mobile money phone. Enter your PIN to approve ${pes(s?.quote?.grandTotalPesewas)}. This screen moves on by itself once it goes through.`}
       icon="M"
     >
+      <div className="processing-help" role="status" aria-live="polite">
+        <div className="loader" aria-hidden="true" />
+        <p className="muted">Waiting for your approval…</p>
+      </div>
       <Action onClick={() => dispatch(go("processing"))}>I&apos;ve approved it</Action>
       <button className="text-link" onClick={() => dispatch(go("momo"))}>
         Use a different number

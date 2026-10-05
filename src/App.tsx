@@ -490,35 +490,53 @@ export default function App({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, s.paymentRef, s.claimedShareId, sessionToken, retryTick, demo])
 
-  // Poll payment status while processing — success is reached only when the server confirms capture.
+  // Poll payment status while the diner is approving (MoMo prompt on their phone) or waiting
+  // on "processing" — the screen moves on by itself the moment the server confirms capture
+  // (Paystack webhook or our own verify), no "I've approved it" tap needed. Success is only
+  // ever reached on a server-confirmed capture. Also checks immediately when the diner comes
+  // back to the tab from their MoMo app / USSD prompt.
   useEffect(() => {
-    if (s.screen !== 'processing' || !sessionToken || !s.paymentRef) return
+    const waiting = s.screen === 'processing' || s.screen === 'authorise'
+    if (!waiting || !sessionToken || !s.paymentRef) return
+    const onAuthorise = s.screen === 'authorise'
     let n = 0
     let stopped = false
     let inFlight = false
-    const id = window.setInterval(async () => {
-      if (inFlight) return
+    const tick = async () => {
+      if (inFlight || stopped) return
       n++
       inFlight = true
       const r = await POST('/api/public/payment-status', { sessionToken, paymentRef: s.paymentRef }).catch(() => null)
       inFlight = false
-      if (stopped) return // diner left processing / attempt changed — ignore this late reply
+      if (stopped) return // diner left this screen / attempt changed — ignore this late reply
       if (r?.status === 'captured') {
-        window.clearInterval(id)
+        stop()
         goScreen('success')
       } else if (r?.status === 'failed') {
-        window.clearInterval(id)
+        stop()
         patch({ failureReason: r?.failureReason })
         goScreen('payment-error')
-      } else if (n > 120) {
+      } else if (!onAuthorise && n > 120) {
         // ~3 min with no confirmation (e.g. the MoMo prompt was never approved):
         // stop guessing and show the fallback instead of spinning forever.
-        window.clearInterval(id)
+        stop()
         patch({ failureReason: 'The payment was not confirmed in time.' })
         goScreen('payment-error')
       }
-    }, 1500)
-    return () => { stopped = true; window.clearInterval(id) }
+    }
+    // While the prompt is on the diner's phone, check a little less often; they can still tap
+    // "I've approved it" to jump to the processing screen.
+    const id = window.setInterval(tick, onAuthorise ? 2500 : 1500)
+    const onVisible = () => { if (document.visibilityState === 'visible') tick() }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    function stop() {
+      stopped = true
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+    return stop
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.screen, s.paymentRef, sessionToken])
 
