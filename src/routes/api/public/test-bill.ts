@@ -68,7 +68,7 @@ export const Route = createFileRoute('/api/public/test-bill')({
         ]
         const { data: bill, error } = await supabaseAdmin.from('bills').insert({
           table_id: table.id, status: 'open', subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total,
-          tax_lines: taxLines, tax_pesewas: tax, server_name: 'Test', opened_at: new Date().toISOString(),
+          tax_lines: taxLines, tax_pesewas: tax, server_name: 'Ama', opened_at: new Date().toISOString(),
         }).select('id').single()
         if (error || !bill) return json({ ok: false, reason: 'error', message: error?.message })
         await supabaseAdmin.from('bill_items').insert(lines.map((l) => ({ ...l, bill_id: bill.id })))

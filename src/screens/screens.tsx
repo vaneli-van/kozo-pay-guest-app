@@ -222,7 +222,7 @@ export function Empty({ s, dispatch }: any) {
       {s?.testMode && (
         <button
           type="button"
-          className="outline-button"
+          className="action secondary"
           disabled={!!s?.testBillBusy}
           onClick={() => dispatch({ type: "test-bill" })}
         >
@@ -525,7 +525,7 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
           <div className="kz-bill-hero">
             <span className="kz-status">
               <span className="kz-live-dot" aria-hidden="true" />
-              {ready ? "Bill ready" : "Live from POS"}
+              {ready ? "Bill ready" : s?.testMode ? "Test bill" : "Live from POS"}
             </span>
             <span className="kz-bill-hero-label">{partial ? "Remaining to pay" : "Total to pay"}</span>
             <Money value={remaining} className="kz-bill-hero-amount kz-cur-gold" />
