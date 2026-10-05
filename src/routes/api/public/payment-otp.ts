@@ -17,12 +17,13 @@ export const Route = createFileRoute('/api/public/payment-otp')({
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
-        const { data: attempt } = await supabaseAdmin.from('payment_attempts').select('id,provider_ref').eq('id', paymentRef).eq('session_id', session.id).maybeSingle()
+        const { data: attempt } = await supabaseAdmin.from('payment_attempts').select('id,provider_ref,payment_mode').eq('id', paymentRef).eq('session_id', session.id).maybeSingle()
         if (!attempt || !attempt.provider_ref) return json({ ok: false, reason: 'unknown_ref' })
 
         const { submitPaystackOtp, isPaystackEnabled } = await import('@/integrations/payments/provider')
-        if (!isPaystackEnabled()) return json({ ok: true, status: 'pending' }) // demo: no gateway, just proceed to polling
-        const r = await submitPaystackOtp(attempt.provider_ref, otp)
+        const mode = attempt.payment_mode === 'test' ? 'test' : 'live'
+        if (attempt.provider_ref.startsWith('mock_') || !isPaystackEnabled(mode)) return json({ ok: true, status: 'pending' }) // demo: no gateway, just proceed to polling
+        const r = await submitPaystackOtp(attempt.provider_ref, otp, mode)
         return json({ ok: !!r?.status, status: r?.data?.status ?? 'pending', message: r?.message })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },

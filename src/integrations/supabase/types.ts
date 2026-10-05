@@ -1182,6 +1182,7 @@ export type Database = {
           id: string
           idempotency_key: string
           method: string | null
+          payment_mode: string
           provider: string
           provider_ref: string | null
           session_id: string
@@ -1201,6 +1202,7 @@ export type Database = {
           id?: string
           idempotency_key: string
           method?: string | null
+          payment_mode?: string
           provider: string
           provider_ref?: string | null
           session_id: string
@@ -1220,6 +1222,7 @@ export type Database = {
           id?: string
           idempotency_key?: string
           method?: string | null
+          payment_mode?: string
           provider?: string
           provider_ref?: string | null
           session_id?: string
@@ -2693,6 +2696,8 @@ export type Database = {
           klown_fee_bps: number
           logo_url: string | null
           name: string
+          payment_mode: string
+          paystack_test_subaccount_code: string | null
           notify_phones: string | null
           paystack_subaccount_code: string | null
           settlement_account_name: string | null
@@ -2714,6 +2719,8 @@ export type Database = {
           klown_fee_bps?: number
           logo_url?: string | null
           name: string
+          payment_mode: string
+          paystack_test_subaccount_code: string | null
           notify_phones?: string | null
           paystack_subaccount_code?: string | null
           settlement_account_name?: string | null
@@ -2735,6 +2742,8 @@ export type Database = {
           klown_fee_bps?: number
           logo_url?: string | null
           name?: string
+          payment_mode?: string
+          paystack_test_subaccount_code?: string | null
           notify_phones?: string | null
           paystack_subaccount_code?: string | null
           settlement_account_name?: string | null

@@ -25,6 +25,10 @@ export type State = {
   taglineTop?: string
   taglineBottom?: string
   welcomeCopy?: string
+  // Test-mode restaurant: Paystack test key, no real money (shows a banner + test-bill button)
+  testMode?: boolean
+  testBillBusy?: boolean
+  testBillError?: string | undefined
   // payment + post-payment context (populated at runtime; all optional)
   shareMode?: ShareMode
   customAmountPesewas?: number

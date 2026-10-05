@@ -19,7 +19,9 @@ export const Route = createFileRoute('/api/mock/pay-callback')({
         const { data: attempt } = await supabaseAdmin.from('payment_attempts').select('provider_ref').eq('id', paymentRef).eq('session_id', session.id).maybeSingle()
         if (!attempt || !attempt.provider_ref) return json({ ok: false, reason: 'unknown_ref' })
         const { applyProviderCallback } = await import('@/integrations/payments/provider')
-        const res = await applyProviderCallback(attempt.provider_ref, outcome, outcome === 'failed' ? 'insufficient_funds' : undefined)
+        // Demo approve/decline: only valid for attempts the mock provider created (mock_ refs).
+        // A real Paystack payment can never be marked paid from here.
+        const res = await applyProviderCallback(attempt.provider_ref, outcome, outcome === 'failed' ? 'insufficient_funds' : undefined, 'mock')
         return json(res)
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },

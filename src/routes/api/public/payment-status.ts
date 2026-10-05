@@ -14,7 +14,7 @@ export const Route = createFileRoute('/api/public/payment-status')({
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
-        const { data: attempt } = await supabaseAdmin.from('payment_attempts').select('id,status,provider_ref,amount_pesewas,tip_pesewas,total_pesewas,failure_reason').eq('id', paymentRef).eq('session_id', session.id).maybeSingle()
+        const { data: attempt } = await supabaseAdmin.from('payment_attempts').select('id,status,provider_ref,amount_pesewas,tip_pesewas,total_pesewas,failure_reason,payment_mode').eq('id', paymentRef).eq('session_id', session.id).maybeSingle()
         if (!attempt) return json({ ok: false, reason: 'unknown_ref' })
 
         // Fallback: if the gateway webhook is slow, ask Paystack directly and reconcile.
@@ -23,10 +23,11 @@ export const Route = createFileRoute('/api/public/payment-status')({
         if ((status === 'pending' || status === 'initiated') && attempt.provider_ref) {
           try {
             const { verifyPaystackTransaction, applyProviderCallback, isPaystackEnabled } = await import('@/integrations/payments/provider')
-            if (isPaystackEnabled()) {
-              const { outcome, reason } = await verifyPaystackTransaction(attempt.provider_ref)
+            const mode = attempt.payment_mode === 'test' ? 'test' : 'live'
+            if (!attempt.provider_ref.startsWith('mock_') && isPaystackEnabled(mode)) {
+              const { outcome, reason } = await verifyPaystackTransaction(attempt.provider_ref, mode)
               if (outcome === 'captured' || outcome === 'failed') {
-                await applyProviderCallback(attempt.provider_ref, outcome, reason)
+                await applyProviderCallback(attempt.provider_ref, outcome, reason, mode)
                 const { data: fresh } = await supabaseAdmin.from('payment_attempts').select('status,failure_reason').eq('id', attempt.id).maybeSingle()
                 if (fresh) { status = fresh.status; failureReason = fresh.failure_reason }
               }

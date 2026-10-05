@@ -243,6 +243,18 @@ export default function App({
         }
         if (sessionToken) POST('/api/public/split-release', { sessionToken, shareId: action.shareId }).then(() => patch({ claimedShareId: undefined }))
         return
+      case 'test-bill': {
+        // Test-mode restaurants only: the server refuses this for live restaurants.
+        if (!sessionToken) return
+        patch({ testBillBusy: true, testBillError: undefined })
+        POST('/api/public/test-bill', { sessionToken, reset: !!action.value?.reset }).then(async (r) => {
+          if (!r?.ok) { patch({ testBillBusy: false, testBillError: 'Could not create a test bill.' }); return }
+          const b = await POST('/api/public/bill', { sessionToken })
+          patch({ testBillBusy: false, hasOrder: true, ...(b?.ok && b.bill ? { bill: b.bill } : {}) })
+          goScreen('bill')
+        })
+        return
+      }
       case 'waiter':
         if (sessionToken) POST('/api/public/waiter-request', { sessionToken, kind: action.kind ?? 'assistance' })
         break
@@ -552,7 +564,7 @@ export default function App({
         // Keep the diner on whatever screen they were on, but let the freshly-resolved
         // table + order state win over a stale saved copy (order placed since last visit, etc.).
         const prev = JSON.parse(saved)
-        dispatch({ type: 'restore', value: { ...prev, screen: initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy } })
+        dispatch({ type: 'restore', value: { ...prev, screen: initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy, testMode: initialState?.testMode ?? false } })
       }
     } catch {}
     setHydrated(true)
@@ -577,6 +589,9 @@ export default function App({
 
   return (
     <>
+      {s.testMode && (
+        <div className="test-banner" role="status">Test mode · Paystack test payments, no real money</div>
+      )}
       {(s.netOnline === false || s.connLost) && (
         <ConnBanner offline={s.netOnline === false} onRetry={() => setRetryTick((n) => n + 1)} />
       )}

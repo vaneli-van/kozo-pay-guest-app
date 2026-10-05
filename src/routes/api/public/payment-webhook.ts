@@ -15,7 +15,8 @@ export const Route = createFileRoute('/api/public/payment-webhook')({
         const { verifyCallback, applyProviderCallback } = await import('@/integrations/payments/provider')
         const valid = await verifyCallback(providerRef, outcome, signature)
         if (!valid) return json({ ok: false, reason: 'bad_signature' }, 401)
-        const res = await applyProviderCallback(providerRef, outcome)
+        // Demo callback only: applyProviderCallback refuses anything but mock_ references.
+        const res = await applyProviderCallback(providerRef, outcome, undefined, 'mock')
         return json(res)
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },

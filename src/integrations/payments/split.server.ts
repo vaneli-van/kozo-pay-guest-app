@@ -73,10 +73,11 @@ export async function resolveRestaurantForBill(billId: string): Promise<string |
 
 // Split config for a restaurant. Returns null (split OFF → current single-account
 // behaviour) unless a Paystack subaccount is configured.
-export async function getSplitConfigForRestaurant(restaurantId: string): Promise<SplitConfig | null> {
+// In test mode the TEST-mode subaccount is used (Paystack keeps test and live subaccounts apart).
+export async function getSplitConfigForRestaurant(restaurantId: string, mode: 'live' | 'test' = 'live'): Promise<SplitConfig | null> {
   const { data } = await supabaseAdmin
-    .from('restaurants').select('paystack_subaccount_code, klown_fee_bps').eq('id', restaurantId).maybeSingle()
-  const code = (data as any)?.paystack_subaccount_code
+    .from('restaurants').select('paystack_subaccount_code, paystack_test_subaccount_code, klown_fee_bps').eq('id', restaurantId).maybeSingle()
+  const code = mode === 'test' ? (data as any)?.paystack_test_subaccount_code : (data as any)?.paystack_subaccount_code
   if (!code || typeof code !== 'string') return null
   const bps = typeof (data as any)?.klown_fee_bps === 'number' ? (data as any).klown_fee_bps : DEFAULT_KLOWN_FEE_BPS
   return { subaccountCode: code, klownFeeBps: bps }
@@ -84,10 +85,10 @@ export async function getSplitConfigForRestaurant(restaurantId: string): Promise
 
 // Convenience: config for a bill in one call. Null when the bill has no
 // resolvable restaurant or that restaurant has no subaccount.
-export async function getSplitConfigForBill(billId: string): Promise<SplitConfig | null> {
+export async function getSplitConfigForBill(billId: string, mode: 'live' | 'test' = 'live'): Promise<SplitConfig | null> {
   const restaurantId = await resolveRestaurantForBill(billId)
   if (!restaurantId) return null
-  return getSplitConfigForRestaurant(restaurantId)
+  return getSplitConfigForRestaurant(restaurantId, mode)
 }
 
 // ── Paystack subaccount provisioning (used by the owner Payout-account flow) ──

@@ -54,7 +54,7 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
               .from('branches').select('id,name,restaurant_id').eq('id', reg.branch_id!).maybeSingle()
             const { data: rrestaurant } = await supabase
               .from('restaurants')
-              .select('id,name,city,google_place_id,logo_url,hero_url,accent_color,tagline_top,tagline_bottom,welcome_copy')
+              .select('id,name,city,google_place_id,logo_url,hero_url,accent_color,tagline_top,tagline_bottom,welcome_copy,payment_mode')
               .eq('id', reg.restaurant_id).maybeSingle()
 
             let osession: Record<string, any> | null = null
@@ -93,6 +93,7 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
                 taglineTop: (rrestaurant as any)!.tagline_top ?? null,
                 taglineBottom: (rrestaurant as any)!.tagline_bottom ?? null,
                 welcomeCopy: (rrestaurant as any)!.welcome_copy ?? null,
+                paymentMode: (rrestaurant as any)!.payment_mode === 'test' ? 'test' : 'live',
               },
               branch: { name: rbranch!.name },
               table: { label: reg.name },
@@ -124,7 +125,7 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
           const bill = billR.data
           const { data: restaurant } = await supabase
             .from('restaurants')
-            .select('id,name,city,google_place_id,logo_url,hero_url,accent_color,tagline_top,tagline_bottom,welcome_copy')
+            .select('id,name,city,google_place_id,logo_url,hero_url,accent_color,tagline_top,tagline_bottom,welcome_copy,payment_mode')
             .eq('id', branch!.restaurant_id)
             .maybeSingle()
           const billStatus = bill ? bill.status : 'none'
@@ -172,6 +173,7 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
               taglineTop: (restaurant as any)!.tagline_top ?? null,
               taglineBottom: (restaurant as any)!.tagline_bottom ?? null,
               welcomeCopy: (restaurant as any)!.welcome_copy ?? null,
+              paymentMode: (restaurant as any)!.payment_mode === 'test' ? 'test' : 'live',
             },
             branch: { name: branch!.name },
             table: { label: table.label },

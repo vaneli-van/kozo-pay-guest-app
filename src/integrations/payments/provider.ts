@@ -7,8 +7,15 @@ const enc = new TextEncoder()
 // MockPaymentProvider drives the demo; PaystackProvider is the real Ghana gateway.
 // Selection is by env: set PAYSTACK_SECRET_KEY and the real provider is used.
 
+// Which Paystack key a payment runs on. 'live' = PAYSTACK_SECRET_KEY (real money);
+// 'test' = PAYSTACK_TEST_SECRET_KEY (Paystack test cards / test MoMo, no money moves).
+// Decided per restaurant (restaurants.payment_mode) and stamped on the attempt, so every
+// later call for that attempt (verify, OTP, webhook) uses the same key.
+export type PayMode = 'live' | 'test'
+
 export interface InitiateInput {
   paymentAttemptId: string        // our attempt id — also used as the Paystack reference
+  mode?: PayMode                  // defaults to 'live'
   provider: string                // 'momo' | 'card'
   method?: string
   totalPesewas: number            // GHS subunit — Paystack's `amount` is the same unit
@@ -62,15 +69,30 @@ export class MockPaymentProvider implements PaymentProvider {
 
 // ── Paystack provider (real, Ghana) ───────────────────────────────────────────
 const PAYSTACK_BASE = 'https://api.paystack.co'
-function paystackSecret(): string {
-  const k = process.env['PAYSTACK_SECRET_KEY']
-  if (!k) throw new Error('PAYSTACK_SECRET_KEY is not set')
+
+// True on the staging deployment. Staging only ever charges test-mode restaurants.
+export function isStaging(): boolean {
+  return (process.env['KLOWN_ENV'] || '').toLowerCase() === 'staging'
+}
+
+function keyFor(mode: PayMode): string | undefined {
+  const k = mode === 'test' ? process.env['PAYSTACK_TEST_SECRET_KEY'] : process.env['PAYSTACK_SECRET_KEY']
+  return k && k.trim() ? k.trim() : undefined
+}
+
+// Secret for a mode, with guards so a misconfigured key can never move real money in
+// test mode, or charge real money from the staging deployment.
+export function paystackSecret(mode: PayMode = 'live'): string {
+  const k = keyFor(mode)
+  if (!k) throw new Error(mode === 'test' ? 'PAYSTACK_TEST_SECRET_KEY is not set' : 'PAYSTACK_SECRET_KEY is not set')
+  if (mode === 'test' && !k.startsWith('sk_test_')) throw new Error('PAYSTACK_TEST_SECRET_KEY must be a sk_test_ key')
+  if (mode === 'live' && isStaging()) throw new Error('live_payments_disabled_on_staging')
   return k
 }
-async function paystackPost(path: string, body: unknown): Promise<any> {
+async function paystackPost(path: string, body: unknown, mode: PayMode = 'live'): Promise<any> {
   const res = await fetch(`${PAYSTACK_BASE}${path}`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${paystackSecret()}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${paystackSecret(mode)}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
   return res.json().catch(() => ({}))
@@ -79,6 +101,7 @@ async function paystackPost(path: string, body: unknown): Promise<any> {
 export class PaystackProvider implements PaymentProvider {
   async initiate(input: InitiateInput): Promise<InitiateResult> {
     const reference = input.paymentAttemptId
+    const mode: PayMode = input.mode ?? 'live'
     const email = input.email || `guest-${reference}@guests.kozopay.app`
     const amount = String(Math.trunc(input.totalPesewas)) // GHS subunit == pesewas
 
@@ -98,7 +121,7 @@ export class PaystackProvider implements PaymentProvider {
         email, amount, currency: 'GHS', reference, channels: input.method === 'applepay' ? ['apple_pay'] : ['card', 'apple_pay'],
         callback_url: input.callbackUrl,
         ...split,
-      })
+      }, mode)
       const url = r?.data?.authorization_url
       if (!r?.status || !url) throw new Error(r?.message || 'paystack_init_failed')
       return { providerRef: r.data.reference || reference, status: 'pending', action: 'redirect', redirectUrl: url }
@@ -110,7 +133,7 @@ export class PaystackProvider implements PaymentProvider {
         email, amount, currency: 'GHS', reference,
         mobile_money: { phone: input.phone, provider: input.momoProvider || momoProviderFromNumber(input.phone) },
         ...split,
-      })
+      }, mode)
       if (r?.status) {
         const st = r?.data?.status
         const action: InitiateAction = st === 'send_otp' ? 'otp' : 'phone_approval'
@@ -128,28 +151,34 @@ export class PaystackProvider implements PaymentProvider {
       channels: ['mobile_money'], callback_url: input.callbackUrl,
       metadata: { attempt: reference },
       ...split,
-    })
+    }, mode)
     const hostedUrl = h?.data?.authorization_url
     if (!h?.status || !hostedUrl) throw new Error(h?.message || 'paystack_charge_failed')
     return { providerRef: h?.data?.reference || hostedRef, status: 'pending', action: 'redirect', redirectUrl: hostedUrl }
   }
 }
 
-// Lazily pick the provider so the env is read at call time (inside a server handler).
-let _pp: PaymentProvider | undefined
+// Pick the provider per call so the env is read at call time (inside a server handler).
+// Test mode never falls back to the mock: no test key means the payment is refused, so a
+// test restaurant can't silently "pay" without Paystack. Live mode keeps the old demo
+// fallback (no key -> mock) except on staging, where live payments are refused outright.
+const paystack = new PaystackProvider()
+const mock = new MockPaymentProvider()
 export const paymentProvider: PaymentProvider = {
   initiate: (input) => {
-    if (!_pp) _pp = process.env['PAYSTACK_SECRET_KEY'] ? new PaystackProvider() : new MockPaymentProvider()
-    return _pp.initiate(input)
+    const mode: PayMode = input.mode ?? 'live'
+    if (mode === 'test') { paystackSecret('test'); return paystack.initiate(input) }
+    if (isStaging()) throw new Error('live_payments_disabled_on_staging')
+    return keyFor('live') ? paystack.initiate(input) : mock.initiate(input)
   },
 }
 
 // ── Paystack post-init helpers (verify, OTP, webhook signature) ───────────────
 // Verify is authoritative: it asks Paystack the real status of a reference.
 export type VerifyResult = { outcome: 'captured' | 'failed' | 'pending'; reason?: string }
-export async function verifyPaystackTransaction(reference: string): Promise<VerifyResult> {
+export async function verifyPaystackTransaction(reference: string, mode: PayMode = 'live'): Promise<VerifyResult> {
   const res = await fetch(`${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`, {
-    headers: { Authorization: `Bearer ${paystackSecret()}` },
+    headers: { Authorization: `Bearer ${paystackSecret(mode)}` },
   })
   const r = await res.json().catch(() => ({}))
   const st = r?.data?.status
@@ -160,14 +189,16 @@ export async function verifyPaystackTransaction(reference: string): Promise<Veri
 }
 
 // For MoMo transactions that come back as send_otp.
-export async function submitPaystackOtp(reference: string, otp: string): Promise<any> {
-  return paystackPost('/charge/submit_otp', { reference, otp })
+export async function submitPaystackOtp(reference: string, otp: string, mode: PayMode = 'live'): Promise<any> {
+  return paystackPost('/charge/submit_otp', { reference, otp }, mode)
 }
 
-// Paystack signs every webhook: HMAC-SHA512 of the raw body with the SECRET KEY.
-export async function verifyPaystackSignature(rawBody: string, header: string | null): Promise<boolean> {
-  if (!header) return false
-  const key = await crypto.subtle.importKey('raw', enc.encode(paystackSecret()), { name: 'HMAC', hash: 'SHA-512' }, false, ['sign'])
+// Paystack signs every webhook: HMAC-SHA512 of the raw body with the SECRET KEY of the
+// mode the event belongs to (test events are signed with the test key). Returns the mode
+// whose key produced the signature, or null. The caller must only apply the event to an
+// attempt of that same mode.
+async function hmac512Matches(secret: string, rawBody: string, header: string): Promise<boolean> {
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-512' }, false, ['sign'])
   const sig = await crypto.subtle.sign('HMAC', key, enc.encode(rawBody))
   const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
   if (hex.length !== header.length) return false
@@ -175,9 +206,28 @@ export async function verifyPaystackSignature(rawBody: string, header: string | 
   for (let i = 0; i < hex.length; i++) diff |= hex.charCodeAt(i) ^ header.charCodeAt(i)
   return diff === 0
 }
+export async function verifyPaystackSignature(rawBody: string, header: string | null): Promise<PayMode | null> {
+  if (!header) return null
+  const live = keyFor('live')
+  if (live && !isStaging() && await hmac512Matches(live, rawBody, header)) return 'live'
+  const test = keyFor('test')
+  if (test && test.startsWith('sk_test_') && await hmac512Matches(test, rawBody, header)) return 'test'
+  return null
+}
 
-export function isPaystackEnabled(): boolean {
-  return !!process.env['PAYSTACK_SECRET_KEY']
+// Can we talk to Paystack for this mode? (live without a key = demo/mock mode)
+export function isPaystackEnabled(mode: PayMode = 'live'): boolean {
+  if (mode === 'live' && isStaging()) return false
+  return !!keyFor(mode)
+}
+
+// Payment mode of the restaurant that owns a bill ('live' when unknown).
+export async function paymentModeForBill(billId: string): Promise<PayMode> {
+  const { resolveRestaurantForBill } = await import('@/integrations/payments/split.server')
+  const rid = await resolveRestaurantForBill(billId)
+  if (!rid) return 'live'
+  const { data } = await supabaseAdmin.from('restaurants').select('payment_mode').eq('id', rid).maybeSingle()
+  return (data as any)?.payment_mode === 'test' ? 'test' : 'live'
 }
 
 // ── Mock webhook signing (demo path only; unrelated to Paystack) ──────────────
@@ -208,10 +258,20 @@ export async function amountPaidForBill(billId: string): Promise<number> {
 }
 
 // Authoritative capture. Idempotent by provider_ref — a repeat callback never double-applies.
-export async function applyProviderCallback(providerRef: string, outcome: 'captured' | 'failed', failureReason?: string) {
+// `via` says how the outcome was established and is checked against the attempt:
+//   'live' / 'test' = confirmed by Paystack with that mode's key (verify call or signed webhook);
+//   'mock'          = the demo flow, only ever valid for attempts the mock provider created.
+// So a demo "approve" can never settle a real Paystack payment, and a test-mode event can
+// never settle a live one.
+export type CallbackVia = PayMode | 'mock'
+export async function applyProviderCallback(providerRef: string, outcome: 'captured' | 'failed', failureReason: string | undefined, via: CallbackVia) {
   const { data: attempt } = await supabaseAdmin
-    .from('payment_attempts').select('id,status,session_id,bill_id,amount_pesewas,split_share_id').eq('provider_ref', providerRef).maybeSingle()
+    .from('payment_attempts').select('id,status,session_id,bill_id,amount_pesewas,split_share_id,payment_mode').eq('provider_ref', providerRef).maybeSingle()
   if (!attempt) return { ok: false as const, reason: 'unknown_ref' }
+  const isMockRef = providerRef.startsWith('mock_')
+  const attemptMode: PayMode = (attempt as any).payment_mode === 'test' ? 'test' : 'live'
+  if (via === 'mock' ? !isMockRef : (isMockRef || via !== attemptMode))
+    return { ok: false as const, reason: 'channel_mismatch' }
   if (attempt.status === 'captured' || attempt.status === 'failed')
     return { ok: true as const, idempotent: true, status: attempt.status }
   const status = outcome === 'captured' ? 'captured' : 'failed'

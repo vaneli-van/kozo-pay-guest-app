@@ -37,7 +37,10 @@ export const Route = createFileRoute('/api/public/payment-init')({
           bill = await posProvider.getActiveBillForTable(session.table_id!)
         }
         if (!bill) return json({ ok: false, reason: 'no_bill' })
-        const { amountPaidForBill, paymentProvider } = await import('@/integrations/payments/provider')
+        const { amountPaidForBill, paymentProvider, paymentModeForBill, isStaging } = await import('@/integrations/payments/provider')
+        // Test-mode restaurants charge with the Paystack TEST key; staging refuses live restaurants.
+        const payMode = await paymentModeForBill(bill.id)
+        if (payMode === 'live' && isStaging()) return json({ ok: false, reason: 'live_payments_disabled_on_staging', message: 'Staging only takes payments for test-mode restaurants.' })
         const amountPaidPesewas = await amountPaidForBill(bill.id)
 
         let shareBasePesewas: number | undefined
@@ -81,6 +84,7 @@ export const Route = createFileRoute('/api/public/payment-init')({
         const { data: attempt, error } = await supabaseAdmin.from('payment_attempts').insert({
           session_id: session.id, bill_id: bill.id, idempotency_key: idempotencyKey, provider, method,
           split_share_id: splitShareId ?? null,
+          payment_mode: payMode, excluded_from_reports: payMode === 'test',
           share_mode: shareBasePesewas != null ? 'share' : ((body.mode as string) ?? 'full'), amount_pesewas: quote.sharePesewas, tip_pesewas: quote.tipPesewas, total_pesewas: quote.grandTotalPesewas, status: 'initiated',
         }).select('id').single()
 
@@ -99,7 +103,7 @@ export const Route = createFileRoute('/api/public/payment-init')({
         // restaurant is settled B directly to its bank, and Klown keeps its bps.
         // No subaccount -> chargePesewas stays B and no split fields are sent (unchanged).
         const { getSplitConfigForBill, computeGrossUp } = await import('@/integrations/payments/split.server')
-        const splitCfg = await getSplitConfigForBill(bill.id)
+        const splitCfg = await getSplitConfigForBill(bill.id, payMode)
         let chargePesewas = quote.grandTotalPesewas
         let splitFields: { subaccount?: string; transactionChargePesewas?: number; bearer?: 'account' | 'subaccount' } = {}
         if (splitCfg) {
@@ -111,14 +115,14 @@ export const Route = createFileRoute('/api/public/payment-init')({
 
         let init
         try {
-          init = await paymentProvider.initiate({ paymentAttemptId: attempt.id, provider, method: method ?? undefined, totalPesewas: chargePesewas, phone, callbackUrl, ...splitFields })
+          init = await paymentProvider.initiate({ paymentAttemptId: attempt.id, mode: payMode, provider, method: method ?? undefined, totalPesewas: chargePesewas, phone, callbackUrl, ...splitFields })
         } catch (e) {
           const gatewayMsg = (e instanceof Error ? e.message : String(e)) || 'gateway_error'
           await supabaseAdmin.from('payment_attempts').update({ status: 'failed', failure_reason: gatewayMsg, updated_at: new Date().toISOString() }).eq('id', attempt.id)
           return json({ ok: false, reason: 'gateway_error', message: gatewayMsg, failureReason: gatewayMsg })
         }
         await supabaseAdmin.from('payment_attempts').update({ provider_ref: init.providerRef, status: 'pending', updated_at: new Date().toISOString() }).eq('id', attempt.id)
-        await supabaseAdmin.from('audit_events').insert({ session_id: session.id, type: 'payment.initiated', data: { paymentRef: attempt.id, provider, total: quote.grandTotalPesewas } })
+        await supabaseAdmin.from('audit_events').insert({ session_id: session.id, type: 'payment.initiated', data: { paymentRef: attempt.id, provider, total: quote.grandTotalPesewas, mode: payMode } })
         return json({ ok: true, paymentRef: attempt.id, providerRef: init.providerRef, status: 'pending', action: init.action, displayText: init.displayText, redirectUrl: init.redirectUrl, amountPesewas: quote.sharePesewas, tipPesewas: quote.tipPesewas, totalPesewas: quote.grandTotalPesewas })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },

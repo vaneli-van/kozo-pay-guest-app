@@ -28,6 +28,7 @@ function ResolvedInner({ token }: { token: string }) {
     ...(r.taglineTop ? { taglineTop: r.taglineTop } : {}),
     ...(r.taglineBottom ? { taglineBottom: r.taglineBottom } : {}),
     ...(r.welcomeCopy ? { welcomeCopy: r.welcomeCopy } : {}),
+    ...(r.paymentMode === 'test' ? { testMode: true } : {}),
   }
   const isOrder = (s as any).mode === 'order'
   const startScreen = isOrder ? (s.hasActiveBill ? 'bill' : 'waiting-bill') : (s.hasActiveBill ? 'bill' : 'welcome')

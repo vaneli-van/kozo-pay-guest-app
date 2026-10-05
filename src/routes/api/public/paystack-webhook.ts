@@ -14,17 +14,18 @@ export const Route = createFileRoute('/api/public/paystack-webhook')({
         const raw = await request.text()
         const header = request.headers.get('x-paystack-signature')
         const { verifyPaystackSignature, applyProviderCallback } = await import('@/integrations/payments/provider')
-        const valid = await verifyPaystackSignature(raw, header)
-        if (!valid) return json({ ok: false, reason: 'bad_signature' }, 401)
+        // The key that signed the event decides its mode; the attempt must be of that mode.
+        const mode = await verifyPaystackSignature(raw, header)
+        if (!mode) return json({ ok: false, reason: 'bad_signature' }, 401)
 
         const event = JSON.parse(raw) as { event?: string; data?: { reference?: string; status?: string; gateway_response?: string } }
         const reference = event?.data?.reference
         if (!reference) return json({ received: true, ignored: 'no_reference' })
 
         if (event.event === 'charge.success') {
-          await applyProviderCallback(reference, 'captured')
+          await applyProviderCallback(reference, 'captured', undefined, mode)
         } else if (event.event === 'charge.failed') {
-          await applyProviderCallback(reference, 'failed', event?.data?.gateway_response || 'charge_failed')
+          await applyProviderCallback(reference, 'failed', event?.data?.gateway_response || 'charge_failed', mode)
         }
         // Always 200 so Paystack stops retrying once we've accepted the event.
         return json({ received: true })

@@ -219,6 +219,17 @@ export function Empty({ s, dispatch }: any) {
         <strong>No order yet</strong>
         <span>Your bill will appear here once the first order is placed.</span>
       </div>
+      {s?.testMode && (
+        <button
+          type="button"
+          className="outline-button"
+          disabled={!!s?.testBillBusy}
+          onClick={() => dispatch({ type: "test-bill" })}
+        >
+          {s?.testBillBusy ? "Creating a test bill…" : "Create a test bill"}
+        </button>
+      )}
+      {s?.testMode && s?.testBillError && <p className="muted">{s.testBillError}</p>}
       <Action onClick={() => dispatch(go("menu"))}>Explore the menu</Action>
     </section>
   );
