@@ -22,8 +22,11 @@ export const Route = createFileRoute('/api/public/split-create')({
         if (!bill) return json({ ok: false, reason: 'no_bill' })
         const { amountPaidForBill } = await import('@/integrations/payments/provider')
         const paid = await amountPaidForBill(bill.id)
-        if (paid > 0) return json({ ok: false, reason: 'already_paying' })
-        const total = Math.trunc(bill.totalPesewas)
+        const billTotal = Math.trunc(bill.totalPesewas)
+        // A split can start after someone has already paid part of the bill ("I'll get the
+        // drinks, split the rest"): even / amounts shares divide what is LEFT. Item splits track
+        // the live bill and subtract every captured payment in the database recompute.
+        const total = billTotal - paid
         if (total <= 0) return json({ ok: false, reason: 'nothing_due' })
         // Items mode: no shares up front — diners create their own share as they pick items.
         // Return the full item board in the create response so the client renders immediately
@@ -31,7 +34,7 @@ export const Route = createFileRoute('/api/public/split-create')({
         if (mode === 'items') {
           const { itemsSplitPayload } = await import('@/integrations/billing/itemsplit.server')
           const { data: created, error: insErr } = await supabaseAdmin.from('bill_splits').insert({
-            bill_id: bill.id, mode: 'items', total_pesewas: total, status: 'open', created_by_session: session.id,
+            bill_id: bill.id, mode: 'items', total_pesewas: billTotal, status: 'open', created_by_session: session.id,
           }).select('id').single()
           if (insErr || !created) {
             if (insErr && /uq_bill_splits_open|duplicate key/.test(insErr.message)) {
@@ -46,7 +49,7 @@ export const Route = createFileRoute('/api/public/split-create')({
             }
             return json({ ok: false, reason: 'error' })
           }
-          const split = { id: created.id, mode: 'items', total_pesewas: total, bill_id: bill.id, status: 'open' }
+          const split = { id: created.id, mode: 'items', total_pesewas: billTotal, bill_id: bill.id, status: 'open' }
           return json({ ...(await itemsSplitPayload(supabaseAdmin, split, session.id)), splitId: created.id })
         }
 

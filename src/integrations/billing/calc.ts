@@ -10,6 +10,9 @@ export interface QuoteInput {
   customAmountPesewas?: number
   tipPesewas?: number
   tipPercent?: number
+  // Split shares: charge at most what is still owed. If the bill shrank after the split was made
+  // (an item voided on the POS), the last share pays the remainder instead of failing as "overpay".
+  capToRemaining?: boolean
 }
 export interface Quote {
   billTotalPesewas: number
@@ -46,6 +49,7 @@ export function computeQuote(input: QuoteInput): Quote {
     }
     case 'custom':
       share = Math.trunc(input.customAmountPesewas ?? 0)
+      if (input.capToRemaining) share = Math.min(share, remaining)
       break
     default:
       throw new QuoteError('invalid_mode')

@@ -213,13 +213,20 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 // the totals still refresh, so the diner never sees a stale balance.
                 const sameIds = JSON.stringify(existing.odoo_order_ids ?? (existing.odoo_order_id != null ? [existing.odoo_order_id] : [])) === JSON.stringify(orderIds)
                 const changed = !sameIds || existing.total_pesewas !== total || existing.subtotal_pesewas !== total || (existing.tax_pesewas ?? null) !== (taxLines ? taxPesewas : null) || (existing.server_name ?? null) !== serverName
-                const { data: curItems } = await supabaseAdmin.from('bill_items').select('name,qty,line_total_pesewas').eq('bill_id', existing.id).order('sort')
+                const { data: curItems } = await supabaseAdmin.from('bill_items').select('id,name,qty,line_total_pesewas,sort').eq('bill_id', existing.id).order('sort')
                 const sameItems = (curItems ?? []).length === items.length && (curItems ?? []).every((ci: any, i: number) => ci.name === items[i]!.name && ci.qty === items[i]!.qty && ci.line_total_pesewas === items[i]!.line_total_pesewas)
                 if (!changed && sameItems) continue
                 if (changed) await supabaseAdmin.from('bills').update(header).eq('id', existing.id)
                 if (!sameItems && !activeSplitBillIds.has(existing.id)) {
                   await supabaseAdmin.from('bill_items').delete().eq('bill_id', existing.id)
                   if (items.length) await supabaseAdmin.from('bill_items').insert(items.map((it) => ({ ...it, bill_id: existing.id })))
+                } else if (!sameItems) {
+                  // A split is open: merge in place so picks survive and a new round shows on the board.
+                  const { planItemMerge } = await import('@/integrations/pos/mergeItems')
+                  const plan = planItemMerge((curItems ?? []) as any[], items)
+                  for (const u of plan.update) await supabaseAdmin.from('bill_items').update({ qty: u.qty, line_total_pesewas: u.line_total_pesewas, sort: u.sort }).eq('id', u.id)
+                  if (plan.insert.length) await supabaseAdmin.from('bill_items').insert(plan.insert.map((it) => ({ ...it, bill_id: existing.id })))
+                  if (plan.remove.length) await supabaseAdmin.from('bill_items').delete().in('id', plan.remove)
                 }
                 written++
               }

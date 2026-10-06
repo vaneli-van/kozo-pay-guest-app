@@ -294,33 +294,52 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
   const attemptMode: PayMode = (attempt as any).payment_mode === 'test' ? 'test' : 'live'
   if (via === 'mock' ? !isMockRef : (isMockRef || via !== attemptMode))
     return { ok: false as const, reason: 'channel_mismatch' }
-  // Idempotent, except that a Paystack-confirmed capture always wins over an earlier "failed"
-  // mark (e.g. a timeout or an early check): if Paystack took the money, Klown must record it.
-  if (attempt.status === 'captured' || (attempt.status === 'failed' && !(outcome === 'captured' && via !== 'mock')))
-    return { ok: true as const, idempotent: true, status: attempt.status }
+  // Which states this outcome may move the attempt out of. A Paystack-confirmed capture also wins
+  // over an earlier "failed" or "cancelled" mark (a timeout, an early check, a closed popup): if
+  // Paystack took the money, Klown must record it.
+  const from = outcome === 'captured' && via !== 'mock' ? ['initiated', 'pending', 'failed', 'cancelled'] : ['initiated', 'pending']
+  if (!from.includes(attempt.status)) return { ok: true as const, idempotent: true, status: attempt.status }
   const status = outcome === 'captured' ? 'captured' : 'failed'
-  await supabaseAdmin.from('payment_attempts')
-    .update({ status, failure_reason: failureReason ?? null, updated_at: new Date().toISOString() }).eq('id', attempt.id)
+  // Atomic transition: the Paystack webhook and the diner's status check often arrive within
+  // milliseconds of each other. Only the call that actually flips the row carries on, so the
+  // floor alert, owner SMS and POS close happen once (seen twice for Naxos table 14 on 3 Oct).
+  const { data: flipped } = await supabaseAdmin.from('payment_attempts')
+    .update({ status, failure_reason: status === 'captured' ? null : (failureReason ?? null), updated_at: new Date().toISOString() })
+    .eq('id', attempt.id).in('status', from).select('id')
+  if (!flipped || flipped.length === 0) {
+    const { data: now } = await supabaseAdmin.from('payment_attempts').select('status').eq('id', attempt.id).maybeSingle()
+    return { ok: true as const, idempotent: true, status: now?.status ?? attempt.status }
+  }
   if (status === 'captured' && attempt.split_share_id) {
+    // Freeze the share at what was actually paid (an item share can move by a few pesewas between
+    // starting and finishing the payment).
     await supabaseAdmin.from('bill_split_shares')
-      .update({ status: 'paid', payment_attempt_id: attempt.id }).eq('id', attempt.split_share_id)
+      .update({ status: 'paid', payment_attempt_id: attempt.id, amount_pesewas: attempt.amount_pesewas }).eq('id', attempt.split_share_id)
     const { data: share } = await supabaseAdmin.from('bill_split_shares')
       .select('split_id').eq('id', attempt.split_share_id).maybeSingle()
     if (share?.split_id) {
-      const { data: shares } = await supabaseAdmin.from('bill_split_shares')
-        .select('status').eq('split_id', share.split_id)
-      if ((shares ?? []).length > 0 && (shares ?? []).every((x: any) => x.status === 'paid'))
-        await supabaseAdmin.from('bill_splits').update({ status: 'settled' }).eq('id', share.split_id)
+      const [{ data: split }, { data: shares }] = await Promise.all([
+        supabaseAdmin.from('bill_splits').select('mode').eq('id', share.split_id).maybeSingle(),
+        supabaseAdmin.from('bill_split_shares').select('status').eq('split_id', share.split_id),
+      ])
+      // Even / amounts splits are done when every share is paid. An item split is NOT: shares only
+      // exist for people who have picked so far, so "every share paid" can be true while others at
+      // the table still have to pick and pay. It closes with the bill instead (below).
+      if (split && split.mode !== 'items' && (shares ?? []).length > 0 && (shares ?? []).every((x: any) => x.status === 'paid'))
+        await supabaseAdmin.from('bill_splits').update({ status: 'settled' }).eq('id', share.split_id).eq('status', 'open')
     }
   }
   if (status === 'captured' && attempt.bill_id) {
-    const { data: bill } = await supabaseAdmin.from('bills').select('id,total_pesewas').eq('id', attempt.bill_id).maybeSingle()
+    const { data: bill } = await supabaseAdmin.from('bills').select('id,total_pesewas,status').eq('id', attempt.bill_id).maybeSingle()
     if (bill) {
       const paid = await amountPaidForBill(bill.id)
+      if (paid > bill.total_pesewas) await flagOverpayment(bill.id, attempt.session_id, paid, bill.total_pesewas, providerRef)
       if (paid >= bill.total_pesewas) {
-        await supabaseAdmin.from('bills').update({ status: 'settled' }).eq('id', bill.id)
+        // Only the capture that actually closes the bill runs the settle side effects.
+        const { data: closed } = await supabaseAdmin.from('bills').update({ status: 'settled' })
+          .eq('id', bill.id).neq('status', 'settled').select('id')
         await supabaseAdmin.from('bill_splits').update({ status: 'settled' }).eq('bill_id', bill.id).eq('status', 'open')
-        await onBillSettled(bill.id, bill.total_pesewas)
+        if (closed && closed.length > 0) await onBillSettled(bill.id, bill.total_pesewas)
       }
     }
   }
@@ -328,7 +347,29 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
   return { ok: true as const, status }
 }
 
-
+// More money captured than the bill: tell the floor so it can be refunded, and keep a record.
+// (payment_reserve stops this at the start; this is the safety net for anything that slips past,
+// e.g. an old MoMo prompt approved after the diner had already paid another way.)
+async function flagOverpayment(billId: string, sessionId: string | null, paid: number, total: number, providerRef: string) {
+  try {
+    await supabaseAdmin.from('audit_events').insert({ session_id: sessionId, type: 'payment.overpaid', data: { billId, paid, total, over: paid - total, providerRef } })
+    const { data: bill } = await supabaseAdmin.from('bills').select('table_id,restaurant_id').eq('id', billId).maybeSingle()
+    let restaurantId: string | null = (bill as any)?.restaurant_id ?? null
+    let label: string | null = null
+    if (bill?.table_id) {
+      const { data: t } = await supabaseAdmin.from('restaurant_tables').select('label,branch_id').eq('id', bill.table_id).maybeSingle()
+      label = t?.label ?? null
+      if (!restaurantId && t?.branch_id) {
+        const { data: br } = await supabaseAdmin.from('branches').select('restaurant_id').eq('id', t.branch_id).maybeSingle()
+        restaurantId = br?.restaurant_id ?? null
+      }
+    }
+    if (restaurantId) await supabaseAdmin.from('staff_notifications').insert({
+      restaurant_id: restaurantId, table_label: label, kind: 'overpaid', amount_pesewas: paid - total,
+      message: `${label ? `Table ${label}` : 'A bill'} was overpaid by GHS ${((paid - total) / 100).toFixed(2)} via Klown. Refund the diner.`,
+    })
+  } catch { /* never break capture */ }
+}
 
 // ── On full payment: alert the floor and (if enabled) close the table on the POS ──
 // Read-only-safe by default: the Odoo write only happens when the restaurant has

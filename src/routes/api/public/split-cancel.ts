@@ -21,6 +21,14 @@ export const Route = createFileRoute('/api/public/split-cancel')({
         if (!split) return json({ ok: false, reason: 'no_split' })
         const { data: paidShares } = await supabaseAdmin.from('bill_split_shares').select('id').eq('split_id', split.id).eq('status', 'paid').limit(1)
         if ((paidShares ?? []).length > 0) return json({ ok: false, reason: 'has_paid_shares' })
+        // Don't pull the split out from under someone who is paying their share right now.
+        const { data: shareIds } = await supabaseAdmin.from('bill_split_shares').select('id').eq('split_id', split.id)
+        const ids = (shareIds ?? []).map((r: any) => r.id as string)
+        if (ids.length) {
+          const since = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+          const { data: paying } = await supabaseAdmin.from('payment_attempts').select('id').in('split_share_id', ids).in('status', ['initiated', 'pending']).gt('created_at', since).limit(1)
+          if ((paying ?? []).length > 0) return json({ ok: false, reason: 'share_being_paid' })
+        }
         await supabaseAdmin.from('bill_splits').update({ status: 'cancelled' }).eq('id', split.id)
         return json({ ok: true })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }

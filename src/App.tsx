@@ -522,7 +522,12 @@ export default function App({
           if (s.screen !== 'processing') goScreen('processing')
           openInlineCheckout(r.accessCode, {
             onSuccess: () => { patch({ checkoutOpen: false }); checkStatusOnce(r.paymentRef) },
-            onCancel: () => { idemRef.current = ''; patch({ checkoutOpen: false, paymentRef: undefined }); goScreen('method') },
+            onCancel: () => {
+              // Free the bill/share for others at the table (the server keeps an unfinished payment
+              // reserved for 10 minutes). Best-effort; a late Paystack capture still counts.
+              if (r.paymentRef) POST('/api/public/payment-cancel', { sessionToken, paymentRef: r.paymentRef }).catch(() => {})
+              idemRef.current = ''; patch({ checkoutOpen: false, paymentRef: undefined }); goScreen('method')
+            },
             onUnavailable: () => { patch({ checkoutOpen: false }); openCheckout(r.redirectUrl) },
           })
           return

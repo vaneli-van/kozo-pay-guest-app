@@ -12,7 +12,7 @@ export class MockPosProvider implements PosProvider {
   async getActiveBillForTable(tableId: string): Promise<PosBill | null> {
     const { data: bill } = await supabaseAdmin
       .from('bills').select('id,status,subtotal_pesewas,service_charge_pesewas,total_pesewas,server_name,tax_lines,tax_pesewas')
-      .eq('table_id', tableId).in('status', ['open', 'ready']).order('opened_at', { ascending: false }).maybeSingle()
+      .eq('table_id', tableId).in('status', ['open', 'ready']).order('opened_at', { ascending: false }).limit(1).maybeSingle()
     if (!bill) return null
     const { data: items } = await supabaseAdmin
       .from('bill_items').select('name,qty,line_total_pesewas').eq('bill_id', bill.id).order('sort')

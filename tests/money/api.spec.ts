@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 // Contract tests for the public money endpoints: a bad or missing session must be refused
 // with a JSON {ok:false} body before anything touches the database.
-const BAD = ["/api/public/bill", "/api/public/quote", "/api/public/split", "/api/public/split-assign", "/api/public/assign-remaining", "/api/public/payment-init"];
+const BAD = ["/api/public/bill", "/api/public/quote", "/api/public/split", "/api/public/split-assign", "/api/public/assign-remaining", "/api/public/payment-init", "/api/public/payment-cancel"];
 
 for (const path of BAD) {
   test(`${path} refuses a missing session token`, async ({ request }) => {
