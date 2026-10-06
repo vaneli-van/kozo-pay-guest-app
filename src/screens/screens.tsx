@@ -72,19 +72,24 @@ function useSplitScrollLock() {
   }, []);
 }
 
-export function Connect({ s, dispatch }: any) {
+// Loading splash while the table's QR session resolves. (The old "Skip connection" link was a
+// leftover from the clickable prototype; in the live app it did nothing.) If loading drags on,
+// offer a retry instead.
+export function Connect({ s, slow, onRetry }: any) {
   return (
     <Center
       logoUrl={s?.logoUrl}
       alt={s?.restaurantName}
       eyebrow="A BETTER WAY TO DINE"
       title={"Making the<br /><em>table</em> feel closer."}
-      copy="Connecting to your table…"
+      copy={slow ? "This is taking longer than usual. Check your connection." : "Connecting to your table…"}
     >
       <div className="loader" />
-      <button className="text-link" onClick={() => dispatch(go("welcome"))}>
-        Skip connection
-      </button>
+      {slow && onRetry ? (
+        <button className="text-link" onClick={onRetry}>
+          Try again
+        </button>
+      ) : null}
     </Center>
   );
 }

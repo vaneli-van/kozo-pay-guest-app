@@ -20,11 +20,18 @@ export default function ResolvedDiningApp({ token }: { token: string }) {
 
 function ResolvedInner({ token }: { token: string }) {
   const s = useDiningSession(token)
+  // After 8 s still loading, the splash offers "Try again".
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    if (s.status !== 'loading') return
+    const t = setTimeout(() => setSlow(true), 8000)
+    return () => clearTimeout(t)
+  }, [s.status])
   // Back from Paystack's full-page checkout (fallback path): say what is happening while the
   // table session reloads, instead of the generic "connecting to your table" splash.
   if (s.status === 'loading') return <div className="app-shell">{checkoutReturnRef()
     ? <Center eyebrow="SECURE PAYMENT" title={"Confirming your<br /><em>payment.</em>"} copy="One moment while we check with your bank…"><div className="loader large" /></Center>
-    : <Connect dispatch={() => {}} />}</div>
+    : <Connect slow={slow} onRetry={() => window.location.reload()} />}</div>
   if (s.status === 'error') return <div className="app-shell"><InvalidSession reason={s.reason} onRetry={() => window.location.reload()} /></div>
   const r = s.restaurant
   const branding = {
