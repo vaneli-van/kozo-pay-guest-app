@@ -288,7 +288,7 @@ export async function amountPaidForBill(billId: string): Promise<number> {
 export type CallbackVia = PayMode | 'mock'
 export async function applyProviderCallback(providerRef: string, outcome: 'captured' | 'failed', failureReason: string | undefined, via: CallbackVia) {
   const { data: attempt } = await supabaseAdmin
-    .from('payment_attempts').select('id,status,session_id,bill_id,amount_pesewas,split_share_id,payment_mode').eq('provider_ref', providerRef).maybeSingle()
+    .from('payment_attempts').select('id,status,session_id,bill_id,amount_pesewas,tip_pesewas,provider,split_share_id,payment_mode').eq('provider_ref', providerRef).maybeSingle()
   if (!attempt) return { ok: false as const, reason: 'unknown_ref' }
   const isMockRef = providerRef.startsWith('mock_')
   const attemptMode: PayMode = (attempt as any).payment_mode === 'test' ? 'test' : 'live'
@@ -334,12 +334,22 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
     if (bill) {
       const paid = await amountPaidForBill(bill.id)
       if (paid > bill.total_pesewas) await flagOverpayment(bill.id, attempt.session_id, paid, bill.total_pesewas, providerRef)
+      let closedNow = false
       if (paid >= bill.total_pesewas) {
         // Only the capture that actually closes the bill runs the settle side effects.
         const { data: closed } = await supabaseAdmin.from('bills').update({ status: 'settled' })
           .eq('id', bill.id).neq('status', 'settled').select('id')
         await supabaseAdmin.from('bill_splits').update({ status: 'settled' }).eq('bill_id', bill.id).eq('status', 'open')
-        if (closed && closed.length > 0) await onBillSettled(bill.id, bill.total_pesewas)
+        closedNow = !!closed && closed.length > 0
+        if (closedNow) await onBillSettled(bill.id, bill.total_pesewas)
+      }
+      // Text the waiter and cashier about this payment (full or part). Once per capture: we are
+      // inside the single call that flipped the attempt row.
+      if (closedNow || paid < bill.total_pesewas) {
+        await notifyStaffPayment(bill.id, {
+          full: closedNow, amountPesewas: attempt.amount_pesewas ?? 0, tipPesewas: (attempt as any).tip_pesewas ?? 0,
+          paidPesewas: paid, totalPesewas: bill.total_pesewas, channel: (attempt as any).provider ?? null,
+        })
       }
     }
   }
@@ -369,6 +379,32 @@ async function flagOverpayment(billId: string, sessionId: string | null, paid: n
       message: `${label ? `Table ${label}` : 'A bill'} was overpaid by GHS ${((paid - total) / 100).toFixed(2)} via Klown. Refund the diner.`,
     })
   } catch { /* never break capture */ }
+}
+
+// Floor-staff SMS (Arkesel): the waiter whose order it is + the cashiers, on every captured payment,
+// full or part. Staff and numbers live in restaurant_staff (owner portal, Settings). Best-effort.
+async function notifyStaffPayment(billId: string, p: { full: boolean; amountPesewas: number; tipPesewas: number; paidPesewas: number; totalPesewas: number; channel: string | null }) {
+  try {
+    const { data: bill } = await supabaseAdmin.from('bills').select('table_id, restaurant_id, server_name, tab_label').eq('id', billId).maybeSingle()
+    if (!bill?.table_id) return
+    const { data: table } = await supabaseAdmin.from('restaurant_tables').select('label,branch_id').eq('id', bill.table_id).maybeSingle()
+    if (!table) return
+    let restaurantId: string | null = (bill as any).restaurant_id ?? null
+    if (!restaurantId) {
+      const { data: br } = await supabaseAdmin.from('branches').select('restaurant_id').eq('id', table.branch_id).maybeSingle()
+      restaurantId = br?.restaurant_id ?? null
+    }
+    if (!restaurantId) return
+    const { data: staff } = await supabaseAdmin.from('restaurant_staff').select('name, role, phone, active').eq('restaurant_id', restaurantId).eq('active', true)
+    if (!staff || !staff.length) return
+    const { pickStaffRecipients, staffPaymentMessage } = await import('@/integrations/notify/staffAlert')
+    const { phones } = pickStaffRecipients(staff, (bill as any).server_name)
+    if (!phones.length) return
+    const msg = staffPaymentMessage({ tableLabel: table.label, tabLabel: (bill as any).tab_label ?? null, serverName: (bill as any).server_name ?? null, ...p })
+    const { sendSms } = await import('@/integrations/notify/arkesel.server')
+    const r = await sendSms(phones, msg)
+    await supabaseAdmin.from('audit_events').insert({ session_id: null, type: 'sms.staff_payment', data: { billId, full: p.full, recipients: phones.length, ok: r.ok, skipped: r.skipped ?? false, message: r.message ?? null } })
+  } catch { /* SMS is best-effort */ }
 }
 
 // ── On full payment: alert the floor and (if enabled) close the table on the POS ──
