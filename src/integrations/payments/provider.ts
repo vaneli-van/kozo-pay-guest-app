@@ -395,7 +395,7 @@ async function notifyOwnerPaid(restaurantId: string, label: string, totalPesewas
 export async function onBillSettled(billId: string, totalPesewas: number) {
   try {
     const { data: bill } = await supabaseAdmin.from('bills')
-      .select('table_id, register_id, restaurant_id, odoo_pos_config_id, odoo_order_id, odoo_session_id')
+      .select('table_id, register_id, restaurant_id, odoo_pos_config_id, odoo_order_id, odoo_session_id, tab_label')
       .eq('id', billId).maybeSingle()
 
     // ── QSR counter (Model A): order was already paid under the Klown tender in Odoo. ──
@@ -426,22 +426,32 @@ export async function onBillSettled(billId: string, totalPesewas: number) {
     const restaurantId = branch?.restaurant_id
     if (!restaurantId) return
 
-    // Floor alert (admin subscribes to this table via realtime).
+    // Floor alert (admin subscribes to this table via realtime). With separate groups at one
+    // table, name the group: "Table 8 · Ama".
+    const tab = (bill as any)?.tab_label as string | null | undefined
+    const where = tab ? `Table ${table.label} · ${tab}` : `Table ${table.label}`
     await supabaseAdmin.from('staff_notifications').insert({
       restaurant_id: restaurantId,
-      table_label: table.label,
+      table_label: tab ? `${table.label} · ${tab}` : table.label,
       kind: 'payment',
       amount_pesewas: totalPesewas,
-      message: `Table ${table.label} paid via Klown`,
+      message: `${where} paid via Klown`,
     })
-    await notifyOwnerPaid(restaurantId, `Table ${table.label}`, totalPesewas, billId)
+    await notifyOwnerPaid(restaurantId, where, totalPesewas, billId)
 
     // Close the table on the POS, only if this restaurant opted in.
     // Odoo write-back (cloud POS: settle directly).
     const { data: creds } = await supabaseAdmin.from('pos_odoo_credentials')
       .select('base_url, db, username, api_key, active, writeback_enabled, klown_payment_method_id')
       .eq('restaurant_id', restaurantId).maybeSingle()
-    if (creds?.active && creds.writeback_enabled && creds.klown_payment_method_id) {
+    // Auto-close goes by table number, so it cannot tell two groups' orders apart: for a named tab,
+    // leave the close to staff and say which order.
+    if (tab && creds?.active && creds.writeback_enabled) {
+      await supabaseAdmin.from('staff_notifications').insert({
+        restaurant_id: restaurantId, table_label: `${table.label} · ${tab}`, kind: 'settle_warning',
+        amount_pesewas: totalPesewas, message: `Close ${tab}'s order on table ${table.label} on the POS`,
+      })
+    } else if (creds?.active && creds.writeback_enabled && creds.klown_payment_method_id) {
       const { settleTableOrder } = await import('@/integrations/pos/odoo.server')
       const cfg = { base_url: creds.base_url, db: creds.db, username: creds.username || 'admin', api_key: creds.api_key }
       const num = parseInt(table.label, 10)

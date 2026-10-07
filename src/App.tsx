@@ -286,6 +286,18 @@ export default function App({
         }
         if (sessionToken) POST('/api/public/split-release', { sessionToken, shareId: action.shareId }).then(() => patch({ claimedShareId: undefined }))
         return
+      case 'tab-select': {
+        // The diner picked which group's bill is theirs.
+        if (!sessionToken || !action.billId) return
+        patch({ tabSelectBusy: true })
+        POST('/api/public/tab-select', { sessionToken, billId: action.billId }).then(async (r) => {
+          if (!r?.ok) { patch({ tabSelectBusy: false }); return }
+          const b = await POST('/api/public/bill', { sessionToken })
+          patch({ tabSelectBusy: false, hasOrder: true, split: undefined, splitId: undefined, claimedShareId: undefined, quote: undefined, ...(b?.ok && b.bill ? { bill: b.bill, tabCount: b.tabCount ?? 1 } : {}) })
+          goScreen('bill')
+        })
+        return
+      }
       case 'test-bill': {
         // Test-mode restaurants only: the server refuses this for live restaurants.
         if (!sessionToken) return
@@ -391,14 +403,23 @@ export default function App({
 
   // Live bill from the POS — refreshed whenever the diner is on a bill/payment screen.
   useEffect(() => {
-    const billScreens = ['welcome', 'empty', 'bill', 'bill-ready', 'waiting-bill', 'pay', 'split', 'split-share', 'tip', 'review', 'method']
+    const billScreens = ['welcome', 'choose-tab', 'empty', 'bill', 'bill-ready', 'waiting-bill', 'pay', 'split', 'split-share', 'tip', 'review', 'method']
     if (!sessionToken || !billScreens.includes(s.screen)) return
     let cancelled = false
     const load = async () => {
       const r = await POST('/api/public/bill', { sessionToken })
       if (cancelled) return
+      // Several groups at this table and this phone has not picked its bill: ask.
+      if (r?.ok && !r.bill && r.chooseTab) {
+        patch({ tabs: r.tabs ?? [], tabCount: (r.tabs ?? []).length })
+        if (s.screen !== 'choose-tab') goScreen('choose-tab')
+        return
+      }
       if (r?.ok && r.bill) {
-        patch({ bill: r.bill })
+        patch({ bill: r.bill, tabCount: r.tabCount ?? 1, ...(Array.isArray(r.tabs) && r.tabs.length ? { tabs: r.tabs } : {}) })
+        // On the picker with only one bill left at the table: nothing to choose, show it.
+        if (s.screen === 'choose-tab' && (r.tabCount ?? 1) <= 1) { goScreen('bill'); return }
+        if (s.screen === 'choose-tab') return
         if (s.screen === 'waiting-bill') goScreen('bill-ready')
         // Waiting on the empty screen? The first order has landed — show the live bill.
         else if (s.screen === 'empty' && (r.bill.items?.length ?? 0) > 0) goScreen('bill')
@@ -642,7 +663,7 @@ export default function App({
         // Keep the diner on whatever screen they were on, but let the freshly-resolved
         // table + order state win over a stale saved copy (order placed since last visit, etc.).
         const prev = JSON.parse(saved)
-        dispatch({ type: 'restore', value: { ...prev, checkoutOpen: false, ...(checkoutRefAtLoad.current ? { paymentRef: prev.paymentRef ?? checkoutRefAtLoad.current } : {}), screen: checkoutRefAtLoad.current ? 'processing' : initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy, testMode: initialState?.testMode ?? false } })
+        dispatch({ type: 'restore', value: { ...prev, checkoutOpen: false, ...(checkoutRefAtLoad.current ? { paymentRef: prev.paymentRef ?? checkoutRefAtLoad.current } : {}), screen: checkoutRefAtLoad.current ? 'processing' : initialState?.screen === 'choose-tab' ? 'choose-tab' : initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy, testMode: initialState?.testMode ?? false } })
       }
     } catch {}
     setHydrated(true)

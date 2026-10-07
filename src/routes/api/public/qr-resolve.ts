@@ -116,19 +116,21 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
           // independent -> run them together, then restaurant (needs branch).
           const [branchR, billR, existingSessionR] = await Promise.all([
             supabase.from('branches').select('id,name,restaurant_id').eq('id', table.branch_id).maybeSingle(),
-            supabase.from('bills').select('id,status,subtotal_pesewas,service_charge_pesewas,total_pesewas').eq('table_id', table.id).in('status', ['open', 'ready']).order('opened_at', { ascending: false }).maybeSingle(),
+            // A table can carry several open bills (separate groups, each a named tab).
+            supabase.from('bills').select('id,status,subtotal_pesewas,service_charge_pesewas,total_pesewas').eq('table_id', table.id).in('status', ['open', 'ready']).order('opened_at', { ascending: false }),
             (sessionToken && typeof sessionToken === 'string')
               ? supabase.from('dining_sessions').select('*').eq('session_token', sessionToken).eq('table_id', table.id).maybeSingle()
               : Promise.resolve({ data: null as any }),
           ])
           const branch = branchR.data
-          const bill = billR.data
+          const openBills = (billR.data ?? []) as any[]
+          const bill = openBills.length === 1 ? openBills[0] : null
           const { data: restaurant } = await supabase
             .from('restaurants')
             .select('id,name,city,google_place_id,logo_url,hero_url,accent_color,tagline_top,tagline_bottom,welcome_copy,payment_mode')
             .eq('id', branch!.restaurant_id)
             .maybeSingle()
-          const billStatus = bill ? bill.status : 'none'
+          const billStatus = openBills.length ? 'open' : 'none'
 
           let session: Record<string, any> | null = null
           {
@@ -150,11 +152,19 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
               .single()
             session = created
           } else {
-            await supabase
-              .from('dining_sessions')
-              .update({ active_bill_id: bill?.id ?? null, bill_status: billStatus })
-              .eq('id', session['id'])
+            // A fresh scan re-evaluates which bill this phone is on. Keep a tab the diner picked
+            // while it is still open; otherwise start again (one bill: bind to it; several: the
+            // diner picks theirs).
+            const keep = session['active_bill_chosen'] && openBills.some((b) => b.id === session!['active_bill_id'])
+            if (!keep) {
+              await supabase
+                .from('dining_sessions')
+                .update({ active_bill_id: bill?.id ?? null, active_bill_chosen: false, bill_status: billStatus } as any)
+                .eq('id', session['id'])
+              session = { ...session, active_bill_id: bill?.id ?? null, active_bill_chosen: false }
+            }
           }
+          const chooseTab = openBills.length > 1 && !(session!['active_bill_chosen'] && openBills.some((b) => b.id === session!['active_bill_id']))
 
           await supabase
             .from('audit_events')
@@ -178,7 +188,8 @@ export const Route = createFileRoute('/api/public/qr-resolve')({
             branch: { name: branch!.name },
             table: { label: table.label },
             sessionStatus: session!['status'],
-            hasActiveBill: !!bill,
+            hasActiveBill: openBills.length > 0,
+            chooseTab,
             billStatus,
             expiresAt: session!['expires_at'],
           })

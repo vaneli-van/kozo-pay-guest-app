@@ -1,5 +1,5 @@
 export type Screen =
-  | 'connect' | 'welcome' | 'empty' | 'menu' | 'category' | 'dish' | 'waiter' | 'waiter-notified' | 'waiting-bill' | 'bill-ready' | 'bill' | 'bill-issue' | 'pay' | 'split' | 'split-share' | 'split-lobby' | 'split-items' | 'tip' | 'review' | 'method' | 'momo' | 'otp' | 'authorise' | 'processing' | 'payment-error' | 'success' | 'receipt-choice' | 'guest-receipt' | 'feedback' | 'review-handoff' | 'complete'
+  | 'connect' | 'welcome' | 'choose-tab' | 'empty' | 'menu' | 'category' | 'dish' | 'waiter' | 'waiter-notified' | 'waiting-bill' | 'bill-ready' | 'bill' | 'bill-issue' | 'pay' | 'split' | 'split-share' | 'split-lobby' | 'split-items' | 'tip' | 'review' | 'method' | 'momo' | 'otp' | 'authorise' | 'processing' | 'payment-error' | 'success' | 'receipt-choice' | 'guest-receipt' | 'feedback' | 'review-handoff' | 'complete'
 
 export type ShareMode = 'full' | 'even' | 'custom' | 'invite'
 
@@ -64,7 +64,11 @@ export type State = {
   firstName?: string
   totalPaidPesewas?: number
   reviewUrl?: string | null
-  bill?: { status?: string; serverName?: string | null; items: { name: string; qty: number; lineTotalPesewas: number }[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number; paidPesewas?: number; remainingPesewas?: number; tax?: { net: number; total: number; lines: { name: string; rate: number | null; amountPesewas: number }[]; estimated: boolean } } | undefined
+  // Separate groups at one table: the open bills (tabs) to pick from, and how many there are.
+  tabs?: { billId: string; label: string | null; main: boolean; serverName: string | null; itemCount: number; preview: string[]; totalPesewas: number; remainingPesewas: number; openedAt: string }[]
+  tabCount?: number
+  tabSelectBusy?: boolean
+  bill?: { status?: string; serverName?: string | null; tabLabel?: string | null; items: { name: string; qty: number; lineTotalPesewas: number }[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number; paidPesewas?: number; remainingPesewas?: number; tax?: { net: number; total: number; lines: { name: string; rate: number | null; amountPesewas: number }[]; estimated: boolean } } | undefined
   quote?: { billTotalPesewas: number; remainingPesewas: number; sharePesewas: number; tipPesewas: number; grandTotalPesewas: number } | undefined
   // Menu (fetched once from /api/public/menu; all optional)
   menu?: {

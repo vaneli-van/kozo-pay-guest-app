@@ -48,7 +48,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               for (const t of tables ?? []) { klownByNum.set(parseInt(t.label, 10), t.id); klownTableIds.push(t.id) }
 
               // Odoo open (draft) orders seated at a table.
-              const orders = await searchRead(cfg, 'pos.order', [['state', '=', 'draft']], ['id', 'table_id', 'session_id', 'amount_total', 'amount_tax', 'employee_id', 'cashier'])
+              const orders = await searchRead(cfg, 'pos.order', [['state', '=', 'draft']], ['id', 'table_id', 'session_id', 'amount_total', 'amount_tax', 'employee_id', 'cashier', 'floating_order_name'])
               const seated = orders.filter((o: any) => Array.isArray(o.table_id))
               const odooTableIds = [...new Set(seated.map((o: any) => o.table_id[0]))]
               const otables = odooTableIds.length ? await searchRead(cfg, 'restaurant.table', [['id', 'in', odooTableIds]], ['id', 'table_number']) : []
@@ -73,7 +73,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               // without an order id are adopted by table on first sight.
               const nowMs = Date.now()
               const { data: existBills } = klownTableIds.length
-                ? await supabaseAdmin.from('bills').select('id, table_id, status, odoo_order_id, odoo_order_ids, subtotal_pesewas, total_pesewas, tax_pesewas, server_name').in('table_id', klownTableIds).in('status', ['open', 'ready'])
+                ? await supabaseAdmin.from('bills').select('id, table_id, status, odoo_order_id, odoo_order_ids, subtotal_pesewas, total_pesewas, tax_pesewas, server_name, tab_key, tab_label').in('table_id', klownTableIds).in('status', ['open', 'ready'])
                 : { data: [] as any[] }
               const liveBills = (existBills ?? []) as any[]
               const billIds = liveBills.map((b) => b.id as string)
@@ -122,13 +122,22 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               // and tax lines summed across those orders. Orders already paid in full through Klown
               // (a settled bill that covered them) stay out until staff close them on the POS, so a
               // paid order is never shown to the table again as unpaid.
+              // Separate groups at one table: an order the waiter gave a guest name (Odoo's
+              // floating_order_name, e.g. "Ama") is its own tab and its own Klown bill. Unnamed orders
+              // on a table are the table's main tab and still merge together (a second ticket punched
+              // by mistake, a new round on a fresh ticket). Key = "<klown table id>|<tab key>".
+              const tabKeyOf = (o: any) => {
+                const n = typeof o.floating_order_name === 'string' ? o.floating_order_name.trim().replace(/\s+/g, ' ') : ''
+                return n ? `name:${n.toLowerCase()}` : ''
+              }
               const ordersByTable = new Map<string, any[]>()
               for (const o of seated) {
                 const num = numByOdooTable.get(o.table_id[0])
                 const klownId = num == null ? undefined : klownByNum.get(num)
                 if (!klownId) continue
-                if (!ordersByTable.has(klownId)) ordersByTable.set(klownId, [])
-                ordersByTable.get(klownId)!.push(o)
+                const key = `${klownId}|${tabKeyOf(o)}`
+                if (!ordersByTable.has(key)) ordersByTable.set(key, [])
+                ordersByTable.get(key)!.push(o)
               }
               const seatedIds = seated.map((o: any) => o.id as number)
               const paidOrderIds = new Set<number>()
@@ -141,14 +150,15 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 const unpaid = list.filter((o) => !paidOrderIds.has(o.id)).sort((a, b) => a.id - b.id)
                 if (unpaid.length) ordersByTable.set(k, unpaid); else ordersByTable.delete(k)
               }
+              const billKey = (b: any) => `${b.table_id}|${b.tab_key ?? ''}`
               const liveByTable = new Map<string, any>()
-              for (const b of liveBills) if (!liveByTable.has(b.table_id)) liveByTable.set(b.table_id, b)
+              for (const b of liveBills) if (!liveByTable.has(billKey(b))) liveByTable.set(billKey(b), b)
 
               // Live bills on a table with no unpaid open order left on the POS are finished:
               // settled if anything was captured on them, void otherwise. Odoo is the source of
               // truth for "still open". (A bill with a MoMo prompt still awaiting approval gets one
               // more cycle before closing.)
-              const finished = liveBills.filter((b) => !ordersByTable.has(b.table_id) && !pendingBillIds.has(b.id))
+              const finished = liveBills.filter((b) => !ordersByTable.has(billKey(b)) && !pendingBillIds.has(b.id))
               if (finished.length) {
                 const ids = finished.map((b) => b.id as string)
                 const settledIds = ids.filter((id) => paidBillIds.has(id))
@@ -156,11 +166,18 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 await supabaseAdmin.from('bill_splits').update({ status: 'cancelled', updated_at: new Date(nowMs).toISOString() }).in('bill_id', ids).eq('status', 'open')
                 if (settledIds.length) await supabaseAdmin.from('bills').update({ status: 'settled' }).in('id', settledIds)
                 if (voidIds.length) await supabaseAdmin.from('bills').update({ status: 'void' }).in('id', voidIds)
-                await supabaseAdmin.from('dining_sessions').update({ active_bill_id: null, bill_status: 'none' }).in('active_bill_id', ids)
+                // Keep active_bill_id: a diner whose tab just closed must stay on it (and see it paid),
+                // never be moved onto another group's bill at the same table.
+                await supabaseAdmin.from('dining_sessions').update({ bill_status: 'none' }).in('active_bill_id', ids)
               }
 
               let written = 0
-              for (const [klownId, orders] of ordersByTable) {
+              for (const [key, orders] of ordersByTable) {
+                const sep = key.indexOf('|')
+                const klownId = key.slice(0, sep)
+                const tabKey = key.slice(sep + 1)
+                const named = [...orders].reverse().find((o) => typeof o.floating_order_name === 'string' && o.floating_order_name.trim())
+                const tabLabel = tabKey && named ? String(named.floating_order_name).trim().replace(/\s+/g, ' ') : null
                 const orderIds = orders.map((o) => o.id as number)
                 let total = 0, taxPesewas = 0
                 const taxByName = new Map<string, { name: string; rate: number | null; amountPesewas: number }>()
@@ -195,13 +212,13 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 const header = {
                   subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total,
                   tax_lines: taxLines, tax_pesewas: taxLines ? taxPesewas : null, server_name: serverName as string | null,
-                  odoo_order_id: orderIds[0]!, odoo_order_ids: orderIds,
+                  odoo_order_id: orderIds[0]!, odoo_order_ids: orderIds, tab_label: tabLabel,
                   odoo_session_id: Array.isArray(latest.session_id) ? latest.session_id[0] : null,
                 }
 
-                const existing = liveByTable.get(klownId)
+                const existing = liveByTable.get(key)
                 if (!existing) {
-                  const { data: nb, error: insErr } = await supabaseAdmin.from('bills').insert({ table_id: klownId, status: 'open', opened_at: new Date().toISOString(), ...header }).select('id').single()
+                  const { data: nb, error: insErr } = await supabaseAdmin.from('bills').insert({ table_id: klownId, tab_key: tabKey, status: 'open', opened_at: new Date().toISOString(), ...header } as any).select('id').single()
                   if (!nb) { if (insErr) console.error('pos-orders: bill insert failed', klownId, insErr.message); continue }
                   if (items.length) await supabaseAdmin.from('bill_items').insert(items.map((it) => ({ ...it, bill_id: nb.id })))
                   written++
@@ -212,7 +229,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 // them (an item split assigns diners to bill_items rows). While a split is in use
                 // the totals still refresh, so the diner never sees a stale balance.
                 const sameIds = JSON.stringify(existing.odoo_order_ids ?? (existing.odoo_order_id != null ? [existing.odoo_order_id] : [])) === JSON.stringify(orderIds)
-                const changed = !sameIds || existing.total_pesewas !== total || existing.subtotal_pesewas !== total || (existing.tax_pesewas ?? null) !== (taxLines ? taxPesewas : null) || (existing.server_name ?? null) !== serverName
+                const changed = !sameIds || existing.total_pesewas !== total || existing.subtotal_pesewas !== total || (existing.tax_pesewas ?? null) !== (taxLines ? taxPesewas : null) || (existing.server_name ?? null) !== serverName || (existing.tab_label ?? null) !== tabLabel
                 const { data: curItems } = await supabaseAdmin.from('bill_items').select('id,name,qty,line_total_pesewas,sort').eq('bill_id', existing.id).order('sort')
                 const sameItems = (curItems ?? []).length === items.length && (curItems ?? []).every((ci: any, i: number) => ci.name === items[i]!.name && ci.qty === items[i]!.qty && ci.line_total_pesewas === items[i]!.line_total_pesewas)
                 if (!changed && sameItems) continue

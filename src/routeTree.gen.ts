@@ -42,6 +42,7 @@ import { Route as ApiPublicSplitRouteImport } from './routes/api/public/split'
 import { Route as ApiPublicSplitAssignRouteImport } from './routes/api/public/split-assign'
 import { Route as ApiPublicSplitCancelRouteImport } from './routes/api/public/split-cancel'
 import { Route as ApiPublicSplitClaimRouteImport } from './routes/api/public/split-claim'
+import { Route as ApiPublicTabSelectRouteImport } from './routes/api/public/tab-select'
 import { Route as ApiPublicSplitCreateRouteImport } from './routes/api/public/split-create'
 import { Route as ApiPublicSplitReleaseRouteImport } from './routes/api/public/split-release'
 import { Route as ApiPublicSplitUnassignRouteImport } from './routes/api/public/split-unassign'
@@ -220,6 +221,11 @@ const ApiPublicSplitClaimRoute = ApiPublicSplitClaimRouteImport.update({
   path: '/api/public/split-claim',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTabSelectRoute = ApiPublicTabSelectRouteImport.update({
+  id: '/api/public/tab-select',
+  path: '/api/public/tab-select',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSplitCreateRoute = ApiPublicSplitCreateRouteImport.update({
   id: '/api/public/split-create',
   path: '/api/public/split-create',
@@ -296,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/api/public/split-assign': typeof ApiPublicSplitAssignRoute
   '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
+  '/api/public/tab-select': typeof ApiPublicTabSelectRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
@@ -339,6 +346,7 @@ export interface FileRoutesByTo {
   '/api/public/split-assign': typeof ApiPublicSplitAssignRoute
   '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
+  '/api/public/tab-select': typeof ApiPublicTabSelectRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
@@ -383,6 +391,7 @@ export interface FileRoutesById {
   '/api/public/split-assign': typeof ApiPublicSplitAssignRoute
   '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
+  '/api/public/tab-select': typeof ApiPublicTabSelectRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
@@ -428,6 +437,7 @@ export interface FileRouteTypes {
     | '/api/public/split-assign'
     | '/api/public/split-cancel'
     | '/api/public/split-claim'
+    | '/api/public/tab-select'
     | '/api/public/split-create'
     | '/api/public/split-release'
     | '/api/public/split-unassign'
@@ -471,6 +481,7 @@ export interface FileRouteTypes {
     | '/api/public/split-assign'
     | '/api/public/split-cancel'
     | '/api/public/split-claim'
+    | '/api/public/tab-select'
     | '/api/public/split-create'
     | '/api/public/split-release'
     | '/api/public/split-unassign'
@@ -514,6 +525,7 @@ export interface FileRouteTypes {
     | '/api/public/split-assign'
     | '/api/public/split-cancel'
     | '/api/public/split-claim'
+    | '/api/public/tab-select'
     | '/api/public/split-create'
     | '/api/public/split-release'
     | '/api/public/split-unassign'
@@ -558,6 +570,7 @@ export interface RootRouteChildren {
   ApiPublicSplitAssignRoute: typeof ApiPublicSplitAssignRoute
   ApiPublicSplitCancelRoute: typeof ApiPublicSplitCancelRoute
   ApiPublicSplitClaimRoute: typeof ApiPublicSplitClaimRoute
+  ApiPublicTabSelectRoute: typeof ApiPublicTabSelectRoute
   ApiPublicSplitCreateRoute: typeof ApiPublicSplitCreateRoute
   ApiPublicSplitReleaseRoute: typeof ApiPublicSplitReleaseRoute
   ApiPublicSplitUnassignRoute: typeof ApiPublicSplitUnassignRoute
@@ -801,6 +814,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSplitClaimRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/tab-select': {
+      id: '/api/public/tab-select'
+      path: '/api/public/tab-select'
+      fullPath: '/api/public/tab-select'
+      preLoaderRoute: typeof ApiPublicTabSelectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/split-create': {
       id: '/api/public/split-create'
       path: '/api/public/split-create'
@@ -895,6 +915,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSplitAssignRoute: ApiPublicSplitAssignRoute,
   ApiPublicSplitCancelRoute: ApiPublicSplitCancelRoute,
   ApiPublicSplitClaimRoute: ApiPublicSplitClaimRoute,
+  ApiPublicTabSelectRoute: ApiPublicTabSelectRoute,
   ApiPublicSplitCreateRoute: ApiPublicSplitCreateRoute,
   ApiPublicSplitReleaseRoute: ApiPublicSplitReleaseRoute,
   ApiPublicSplitUnassignRoute: ApiPublicSplitUnassignRoute,

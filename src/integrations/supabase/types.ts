@@ -503,6 +503,8 @@ export type Database = {
           id: string
           odoo_order_id: number | null
           odoo_order_ids: number[] | null
+          tab_key: string
+          tab_label: string | null
           odoo_pos_config_id: number | null
           odoo_session_id: number | null
           opened_at: string
@@ -522,6 +524,8 @@ export type Database = {
           id?: string
           odoo_order_id?: number | null
           odoo_order_ids?: number[] | null
+          tab_key?: string
+          tab_label?: string | null
           odoo_pos_config_id?: number | null
           odoo_session_id?: number | null
           opened_at?: string
@@ -541,6 +545,8 @@ export type Database = {
           id?: string
           odoo_order_id?: number | null
           odoo_order_ids?: number[] | null
+          tab_key?: string
+          tab_label?: string | null
           odoo_pos_config_id?: number | null
           odoo_session_id?: number | null
           opened_at?: string
@@ -680,6 +686,7 @@ export type Database = {
       }
       dining_sessions: {
         Row: {
+          active_bill_chosen: boolean
           active_bill_id: string | null
           bill_status: string
           created_at: string
@@ -692,6 +699,7 @@ export type Database = {
           table_id: string | null
         }
         Insert: {
+          active_bill_chosen?: boolean
           active_bill_id?: string | null
           bill_status?: string
           created_at?: string
@@ -704,6 +712,7 @@ export type Database = {
           table_id?: string | null
         }
         Update: {
+          active_bill_chosen?: boolean
           active_bill_id?: string | null
           bill_status?: string
           created_at?: string
@@ -1179,6 +1188,7 @@ export type Database = {
         Row: {
           amount_pesewas: number
           bill_id: string | null
+          charged_pesewas: number | null
           created_at: string
           excluded_from_reports: boolean
           failure_reason: string | null
@@ -1199,6 +1209,7 @@ export type Database = {
         Insert: {
           amount_pesewas: number
           bill_id?: string | null
+          charged_pesewas?: number | null
           created_at?: string
           excluded_from_reports?: boolean
           failure_reason?: string | null
@@ -1219,6 +1230,7 @@ export type Database = {
         Update: {
           amount_pesewas?: number
           bill_id?: string | null
+          charged_pesewas?: number | null
           created_at?: string
           excluded_from_reports?: boolean
           failure_reason?: string | null

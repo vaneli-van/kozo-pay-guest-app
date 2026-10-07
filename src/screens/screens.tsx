@@ -508,6 +508,56 @@ function TaxBreakdown({ bill }: { bill: any }) {
   );
 }
 
+// Separate groups at one table: each group's bill is a tab named after a guest. The diner picks
+// theirs. Only enough to recognise it is shown (name, waiter, first items, size).
+export function ChooseTab({ s, dispatch }: any) {
+  const tabs: any[] = s?.tabs ?? [];
+  const opened = (iso: string) => {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+  return (
+    <section className="bill-screen">
+      <CheckoutHeader s={s} dispatch={dispatch} title="Which bill is yours?" step="bill" back="welcome" />
+      <div className="kz-page">
+        <p className="muted" style={{ marginTop: 4 }}>
+          {tabs.length > 1
+            ? `There are ${tabs.length} groups at Table ${s?.tableLabel ?? ""}, each with their own bill. Pick the one you are with.`
+            : "Looking for your bill…"}
+        </p>
+        <div className="kz-card kz-card-list" style={{ marginTop: 18 }}>
+          {tabs.map((t: any) => (
+            <button
+              key={t.billId}
+              className="choice"
+              disabled={!!s?.tabSelectBusy}
+              onClick={() => dispatch({ type: "tab-select", billId: t.billId })}
+            >
+              <span className="choice-icon" aria-hidden="true">
+                <b>{(t.label || String(s?.tableLabel ?? "T")).slice(0, 1).toUpperCase()}</b>
+              </span>
+              <span>
+                <b>{t.label ? `${t.label}'s bill` : `Table ${s?.tableLabel ?? ""}`}</b>
+                <small>
+                  {t.itemCount} {t.itemCount === 1 ? "item" : "items"}
+                  {t.preview?.length ? ` · ${t.preview.join(", ")}${t.itemCount > t.preview.length ? "…" : ""}` : ""}
+                </small>
+                <small>
+                  {t.serverName ? `Served by ${t.serverName} · ` : ""}opened {opened(t.openedAt)}
+                </small>
+              </span>
+              <strong>{pes(t.remainingPesewas)}</strong>
+            </button>
+          ))}
+        </div>
+        <p className="muted" style={{ marginTop: 16 }}>
+          Not sure which is yours? Ask your waiter.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
   const b = s?.bill;
   const items = b?.items ?? [];
@@ -532,6 +582,7 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
               <span className="kz-live-dot" aria-hidden="true" />
               {ready ? "Bill ready" : s?.testMode ? "Test bill" : "Live from POS"}
             </span>
+            {b?.tabLabel ? <span className="kz-bill-hero-label">{b.tabLabel}'s bill · Table {s?.tableLabel}</span> : null}
             <span className="kz-bill-hero-label">{partial ? "Remaining to pay" : "Total to pay"}</span>
             <Money value={remaining} className="kz-bill-hero-amount kz-cur-gold" />
             <span className="kz-total-sub">
@@ -539,6 +590,13 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
             </span>
           </div>
 
+          {(s?.tabCount ?? 1) > 1 && !isOrder ? (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
+              <button className="text-link" onClick={() => dispatch(go("choose-tab"))}>
+                Not your bill? Switch
+              </button>
+            </div>
+          ) : null}
           <h2 className="kz-group-title">
             <span>Your items</span>
             <span className="kz-card-aside">
@@ -2129,6 +2187,7 @@ export function PaymentError({ s, dispatch }: any) {
 export const map: Record<string, any> = {
   connect: Connect,
   welcome: Welcome,
+  "choose-tab": ChooseTab,
   empty: Empty,
   menu: Menu,
   category: Category,
