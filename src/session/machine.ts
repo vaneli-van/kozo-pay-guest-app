@@ -35,6 +35,7 @@ export type State = {
   shareMode?: ShareMode
   customAmountPesewas?: number
   tipPercent?: number
+  tipCustomPesewas?: number // set when the diner typed a custom tip; wins over tipPercent
   method?: 'momo' | 'card' | 'applepay'
   momoNumber?: string | undefined
   paymentRef?: string | undefined

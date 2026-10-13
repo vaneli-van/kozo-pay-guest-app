@@ -28,6 +28,7 @@ import {
 import { FaApple } from "react-icons/fa6";
 import { go, screens, type Screen } from "../session/machine";
 import { money } from "../lib/format";
+import { TIP_PRESETS, tipPesewasFor, tipLabel, tipPercentOf, isCustomTip, parseCediInput, MAX_CUSTOM_TIP_PESEWAS } from "../lib/tip";
 import { billTax } from "../integrations/billing/tax";
 import { Back, Action, Center, BillRow } from "../ui/primitives";
 import { KzHeader, Money, Sheet } from "../ui/kz";
@@ -1337,9 +1338,24 @@ export function Tip({ s, dispatch }: any) {
       s?.quote?.sharePesewas ??
       0)
     : (s?.quote?.remainingPesewas ?? s?.bill?.remainingPesewas ?? s?.bill?.totalPesewas ?? 0);
-  const chosen = s?.tipPercent ?? 10;
-  const tip = Math.round((share * chosen) / 100);
+  const custom = isCustomTip(s);
+  const chosen = custom ? -1 : tipPercentOf(s);
+  const tip = tipPesewasFor(s, share);
+  const [customText, setCustomText] = useState(
+    custom ? (((s?.tipCustomPesewas as number) / 100).toFixed(2)) : "",
+  );
+  const [showCustom, setShowCustom] = useState(custom);
+  const pct = share > 0 ? Math.round((tip / share) * 100) : 0;
   const server = (s?.bill?.serverName || "").toString().trim();
+  const pickPercent = (n: number) => {
+    setShowCustom(false);
+    dispatch({ type: "patch", value: { tipPercent: n, tipCustomPesewas: undefined } });
+  };
+  const onCustomChange = (text: string) => {
+    setCustomText(text);
+    const v = parseCediInput(text);
+    dispatch({ type: "patch", value: { tipCustomPesewas: v ?? 0 } });
+  };
   return (
     <section className="payment-stage tip-screen">
       <CheckoutHeader
@@ -1363,36 +1379,65 @@ export function Tip({ s, dispatch }: any) {
             {server ? " and the team" : ""}, who looked after you today.
           </p>
           <Money value={tip} className="kz-tip-amount" />
-          <span className={`kz-tip-note ${chosen ? "" : "is-empty"}`}>
-            {chosen === 0
+          <span className={`kz-tip-note ${tip ? "" : "is-empty"}`}>
+            {tip === 0
               ? "No tip added"
-              : chosen >= 15
+              : pct >= 15
                 ? "A total legend, huge thanks!"
-                : chosen >= 12.5
+                : pct >= 12
                   ? "Very generous, thank you!"
                   : "Thank you!"}
           </span>
 
-          <div className="kz-tip-options" role="group" aria-label="Tip amount">
-            {[10, 12.5, 15].map((n) => (
+          <div className="kz-tip-options kz-tip-options-4" role="group" aria-label="Tip amount">
+            {TIP_PRESETS.map((n) => (
               <button
                 type="button"
                 key={n}
                 className={`kz-tip-option ${n === chosen ? "is-selected" : ""}`}
                 aria-pressed={n === chosen}
-                onClick={() => dispatch({ type: "patch", value: { tipPercent: n } })}
+                onClick={() => pickPercent(n)}
               >
                 <strong>{n}%</strong>
                 <small>{pes(Math.round((share * n) / 100))}</small>
                 {n === 12.5 && <span className="kz-tip-badge">Popular</span>}
               </button>
             ))}
+            <button
+              type="button"
+              className={`kz-tip-option ${showCustom ? "is-selected" : ""}`}
+              aria-pressed={showCustom}
+              onClick={() => {
+                setShowCustom(true);
+                const v = parseCediInput(customText);
+                dispatch({ type: "patch", value: { tipCustomPesewas: v ?? 0 } });
+              }}
+            >
+              <strong>Other</strong>
+              <small>{showCustom && tip > 0 ? pes(tip) : "Any amount"}</small>
+            </button>
           </div>
+          {showCustom && (
+            <label className="kz-amount-field kz-tip-custom">
+              <span>GH₵</span>
+              <input
+                aria-label="Custom tip in cedis"
+                inputMode="decimal"
+                placeholder="0.00"
+                autoFocus
+                value={customText}
+                onChange={(e) => onCustomChange(e.target.value)}
+              />
+            </label>
+          )}
+          {showCustom && (s?.tipCustomPesewas ?? 0) >= MAX_CUSTOM_TIP_PESEWAS && (
+            <p className="kz-tip-cap">Tips are capped at {pes(MAX_CUSTOM_TIP_PESEWAS)} here.</p>
+          )}
           <button
             type="button"
             className={`kz-tip-skip ${chosen === 0 ? "is-selected" : ""}`}
             aria-pressed={chosen === 0}
-            onClick={() => dispatch({ type: "patch", value: { tipPercent: 0 } })}
+            onClick={() => pickPercent(0)}
           >
             {chosen === 0 ? "No tip selected" : "Continue without a tip"}
           </button>
@@ -1407,7 +1452,7 @@ export function Tip({ s, dispatch }: any) {
             <span>{pes(share)}</span>
           </div>
           <div className="kz-row">
-            <span>Tip ({chosen}%)</span>
+            <span>Tip ({tipLabel(s)})</span>
             <span>{pes(tip)}</span>
           </div>
           <hr className="kz-divider" />
@@ -1438,8 +1483,7 @@ export function Tip({ s, dispatch }: any) {
 export function Review({ s, dispatch }: any) {
   const q = s?.quote;
   const share = q?.sharePesewas ?? 0;
-  const tipPct = s?.tipPercent ?? 10;
-  const tip = Math.round((share * tipPct) / 100);
+  const tip = q?.tipPesewas ?? tipPesewasFor(s, share);
   const grand = share + tip;
   return (
     <section className="payment-stage">
@@ -1461,7 +1505,7 @@ export function Review({ s, dispatch }: any) {
           </div>
           <div className="kz-row">
             <span>
-              Tip · {tipPct}%{" "}
+              Tip · {tipLabel(s)}{" "}
               <button type="button" className="kz-inline-link" onClick={() => dispatch(go("tip"))}>
                 Edit
               </button>
@@ -1530,7 +1574,7 @@ export function Method({ s, dispatch }: any) {
       to: active.id === "momo" ? "momo" : "processing",
     });
   const share = s?.quote?.sharePesewas ?? 0;
-  const grand = share + Math.round((share * (s?.tipPercent ?? 10)) / 100);
+  const grand = share + (s?.quote?.tipPesewas ?? tipPesewasFor(s, share));
   return (
     <section className="method-screen">
       <CheckoutHeader s={s} dispatch={dispatch} title="Payment" step="pay" back="review" />
@@ -1721,7 +1765,7 @@ export function Processing({ s, dispatch }: any) {
 
 export function Success({ s, dispatch }: any) {
   const share = s?.quote?.sharePesewas ?? 0;
-  const tip = Math.round((share * (s?.tipPercent ?? 10)) / 100);
+  const tip = s?.quote?.tipPesewas ?? tipPesewasFor(s, share);
   const paid = share + tip;
   const name = s?.restaurantName || "the restaurant";
   const rating: number = s?.rating ?? 0;
@@ -1770,7 +1814,7 @@ export function Success({ s, dispatch }: any) {
               <span>{pes(share)}</span>
             </div>
             <div className="kz-row">
-              <span>Tip · {s?.tipPercent ?? 10}%</span>
+              <span>Tip · {tipLabel(s)}</span>
               <span>{pes(tip)}</span>
             </div>
             <hr className="kz-divider" />
@@ -1865,7 +1909,7 @@ export function DownloadReceiptButton({ s }: any) {
 
 export function ReceiptChoice({ s, dispatch }: any) {
   const share = s?.quote?.sharePesewas ?? 0;
-  const paidPesewas = s?.totalPaidPesewas ?? share + Math.round((share * (s?.tipPercent ?? 10)) / 100);
+  const paidPesewas = s?.totalPaidPesewas ?? share + (s?.quote?.tipPesewas ?? tipPesewasFor(s, share));
   const [name, setName] = useState(s?.firstName ?? "");
   const [phone, setPhone] = useState(s?.phone ?? s?.momoNumber ?? "");
   const submit = () => {

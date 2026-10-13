@@ -1694,6 +1694,13 @@ body {
   cursor: pointer;
 }
 .kz-tip-skip.is-selected { background: var(--kz-sunken); color: var(--kz-ink); text-decoration: none; }
+.kz-tip-options-4 { grid-template-columns: repeat(4, 1fr); }
+.kz-tip-options-4 .kz-tip-option { padding: 14px 4px 16px; }
+.kz-tip-options-4 .kz-tip-option strong { font-size: 17px; }
+.kz-tip-options-4 .kz-tip-option small { font-size: 11px; }
+.kz-tip-custom { width: 100%; margin-top: 12px; padding: 14px 18px; }
+.kz-tip-custom input { font-size: 30px; }
+.kz-tip-cap { margin: 8px 0 0; font-size: 12px; color: var(--kz-muted); }
 
 /* Review screen */
 .kz-inline-link {

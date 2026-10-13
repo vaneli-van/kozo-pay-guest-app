@@ -1,3 +1,4 @@
+import { tipPesewasFor } from './tip'
 import type { State } from '../session/machine'
 
 // Preview-only stand-in for the POS. Used when the app runs in development without a
@@ -78,7 +79,6 @@ export function demoQuote(s: State): NonNullable<State['quote']> {
   } else if (s.shareMode === 'custom' && s.customAmountPesewas) {
     sharePesewas = Math.min(total, s.customAmountPesewas)
   }
-  const tipPercent = preTip ? 0 : (s.tipPercent ?? s.tip ?? 0)
-  const tipPesewas = Math.round((sharePesewas * tipPercent) / 100)
+  const tipPesewas = preTip ? 0 : tipPesewasFor(s, sharePesewas)
   return { billTotalPesewas: total, remainingPesewas: total, sharePesewas, tipPesewas, grandTotalPesewas: sharePesewas + tipPesewas }
 }

@@ -6,6 +6,7 @@ import { postResilient } from './lib/net'
 import { track } from './lib/track'
 import { Connect, Welcome, map } from './screens/screens'
 import { DEMO_MODE_ENABLED, DEMO_BILL, createDemoSplit, demoQuote } from './lib/demo-bill'
+import { tipRequestFields } from './lib/tip'
 
 const POST = (url: string, body: unknown): Promise<any> =>
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -497,11 +498,11 @@ export default function App({
       mode: s.shareMode ?? 'full',
       people: s.people,
       customAmountPesewas: s.customAmountPesewas,
-      tipPercent: preTip ? 0 : (s.tipPercent ?? s.tip),
+      ...tipRequestFields(s, preTip),
     }).then((r) => { if (!cancelled && r?.ok && r.quote) patch({ quote: r.quote }) }), 150)
     return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, s.claimedShareId, sessionToken, demo, s.split?.myShareAmountPesewas])
+  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, s.tipCustomPesewas, s.claimedShareId, sessionToken, demo, s.split?.myShareAmountPesewas])
 
   // Initiate the payment server-side (idempotent) when the diner commits — amounts are computed on the server.
   useEffect(() => {
@@ -526,7 +527,7 @@ export default function App({
         mode: s.shareMode ?? 'full',
         people: s.people,
         customAmountPesewas: s.customAmountPesewas,
-        tipPercent: s.tipPercent ?? s.tip,
+        ...tipRequestFields(s, false),
         method: s.method ?? 'momo',
         provider: s.method === 'card' || s.method === 'applepay' ? 'card' : 'momo',
         phone: s.momoNumber, // MoMo number — transaction-only, cleared once initiated
