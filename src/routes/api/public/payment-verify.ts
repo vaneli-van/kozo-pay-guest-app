@@ -17,16 +17,17 @@ export const Route = createFileRoute('/api/public/payment-verify')({
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
         const { data: session } = await supabaseAdmin.from('dining_sessions').select('id,status,expires_at').eq('session_token', sessionToken).maybeSingle()
         if (!session || session.status !== 'active' || new Date(session.expires_at) < new Date()) return json({ ok: false, reason: 'invalid_session' })
-        const { data: attempt } = await supabaseAdmin.from('payment_attempts').select('id,status,provider_ref,payment_mode').eq('provider_ref', reference).eq('session_id', session.id).maybeSingle()
+        const { data: attempt } = await supabaseAdmin.from('payment_attempts').select('id,status,provider_ref,payment_mode,amount_pesewas,tip_pesewas,total_pesewas').eq('provider_ref', reference).eq('session_id', session.id).maybeSingle()
         if (!attempt || !attempt.provider_ref) return json({ ok: false, reason: 'unknown_ref' })
-        if (attempt.status === 'captured' || attempt.status === 'failed') return json({ ok: true, status: attempt.status, paymentRef: attempt.id })
+        const amounts = { amountPesewas: attempt.amount_pesewas, tipPesewas: attempt.tip_pesewas, totalPesewas: attempt.total_pesewas }
+        if (attempt.status === 'captured' || attempt.status === 'failed') return json({ ok: true, status: attempt.status, paymentRef: attempt.id, ...amounts })
 
         const { verifyPaystackTransaction, applyProviderCallback, isPaystackEnabled } = await import('@/integrations/payments/provider')
         const mode = attempt.payment_mode === 'test' ? 'test' : 'live'
-        if (attempt.provider_ref.startsWith('mock_') || !isPaystackEnabled(mode)) return json({ ok: true, status: attempt.status, paymentRef: attempt.id })
+        if (attempt.provider_ref.startsWith('mock_') || !isPaystackEnabled(mode)) return json({ ok: true, status: attempt.status, paymentRef: attempt.id, ...amounts })
         const { outcome, reason } = await verifyPaystackTransaction(attempt.provider_ref, mode)
         if (outcome === 'captured' || outcome === 'failed') await applyProviderCallback(attempt.provider_ref, outcome, reason, mode)
-        return json({ ok: true, status: outcome, paymentRef: attempt.id, failureReason: outcome === 'failed' ? reason : undefined })
+        return json({ ok: true, status: outcome, paymentRef: attempt.id, failureReason: outcome === 'failed' ? reason : undefined, ...amounts })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
     },
   } },

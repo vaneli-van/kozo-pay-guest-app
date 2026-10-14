@@ -67,4 +67,5 @@ export const PAYMENT_REASON_MESSAGE: Record<string, string> = {
   no_bill: 'There is no open bill for this table.',
   invalid_share: 'That share is no longer available. Go back to the split and pick again.',
   choose_tab: 'There is more than one bill at this table. Pick yours first.',
+  amount_changed: 'Your bill changed since you checked it. Please look at the new total before you pay.',
 }

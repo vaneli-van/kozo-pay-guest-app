@@ -4,18 +4,36 @@ import { Shell, accentStyle, ConnBanner } from './ui/primitives'
 import { checkoutReturnRef } from './session/checkoutReturn'
 import { postResilient } from './lib/net'
 import { track } from './lib/track'
-import { Connect, Welcome, map } from './screens/screens'
+import { Connect, Welcome, SessionExpired, map } from './screens/screens'
 import { DEMO_MODE_ENABLED, DEMO_BILL, createDemoSplit, demoQuote } from './lib/demo-bill'
 import { tipRequestFields } from './lib/tip'
+import { KLOWN_VERSION } from './lib/version'
+import { NOT_STARTED_REASONS, REASON_COPY } from './lib/reasons'
+
+// Set by the mounted App. Any reply saying the table session has expired switches the app to the
+// "reconnect to your table" screen, instead of each screen failing quietly on its own.
+let onSessionExpired: (() => void) | null = null
 
 const POST = (url: string, body: unknown): Promise<any> =>
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     .then((r) => r.json())
+    .then((j) => { if (j?.reason === 'invalid_session') onSessionExpired?.(); return j })
     .catch(() => null)
 
 // Sentinel share id used only for the optimistic (pre-server) local update on the first tap.
 // It is never a real share and must never be sent to the pay path (see the patch-go guard).
 const LOCAL_PENDING = '__local_pending__'
+
+// Everything that belongs to one checkout of one bill. Cleared when the server hands back a
+// different bill than the one this state was built on (table closed, new order opened), so a
+// returning diner never pays with yesterday's share, tip or receipt.
+const CHECKOUT_RESET = {
+  split: undefined, splitId: undefined, splitError: undefined, claimedShareId: undefined, pendingConfirm: false,
+  shareMode: undefined, people: 2, customAmountPesewas: undefined, tipPercent: undefined, tipCustomPesewas: undefined,
+  quote: undefined, quoteError: undefined, reviewedTotalPesewas: undefined, amountChanged: false,
+  paymentRef: undefined, lateRef: undefined, capturedRef: undefined, lastPaid: undefined, failureReason: undefined, failureKind: undefined,
+  receiptNumber: undefined, totalPaidPesewas: undefined, rating: undefined,
+} as const
 
 // Paystack's checkout sends X-Frame-Options: SAMEORIGIN, so it cannot load inside an
 // embedded preview iframe. Navigate the top-level window when we're framed; if the
@@ -104,8 +122,12 @@ export default function App({
   initialState,
   storageKey = 'klown-dining-session',
   sessionToken,
-}: { initialState?: Partial<State>; storageKey?: string; sessionToken?: string } = {}) {
+  qrToken,
+}: { initialState?: Partial<State>; storageKey?: string; sessionToken?: string; qrToken?: string } = {}) {
   const [s, dispatch] = useReducer(reducer, { ...initial, ...initialState })
+  // Latest state for timers, polls and helpers (their closures would otherwise see an old copy).
+  const sRef = useRef(s)
+  sRef.current = s
   // Captured once at load: the ?reference= effect strips the URL, so read it before that runs.
   const checkoutRefAtLoad = useRef<string | null>(checkoutReturnRef())
   const [hydrated, setHydrated] = useState(false)
@@ -127,6 +149,12 @@ export default function App({
   const demo = DEMO_MODE_ENABLED && !sessionToken
 
   useEffect(() => { if (sessionToken && s.sessionToken !== sessionToken) patch({ sessionToken }) }, [sessionToken])
+  useEffect(() => {
+    onSessionExpired = () => patch({ sessionExpired: true })
+    try { (window as any).__KLOWN_VERSION = KLOWN_VERSION } catch {}
+    return () => { onSessionExpired = null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   useEffect(() => {
     if (demo && hydrated && !s.bill) patch({ bill: DEMO_BILL })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -166,12 +194,33 @@ export default function App({
     else patch({ splitError: r?.reason === 'no_bill' ? 'There is no open bill for this table.' : 'Could not save your items. Please try again.' })
   }
 
+  // The diner stopped waiting on a payment that may still be live (a MoMo prompt on their phone,
+  // a closed checkout, "it didn't go through", a timeout, going back to change the number). Cancel
+  // it so the bill is free for others at the table right away (the server otherwise holds it for
+  // 10 minutes), and keep watching it: a prompt approved late still captures, and the diner must
+  // land on success instead of paying twice. Never applied to a payment already confirmed.
+  const abandonAttempt = (ref?: string) => {
+    if (!ref || ref === sRef.current.capturedRef) return
+    if (sessionToken) POST('/api/public/payment-cancel', { sessionToken, paymentRef: ref })
+    patch({ lateRef: ref })
+  }
+
+  // The one place a server-confirmed capture lands. Records what was actually paid (amounts from
+  // the payment row, not the pre-pay quote) and stops watching any abandoned attempt.
+  const onCaptured = (ref: string | undefined, r: any) => {
+    const paid = typeof r?.amountPesewas === 'number'
+      ? { lastPaid: { amountPesewas: r.amountPesewas, tipPesewas: r.tipPesewas ?? 0, totalPesewas: r.totalPesewas ?? r.amountPesewas + (r.tipPesewas ?? 0) } }
+      : {}
+    patch({ capturedRef: ref, lateRef: undefined, failureReason: undefined, failureKind: undefined, checkoutOpen: false, ...paid })
+    goScreen('success')
+  }
+
   const checkStatusOnce = async (ref?: string) => {
     const paymentRef = ref ?? s.paymentRef
     if (!sessionToken || !paymentRef) return
     const r = await POST('/api/public/payment-status', { sessionToken, paymentRef })
-    if (r?.status === 'captured') goScreen('success')
-    else if (r?.status === 'failed') { patch({ failureReason: r?.failureReason }); goScreen('payment-error') }
+    if (r?.status === 'captured') onCaptured(paymentRef, r)
+    else if (r?.status === 'failed') { patch({ failureReason: r?.failureReason, failureKind: 'declined' }); goScreen('payment-error') }
   }
 
   const navigate = (action: any) => {
@@ -180,10 +229,55 @@ export default function App({
     // so a retry (or a changed amount/method) initiates a new, idempotent payment.
     const target: string | null = action.type === 'screen' ? action.value : action.type === 'patch-go' ? action.to : null
     if (target && ['pay', 'split', 'split-share', 'split-lobby', 'split-items', 'tip', 'review', 'method', 'momo', 'authorise'].includes(target) && s.paymentRef) {
+      abandonAttempt(s.paymentRef) // the old prompt may still be live on the phone
       idemRef.current = ''
       patch({ paymentRef: undefined })
     }
     switch (action.type) {
+      case 'pay-full': {
+        // "Pay in full" means the whole remaining balance, even after the diner tried a split and
+        // backed out. Drop any share they had claimed (and free an even/amounts share for the
+        // others at the table) so the charge is the full balance, not their old share.
+        const prevShare = s.claimedShareId
+        if (sessionToken && prevShare && prevShare !== LOCAL_PENDING && s.split?.mode && s.split.mode !== 'items')
+          POST('/api/public/split-release', { sessionToken, shareId: prevShare })
+        if (s.paymentRef) abandonAttempt(s.paymentRef)
+        idemRef.current = ''
+        patch({ shareMode: 'full', claimedShareId: undefined, customAmountPesewas: undefined, paymentRef: undefined, quote: undefined, quoteError: undefined })
+        goScreen((action.to as Screen) ?? 'tip')
+        return
+      }
+      case 'give-up': {
+        // "It didn't go through" on the processing screen.
+        abandonAttempt(s.paymentRef)
+        idemRef.current = ''
+        patch({ paymentRef: undefined, failureReason: action.reason, failureKind: 'timeout' })
+        goScreen('payment-error')
+        return
+      }
+      case 'reset': {
+        // "Back to my table" at the end of a visit: forget this visit's screens and load the
+        // table fresh (an open bill shows the bill, a closed one the welcome screen).
+        if (!sessionToken) break
+        try { sessionStorage.removeItem(storageKey) } catch {}
+        window.location.reload()
+        return
+      }
+      case 'retry': {
+        // "Try again" on a bill or total that failed to load: ask the server again now.
+        patch({ billError: false, quoteError: undefined })
+        setRetryTick((n) => n + 1)
+        return
+      }
+      case 'rescan': {
+        // The table session timed out: drop the stored session so the reload starts a new one.
+        try {
+          sessionStorage.removeItem(storageKey)
+          if (qrToken) localStorage.removeItem(`klown-session:${qrToken}`)
+        } catch {}
+        window.location.reload()
+        return
+      }
       case 'split-create': {
         const dest: Screen = action.mode === 'items' ? 'split-items' : 'split-lobby'
         if (demo) {
@@ -193,8 +287,9 @@ export default function App({
           return
         }
         if (!sessionToken) {
-          patch({ splitError: 'Scan the QR code on your table to split this bill.' })
+          // Navigate first: a screen change clears errors, so the message must be set after it.
           if (action.mode === 'items') goScreen(dest)
+          patch({ splitError: 'Scan the QR code on your table to split this bill.' })
           return
         }
         patch({ splitError: undefined })
@@ -294,7 +389,7 @@ export default function App({
         POST('/api/public/tab-select', { sessionToken, billId: action.billId }).then(async (r) => {
           if (!r?.ok) { patch({ tabSelectBusy: false }); return }
           const b = await POST('/api/public/bill', { sessionToken })
-          patch({ tabSelectBusy: false, hasOrder: true, split: undefined, splitId: undefined, claimedShareId: undefined, quote: undefined, ...(b?.ok && b.bill ? { bill: b.bill, tabCount: b.tabCount ?? 1 } : {}) })
+          patch({ tabSelectBusy: false, hasOrder: true, split: undefined, splitId: undefined, claimedShareId: undefined, quote: undefined, ...(b?.ok && b.bill ? { bill: b.bill, billId: b.bill.id, noBill: false, tabCount: b.tabCount ?? 1 } : {}) })
           goScreen('bill')
         })
         return
@@ -356,18 +451,28 @@ export default function App({
       case 'rewards-consent': {
         const rphone = action.value?.phone ?? s.phone
         if (rphone) patch({ phone: rphone })
-        if (sessionToken && rphone) {
-          POST('/api/public/rewards-consent', {
-            sessionToken,
-            phone: rphone,
-            firstName: action.value?.firstName,
-            receiptConsent: true,
-            rewardsConsent: true,
-            marketingConsent: !!action.value?.marketing,
-            consentVersion: 'v1',
+        if (!sessionToken || !rphone) { goScreen('guest-receipt'); return }
+        // Only move on once the number is actually saved; a refused number stays on screen with
+        // a reason instead of looking saved.
+        patch({ rewardsBusy: true, rewardsError: undefined })
+        POST('/api/public/rewards-consent', {
+          sessionToken,
+          phone: rphone,
+          firstName: action.value?.firstName,
+          receiptConsent: true,
+          rewardsConsent: true,
+          marketingConsent: !!action.value?.marketing,
+          consentVersion: 'v1',
+        }).then((r) => {
+          if (r?.ok) { patch({ rewardsBusy: false }); goScreen('guest-receipt'); return }
+          if (r?.reason === 'invalid_session') { patch({ rewardsBusy: false }); return }
+          patch({
+            rewardsBusy: false,
+            rewardsError: r?.reason === 'invalid_phone'
+              ? 'That number does not look right. Check it and try again.'
+              : 'We could not save your number just now. Try again, or skip to your receipt.',
           })
-        }
-        goScreen('guest-receipt')
+        })
         return
       }
       case 'feedback': {
@@ -375,7 +480,8 @@ export default function App({
         const rating = action.value?.rating ?? 5
         const comment = typeof action.value?.comment === 'string' ? action.value.comment : undefined
         patch({ rating })
-        if (sessionToken) POST('/api/public/feedback', { sessionToken, rating, comment })
+        if (sessionToken) POST('/api/public/feedback', { sessionToken, rating, comment }).then((r) => action.onDone?.(!!r?.ok))
+        else action.onDone?.(true)
         return
       }
 
@@ -410,14 +516,25 @@ export default function App({
     const load = async () => {
       const r = await POST('/api/public/bill', { sessionToken })
       if (cancelled) return
+      // No usable reply (offline, server error page). Only matters when there is no bill on
+      // screen yet: then the bill screen says so and offers a retry instead of showing GH₵0.00.
+      if (!r) { if (!sRef.current.bill) patch({ billError: true }); return }
+      if (!r.ok) return
       // Several groups at this table and this phone has not picked its bill: ask.
-      if (r?.ok && !r.bill && r.chooseTab) {
-        patch({ tabs: r.tabs ?? [], tabCount: (r.tabs ?? []).length })
+      if (!r.bill && r.chooseTab) {
+        patch({ tabs: r.tabs ?? [], tabCount: (r.tabs ?? []).length, billError: false })
         if (s.screen !== 'choose-tab') goScreen('choose-tab')
         return
       }
-      if (r?.ok && r.bill) {
-        patch({ bill: r.bill, tabCount: r.tabCount ?? 1, ...(Array.isArray(r.tabs) && r.tabs.length ? { tabs: r.tabs } : {}) })
+      // No open bill at this table right now (nothing ordered yet, or it was settled).
+      if (!r.bill) { patch({ bill: undefined, noBill: true, billError: false, hasOrder: false }); return }
+      if (r.bill) {
+        // A different bill than the one this checkout state was built on: the table closed and a
+        // new order opened. Start the checkout again rather than carry the old share, tip,
+        // payment or receipt across.
+        const prevId = sRef.current.billId
+        const newBill = !!r.bill.id && !!prevId && r.bill.id !== prevId
+        patch({ ...(newBill ? CHECKOUT_RESET : {}), bill: r.bill, billId: r.bill.id ?? prevId, noBill: false, billError: false, tabCount: r.tabCount ?? 1, ...(Array.isArray(r.tabs) && r.tabs.length ? { tabs: r.tabs } : {}) })
         // On the picker with only one bill left at the table: nothing to choose, show it.
         if (s.screen === 'choose-tab' && (r.tabCount ?? 1) <= 1) { goScreen('bill'); return }
         if (s.screen === 'choose-tab') return
@@ -430,7 +547,7 @@ export default function App({
     const id = window.setInterval(load, (s.screen === 'waiting-bill' || s.screen === 'empty') ? 8000 : 30000)
     return () => { cancelled = true; window.clearInterval(id) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, sessionToken])
+  }, [s.screen, sessionToken, retryTick])
 
   // Live split state — polled while the diner is on the split lobby.
   useEffect(() => {
@@ -499,10 +616,16 @@ export default function App({
       people: s.people,
       customAmountPesewas: s.customAmountPesewas,
       ...tipRequestFields(s, preTip),
-    }).then((r) => { if (!cancelled && r?.ok && r.quote) patch({ quote: r.quote }) }), 150)
+    }).then((r) => {
+      if (cancelled) return
+      if (r?.ok && r.quote) patch({ quote: r.quote, quoteError: undefined })
+      // The server refused to price this (share gone, bill already paid...): say why on the review
+      // screen instead of leaving an old amount up. Network failures keep the last quote.
+      else if (r && !r.ok && r.reason !== 'invalid_session') patch({ quote: undefined, quoteError: r.reason ?? 'error' })
+    }), 150)
     return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, s.tipCustomPesewas, s.claimedShareId, sessionToken, demo, s.split?.myShareAmountPesewas])
+  }, [s.screen, s.shareMode, s.people, s.customAmountPesewas, s.tipPercent, s.tipCustomPesewas, s.claimedShareId, sessionToken, demo, s.split?.myShareAmountPesewas, retryTick])
 
   // Initiate the payment server-side (idempotent) when the diner commits — amounts are computed on the server.
   useEffect(() => {
@@ -528,14 +651,30 @@ export default function App({
         people: s.people,
         customAmountPesewas: s.customAmountPesewas,
         ...tipRequestFields(s, false),
+        // The total shown on "Review & pay". The server refuses to charge anything else.
+        ...(typeof s.reviewedTotalPesewas === 'number' ? { expectedTotalPesewas: s.reviewedTotalPesewas } : {}),
         method: s.method ?? 'momo',
         provider: s.method === 'card' || s.method === 'applepay' ? 'card' : 'momo',
         phone: s.momoNumber, // MoMo number — transaction-only, cleared once initiated
         callbackUrl,
       }, { retries: 4 }).then((r) => {
         if (cancelled) return
-        if (!r?.ok) { patch({ failureReason: r?.failureReason ?? r?.message }); goScreen('payment-error'); return }
-        if (r.paymentRef) patch({ paymentRef: r.paymentRef, momoNumber: undefined, connLost: false })
+        if (r?.reason === 'invalid_session') { onSessionExpired?.(); return }
+        if (r?.reason === 'amount_changed') {
+          // The bill moved between review and pay (another round posted, an item voided).
+          idemRef.current = ''
+          patch({ amountChanged: true, quote: undefined, reviewedTotalPesewas: undefined, momoNumber: undefined })
+          goScreen('review')
+          return
+        }
+        if (!r?.ok) {
+          const blocked = !!r?.reason && NOT_STARTED_REASONS.has(r.reason)
+          patch({ failureReason: r?.failureReason ?? r?.message ?? (r?.reason ? REASON_COPY[r.reason] : undefined), failureKind: blocked ? 'blocked' : 'declined' })
+          goScreen('payment-error')
+          return
+        }
+        // A new payment: whatever receipt or rating belonged to an earlier one no longer applies.
+        if (r.paymentRef) patch({ paymentRef: r.paymentRef, momoNumber: undefined, connLost: false, receiptNumber: undefined, totalPaidPesewas: undefined, rating: undefined, lastPaid: undefined })
         if (r.redirectUrl) { // card / hosted MoMo → Paystack checkout
           if (!r.accessCode) { openCheckout(r.redirectUrl); return }
           // Popup over Klown. Polling pauses while it is open (an unfinished checkout is not a
@@ -546,8 +685,8 @@ export default function App({
             onSuccess: () => { patch({ checkoutOpen: false }); checkStatusOnce(r.paymentRef) },
             onCancel: () => {
               // Free the bill/share for others at the table (the server keeps an unfinished payment
-              // reserved for 10 minutes). Best-effort; a late Paystack capture still counts.
-              if (r.paymentRef) POST('/api/public/payment-cancel', { sessionToken, paymentRef: r.paymentRef }).catch(() => {})
+              // reserved for 10 minutes), and keep watching it: a late Paystack capture still counts.
+              abandonAttempt(r.paymentRef)
               idemRef.current = ''; patch({ checkoutOpen: false, paymentRef: undefined }); goScreen('method')
             },
             onUnavailable: () => { patch({ checkoutOpen: false }); openCheckout(r.redirectUrl) },
@@ -586,16 +725,19 @@ export default function App({
       if (stopped) return // diner left this screen / attempt changed — ignore this late reply
       if (r?.status === 'captured') {
         stop()
-        goScreen('success')
+        onCaptured(s.paymentRef, r)
       } else if (r?.status === 'failed') {
         stop()
-        patch({ failureReason: r?.failureReason })
+        patch({ failureReason: r?.failureReason, failureKind: 'declined' })
         goScreen('payment-error')
       } else if (!onAuthorise && n > 120) {
-        // ~3 min with no confirmation (e.g. the MoMo prompt was never approved):
-        // stop guessing and show the fallback instead of spinning forever.
+        // ~3 min with no confirmation (e.g. the MoMo prompt was never approved): stop guessing
+        // and show the fallback instead of spinning forever. Release the payment so the table is
+        // free, and keep watching it in case it was approved late.
         stop()
-        patch({ failureReason: 'The payment was not confirmed in time.' })
+        abandonAttempt(s.paymentRef)
+        idemRef.current = ''
+        patch({ paymentRef: undefined, failureReason: 'The payment was not confirmed in time.', failureKind: 'timeout' })
         goScreen('payment-error')
       }
     }
@@ -626,12 +768,43 @@ export default function App({
     goScreen('processing')
     POST('/api/public/payment-verify', { sessionToken, reference }).then((r) => {
       if (r?.paymentRef) patch({ paymentRef: r.paymentRef }) // poll by attempt id, not the gateway reference
-      if (r?.status === 'captured') goScreen('success')
-      else if (r?.status === 'failed') { patch({ failureReason: r?.failureReason }); goScreen('payment-error') }
+      if (r?.status === 'captured') onCaptured(r.paymentRef, r)
+      else if (r?.status === 'failed') { patch({ failureReason: r?.failureReason, failureKind: 'declined' }); goScreen('payment-error') }
       // otherwise stay on processing — the polling effect continues via paymentRef
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionToken])
+
+  // Watch a payment the diner stopped waiting on (see abandonAttempt) for 3 minutes. If it was
+  // approved after all: show success, and cancel any newer attempt still waiting so the diner is
+  // not charged twice (if that one is approved too, the server flags the overpayment for refund).
+  useEffect(() => {
+    const late = s.lateRef
+    if (!sessionToken || !late) return
+    let n = 0
+    let stopped = false
+    const id = window.setInterval(async () => {
+      if (stopped) return
+      n++
+      const r = await POST('/api/public/payment-status', { sessionToken, paymentRef: late })
+      if (stopped) return
+      if (r?.status === 'captured') {
+        stopped = true
+        window.clearInterval(id)
+        const live = sRef.current.paymentRef
+        if (live && live !== late) POST('/api/public/payment-cancel', { sessionToken, paymentRef: live })
+        idemRef.current = ''
+        patch({ paymentRef: late })
+        onCaptured(late, r)
+      } else if (r?.status === 'failed' || r?.ok === false || n >= 36) {
+        stopped = true
+        window.clearInterval(id)
+        patch({ lateRef: undefined })
+      }
+    }, 5000)
+    return () => { stopped = true; window.clearInterval(id) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.lateRef, sessionToken])
 
   // Issue / fetch the receipt once payment is captured.
   useEffect(() => {
@@ -660,10 +833,17 @@ export default function App({
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(storageKey)
-      if (saved) {
+      const prev = saved ? JSON.parse(saved) : null
+      // Only restore a copy written for this table session and within the last 12 hours. A copy
+      // from an earlier visit (a different session token, or none recorded) would bring back an
+      // old share, tip, rating and receipt number as if they were today's.
+      const owner = prev ? (prev.savedFor ?? prev.sessionToken) : undefined
+      const tooOld = !!prev && typeof prev.savedAt === 'number' && Date.now() - prev.savedAt > 12 * 3600_000
+      const otherSession = !!prev && !!sessionToken && owner !== sessionToken
+      if (prev && (tooOld || otherSession)) sessionStorage.removeItem(storageKey)
+      else if (prev) {
         // Keep the diner on whatever screen they were on, but let the freshly-resolved
         // table + order state win over a stale saved copy (order placed since last visit, etc.).
-        const prev = JSON.parse(saved)
         dispatch({ type: 'restore', value: { ...prev, checkoutOpen: false, ...(checkoutRefAtLoad.current ? { paymentRef: prev.paymentRef ?? checkoutRefAtLoad.current } : {}), screen: checkoutRefAtLoad.current ? 'processing' : initialState?.screen === 'choose-tab' ? 'choose-tab' : initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy, testMode: initialState?.testMode ?? false } })
       }
     } catch {}
@@ -674,8 +854,8 @@ export default function App({
   useEffect(() => {
     if (!hydrated) return
     try {
-      const { menu, selectedItem, ...persist } = s
-      sessionStorage.setItem(storageKey, JSON.stringify(persist))
+      const { menu, selectedItem, sessionExpired, ...persist } = s
+      sessionStorage.setItem(storageKey, JSON.stringify({ ...persist, savedAt: Date.now(), savedFor: sessionToken ?? s.sessionToken }))
     } catch {}
   }, [s, hydrated, storageKey])
 
@@ -697,7 +877,11 @@ export default function App({
       {(s.netOnline === false || s.connLost) && (
         <ConnBanner offline={s.netOnline === false} onRetry={() => setRetryTick((n) => n + 1)} />
       )}
-      {s.screen === 'welcome' ? (
+      {s.sessionExpired ? (
+        <div className="app-shell" style={accentStyle(s.accentColor)}>
+          <SessionExpired s={s} dispatch={navigate} />
+        </div>
+      ) : s.screen === 'welcome' ? (
         <div className="welcome-shell" style={accentStyle(s.accentColor)}>
           <Welcome s={s} dispatch={navigate} />
         </div>

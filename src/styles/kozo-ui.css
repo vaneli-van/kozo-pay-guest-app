@@ -1925,7 +1925,7 @@ button.kz-success-card {
 
 /* Low-rating private feedback box on the success screen */
 .kz-rate-note-form { display: flex; flex-direction: column; gap: 10px; }
-.kz-rate-note-input { width: 100%; resize: vertical; min-height: 64px; border: 1px solid var(--kz-line); border-radius: var(--kz-r-sm); padding: 12px; font: inherit; font-size: 14px; line-height: 1.4; color: var(--kz-ink); background: var(--kz-surface); box-sizing: border-box; }
+.kz-rate-note-input { width: 100%; resize: vertical; min-height: 64px; border: 1px solid var(--kz-line); border-radius: var(--kz-r-sm); padding: 12px; font: inherit; font-size: 16px; line-height: 1.4; color: var(--kz-ink); background: var(--kz-surface); box-sizing: border-box; }
 .kz-rate-note-input:focus { outline: 2px solid var(--kz-ink); outline-offset: 1px; }
 .kz-rate-send { align-self: flex-start; background: var(--kz-ink); color: #fff; border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 700; font-size: 13px; cursor: pointer; min-height: 40px; }
 
@@ -1933,3 +1933,47 @@ button.kz-success-card {
 /* Odoo-style receipt image on the guest receipt screen */
 .kz-receipt-img { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 8px; }
 .kz-receipt-preview { width: 100%; max-width: 340px; height: auto; border: 1px solid var(--kz-line); border-radius: 10px; box-shadow: var(--kz-shadow); background: #fff; }
+
+/* ---------- Release 2026.10.14 ---------- */
+/* Version label: tells a stale cached build apart from a fresh one on a support call. */
+.kz-version { margin: 18px 0 0; text-align: center; font-size: 11px; letter-spacing: 0.04em; color: var(--muted); }
+/* Bill / total while loading, after a failed load, or when the table has no bill. */
+.kz-bill-state { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 48px 12px 24px; color: var(--kz-ink); }
+.kz-bill-state strong { font-size: 17px; }
+.kz-bill-state span { font-size: 14px; line-height: 1.5; color: var(--kz-muted); max-width: 300px; }
+.kz-bill-state .loader { margin: 0 0 6px; }
+.kz-bill-state .kz-btn { margin-top: 8px; min-width: 180px; }
+.kz-bill-note { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--kz-sunken); font-size: 14px; text-align: center; color: var(--kz-ink); }
+.kz-notice { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; background: var(--kz-yellow-soft); color: var(--kz-ink); font-size: 14px; line-height: 1.45; }
+section > .kz-notice { margin-top: 18px; }
+/* Field hints (MoMo number, receipt phone). */
+.field-hint { margin: 8px 0 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
+.field-hint.is-error { color: #a1381e; }
+/* Dock buttons stay on one line (the bill button used to wrap to "Pay / in / full"). */
+.kz-btn-split .kz-btn-label { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kz-btn-split .kz-btn-amount { flex: none; white-space: nowrap; }
+.kz-lbl-short { display: none; }
+@media (max-width: 380px) {
+  /* iPhone SE and similar: a short label so the amount always fits beside it. */
+  .kz-lbl-long { display: none; }
+  .kz-lbl-short { display: inline; }
+  .kz-dock > .kz-btn-secondary { padding: 0 14px; }
+  .kz-btn-split { padding-left: 16px; gap: 8px; }
+  .kz-btn-amount { padding: 0 10px; }
+}
+/* Screens that now use the pinned dock need room under their content. */
+.method-screen,
+.receipt-choice,
+.payment-error-screen { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+.kz-dock > .method-dock-btn { flex: 1; min-width: 0; min-height: 66px; border-radius: 14px; padding: 10px 14px; }
+.method-dock-btn .method-action-label small { color: rgba(255, 255, 255, 0.75); }
+/* Item split sheet: header and confirm bar pinned, only the list scrolls between them. */
+.split-sheet.split-items-stage { display: flex; flex-direction: column; overflow: hidden; max-height: min(90dvh, 760px); }
+.split-items-stage > .split-sheet-handle,
+.split-items-stage > .split-sheet-header,
+.split-items-stage > .split-items-foot { flex: none; }
+.split-items-stage > .split-items-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin: 0 -20px; padding: 0 20px 8px; }
+.split-items-foot { padding-top: 12px; border-top: 1px solid var(--line); background: var(--background); }
+.split-items-foot .action,
+.split-items-foot .notice-card { margin-top: 0; }
+.split-items-foot .error { margin: 0 0 10px; }

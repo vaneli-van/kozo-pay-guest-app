@@ -32,20 +32,37 @@ export type State = {
   // Paystack popup checkout is open over the app (status polling pauses meanwhile)
   checkoutOpen?: boolean
   // payment + post-payment context (populated at runtime; all optional)
-  shareMode?: ShareMode
-  customAmountPesewas?: number
-  tipPercent?: number
-  tipCustomPesewas?: number // set when the diner typed a custom tip; wins over tipPercent
+  shareMode?: ShareMode | undefined
+  customAmountPesewas?: number | undefined
+  tipPercent?: number | undefined
+  tipCustomPesewas?: number | undefined // set when the diner typed a custom tip; wins over tipPercent
+  // What the diner saw on "Review & pay" when they went on to pay; payment-init refuses to charge
+  // a different amount (the bill changed in between) and sends them back to review it.
+  reviewedTotalPesewas?: number | undefined
+  amountChanged?: boolean
+  quoteError?: string | undefined
   method?: 'momo' | 'card' | 'applepay'
   momoNumber?: string | undefined
   paymentRef?: string | undefined
   failureReason?: string | undefined
+  // 'blocked' = never started (someone else paying, bill changed...), 'declined' = the provider
+  // said no, 'timeout' = never confirmed. Drives the payment-error copy.
+  failureKind?: 'blocked' | 'declined' | 'timeout' | undefined
+  // A payment the diner stopped waiting on. It was cancelled to free the table, but a MoMo prompt
+  // approved late still captures, so it is watched for a few minutes (see App).
+  lateRef?: string | undefined
+  capturedRef?: string | undefined
+  // What was actually captured, from the server (shown on success instead of the pre-pay quote).
+  lastPaid?: { amountPesewas: number; tipPesewas: number; totalPesewas: number } | undefined
+  sessionExpired?: boolean
+  rewardsBusy?: boolean
+  rewardsError?: string | undefined
   phone?: string
   waStatus?: 'sending' | 'sent' | 'error' | undefined
   waError?: string | undefined
 
   sessionToken?: string
-  splitId?: string
+  splitId?: string | undefined
   splitError?: string | undefined
   claimedShareId?: string | undefined
   pendingConfirm?: boolean
@@ -60,16 +77,21 @@ export type State = {
     unassignedPesewas?: number
   } | undefined
 
-  receiptNumber?: string
-  rating?: number
+  receiptNumber?: string | undefined
+  rating?: number | undefined
   firstName?: string
-  totalPaidPesewas?: number
+  totalPaidPesewas?: number | undefined
   reviewUrl?: string | null
   // Separate groups at one table: the open bills (tabs) to pick from, and how many there are.
   tabs?: { billId: string; label: string | null; main: boolean; serverName: string | null; itemCount: number; preview: string[]; totalPesewas: number; remainingPesewas: number; openedAt: string }[]
   tabCount?: number
   tabSelectBusy?: boolean
-  bill?: { status?: string; serverName?: string | null; tabLabel?: string | null; items: { name: string; qty: number; lineTotalPesewas: number }[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number; paidPesewas?: number; remainingPesewas?: number; tax?: { net: number; total: number; lines: { name: string; rate: number | null; amountPesewas: number }[]; estimated: boolean } } | undefined
+  // Identity of the bill this checkout state belongs to. When the server returns a different bill
+  // (the table closed and a new order opened), the checkout state is reset.
+  billId?: string | undefined
+  billError?: boolean
+  noBill?: boolean
+  bill?: { id?: string; status?: string; serverName?: string | null; tabLabel?: string | null; items: { name: string; qty: number; lineTotalPesewas: number }[]; subtotalPesewas: number; serviceChargePesewas: number; totalPesewas: number; paidPesewas?: number; remainingPesewas?: number; tax?: { net: number; total: number; lines: { name: string; rate: number | null; amountPesewas: number }[]; estimated: boolean } } | undefined
   quote?: { billTotalPesewas: number; remainingPesewas: number; sharePesewas: number; tipPesewas: number; grandTotalPesewas: number } | undefined
   // Menu (fetched once from /api/public/menu; all optional)
   menu?: {
@@ -100,7 +122,8 @@ export const screens: [Screen, string, string, string, string, string][] = [
 export function go(screen: Screen) { return { type: 'screen', value: screen } as const }
 
 export function reducer(s: State, a: { type: string; value?: any }): State {
-  if (a.type === 'screen') return { ...s, screen: a.value, paymentError: false, connLost: false, pendingConfirm: false }
+  // A new screen starts clean: an error belongs to the screen it was shown on.
+  if (a.type === 'screen') return { ...s, screen: a.value, paymentError: false, connLost: false, pendingConfirm: false, splitError: undefined, rewardsError: undefined }
   if (a.type === 'patch') return { ...s, ...a.value }
   if (a.type === 'toggleOrder') return { ...s, hasOrder: !s.hasOrder, screen: !s.hasOrder ? 'welcome' : 'welcome' }
   if (a.type === 'dish') return { ...s, dish: a.value, screen: 'dish' }

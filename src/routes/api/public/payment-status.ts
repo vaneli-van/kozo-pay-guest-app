@@ -17,10 +17,12 @@ export const Route = createFileRoute('/api/public/payment-status')({
         const { data: attempt } = await supabaseAdmin.from('payment_attempts').select('id,status,provider_ref,amount_pesewas,tip_pesewas,total_pesewas,failure_reason,payment_mode').eq('id', paymentRef).eq('session_id', session.id).maybeSingle()
         if (!attempt) return json({ ok: false, reason: 'unknown_ref' })
 
-        // Fallback: if the gateway webhook is slow, ask Paystack directly and reconcile.
+        // Fallback: if the gateway webhook is slow, ask Paystack directly and reconcile. Cancelled
+        // attempts are included: the diner gave up waiting, but a MoMo prompt approved afterwards
+        // still captures, and the app watches for exactly that (a capture wins over cancelled).
         let status = attempt.status
         let failureReason = attempt.failure_reason
-        if ((status === 'pending' || status === 'initiated') && attempt.provider_ref) {
+        if ((status === 'pending' || status === 'initiated' || status === 'cancelled') && attempt.provider_ref) {
           try {
             const { verifyPaystackTransaction, applyProviderCallback, isPaystackEnabled } = await import('@/integrations/payments/provider')
             const mode = attempt.payment_mode === 'test' ? 'test' : 'live'

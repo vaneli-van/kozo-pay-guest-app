@@ -33,3 +33,14 @@ also asserts the home route returns 200 with the Klown title.
 To keep Lovable's own install and build untouched, `@playwright/test` is NOT in
 `package.json`. CI installs it at runtime; locally you install it yourself (see
 above). This means `bun.lock` stays in sync with what Lovable builds.
+
+## Diner UI checks (`tests/diner-ui/`)
+
+One check per fix in diner release 2026.10.14 (audit: `claude/diner-app-audit-2026-10-14.md`
+in the Klown project). They drive the real app on iPhone 13 and iPhone SE viewports with every
+`/api/**` call answered by a fake backend (`mock.ts`), so they need no Supabase or Paystack:
+
+    bunx playwright test -c tests/diner-ui/playwright.config.ts
+
+They are excluded from the root config (and so from the CI gate) until they have passed in CI
+once; then drop the `testIgnore` for `diner-ui` in `playwright.config.ts`.

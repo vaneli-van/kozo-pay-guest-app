@@ -59,6 +59,14 @@ export const Route = createFileRoute('/api/public/payment-init')({
           })
         } catch (e) { if (e instanceof QuoteError) return fail(e.reason); throw e }
 
+        // The diner agreed to a total on "Review & pay". If the bill moved since (another round
+        // posted, an item voided), refuse rather than prompt them for a different amount; the app
+        // sends them back to review the new total. A few pesewas of drift are allowed: an item-split
+        // share is recomputed here and can move by rounding. Older clients do not send the field.
+        const expected = typeof body.expectedTotalPesewas === 'number' ? Math.trunc(body.expectedTotalPesewas) : null
+        if (expected !== null && Math.abs(expected - quote.grandTotalPesewas) > 20)
+          return fail('amount_changed', { totalPesewas: quote.grandTotalPesewas, expectedTotalPesewas: expected })
+
         // Transaction split (direct-to-restaurant settlement). With a Paystack subaccount the charge
         // is grossed up so the diner covers the fee (shown only at the MoMo prompt / card page), the
         // restaurant is settled exactly B, and Klown keeps its bps. No subaccount: charge B, no split.

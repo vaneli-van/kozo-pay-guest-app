@@ -27,7 +27,7 @@ export const Route = createFileRoute('/api/public/bill')({
             const { amountPaidForBill: paidFor } = await import('@/integrations/payments/provider')
             const qPaid = await paidFor(sync.billId)
             const qRemaining = Math.max(0, (bill.total_pesewas ?? 0) - qPaid)
-            return json({ ok: true, orderStatus: 'ready', bill: { status: bill.status, items: (items ?? []).map((i: any) => ({ name: i.name, qty: i.qty, lineTotalPesewas: i.line_total_pesewas })), subtotalPesewas: bill.subtotal_pesewas, serviceChargePesewas: bill.service_charge_pesewas, totalPesewas: bill.total_pesewas, tax: billTax(bill.subtotal_pesewas, bill as any), paidPesewas: qPaid, remainingPesewas: qRemaining, serverName: null } })
+            return json({ ok: true, orderStatus: 'ready', bill: { id: sync.billId, status: bill.status, items: (items ?? []).map((i: any) => ({ name: i.name, qty: i.qty, lineTotalPesewas: i.line_total_pesewas })), subtotalPesewas: bill.subtotal_pesewas, serviceChargePesewas: bill.service_charge_pesewas, totalPesewas: bill.total_pesewas, tax: billTax(bill.subtotal_pesewas, bill as any), paidPesewas: qPaid, remainingPesewas: qRemaining, serverName: null } })
           }
 
           const { getBillForSession } = await import('@/integrations/pos/provider')
@@ -40,7 +40,7 @@ export const Route = createFileRoute('/api/public/bill')({
           const paidPesewas = await amountPaidForBill(bill.id)
           const remainingPesewas = Math.max(0, (bill.totalPesewas ?? 0) - paidPesewas)
           // Read-only: the diner can never mutate bill items.
-          return json({ ok: true, bill: { status: bill.status, items: bill.items, subtotalPesewas: bill.subtotalPesewas, serviceChargePesewas: bill.serviceChargePesewas, totalPesewas: bill.totalPesewas, tax: bill.tax, paidPesewas, remainingPesewas, serverName: bill.serverName ?? null, tabLabel: bill.tabLabel ?? null }, tabCount: tabs.length, tabs: tabs.length > 1 ? tabs : [] })
+          return json({ ok: true, bill: { id: bill.id, status: bill.status, items: bill.items, subtotalPesewas: bill.subtotalPesewas, serviceChargePesewas: bill.serviceChargePesewas, totalPesewas: bill.totalPesewas, tax: bill.tax, paidPesewas, remainingPesewas, serverName: bill.serverName ?? null, tabLabel: bill.tabLabel ?? null }, tabCount: tabs.length, tabs: tabs.length > 1 ? tabs : [] })
         } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
       },
     },

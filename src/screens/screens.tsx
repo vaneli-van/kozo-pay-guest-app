@@ -22,6 +22,7 @@ import {
   Smartphone,
   Star,
   Users,
+  UtensilsCrossed,
   Wallet,
   X,
 } from "lucide-react";
@@ -29,6 +30,9 @@ import { FaApple } from "react-icons/fa6";
 import { go, screens, type Screen } from "../session/machine";
 import { money } from "../lib/format";
 import { TIP_PRESETS, tipPesewasFor, tipLabel, tipPercentOf, isCustomTip, parseCediInput, MAX_CUSTOM_TIP_PESEWAS } from "../lib/tip";
+import { KLOWN_VERSION } from "../lib/version";
+import { REASON_COPY } from "../lib/reasons";
+import { normalizeGhanaMobile } from "../lib/phone";
 import { billTax } from "../integrations/billing/tax";
 import { Back, Action, Center, BillRow } from "../ui/primitives";
 import { KzHeader, Money, Sheet } from "../ui/kz";
@@ -199,6 +203,7 @@ export function Welcome({ s, dispatch }: any) {
           </svg>{" "}
           Secured payments
         </div>
+        <p className="kz-version">Klown {KLOWN_VERSION}</p>
       </div>
     </section>
   );
@@ -242,6 +247,9 @@ export function Empty({ s, dispatch }: any) {
 }
 
 export function Menu({ s, dispatch }: any) {
+  // Hooks first, before any early return: React needs the same hooks in the same order on every
+  // render (this one used to sit below the loading return).
+  const [group, setGroup] = useState("Food");
   if (!s?.menu)
     return (
       <section className="center-screen">
@@ -254,7 +262,6 @@ export function Menu({ s, dispatch }: any) {
       </section>
     );
   if (s?.menu?.source === "studio") return <StudioMenu s={s} dispatch={dispatch} />;
-  const [group, setGroup] = useState("Food");
   const cats = s?.menu?.categories ?? [];
   const allItems = s?.menu?.items ?? [];
   const rec = (s?.menu?.recommendations ?? [])[0];
@@ -567,6 +574,46 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
   const paid = b?.paidPesewas ?? 0;
   const remaining = b?.remainingPesewas ?? b?.totalPesewas ?? 0;
   const partial = paid > 0 && remaining > 0;
+  // No bill on screen yet: say what is happening instead of rendering a GH₵0.00 bill with a live
+  // "Pay in full GH₵0.00" button (which used to show for as long as the first load took).
+  if (!b && !underlay) {
+    return (
+      <section className="bill-screen">
+        <CheckoutHeader
+          s={s}
+          dispatch={dispatch}
+          title={isOrder ? "Your order" : "Your bill"}
+          step="bill"
+          back={isOrder ? "waiting-bill" : "welcome"}
+        />
+        <div className="kz-page">
+          {s?.noBill ? (
+            <div className="kz-bill-state" role="status">
+              <strong>No open bill yet</strong>
+              <span>Your bill shows here as soon as the first order is placed.</span>
+              <button className="kz-link" onClick={() => dispatch(go("menu"))}>
+                <UtensilsCrossed aria-hidden="true" />
+                See the menu
+              </button>
+            </div>
+          ) : s?.billError ? (
+            <div className="kz-bill-state" role="alert">
+              <strong>We couldn&apos;t load your bill</strong>
+              <span>Check your signal, then try again.</span>
+              <button className="kz-btn kz-btn-secondary" onClick={() => dispatch({ type: "retry" })}>
+                Try again
+              </button>
+            </div>
+          ) : (
+            <div className="kz-bill-state" role="status" aria-live="polite">
+              <div className="loader" aria-hidden="true" />
+              <strong>Loading your bill…</strong>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
   return (
     <>
       <section className="bill-screen">
@@ -591,6 +638,11 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
             </span>
           </div>
 
+          {remaining <= 0 && (
+            <p className="kz-bill-note" role="status">
+              {paid > 0 ? "This bill is fully paid. Thank you!" : "There is nothing to pay on this bill yet."}
+            </p>
+          )}
           {(s?.tabCount ?? 1) > 1 && !isOrder ? (
             <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
               <button className="text-link" onClick={() => dispatch(go("choose-tab"))}>
@@ -662,9 +714,19 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
               Something wrong with the bill?
             </button>
           </div>
+          {!isOrder && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 4 }}>
+              <button className="kz-link" onClick={() => dispatch(go("menu"))}>
+                <UtensilsCrossed aria-hidden="true" />
+                See the menu
+              </button>
+            </div>
+          )}
+          <p className="kz-version">Klown {KLOWN_VERSION}</p>
         </div>
       </section>
       {!underlay &&
+        remaining > 0 &&
         typeof document !== "undefined" &&
         createPortal(
           <div className="kz-dock">
@@ -676,15 +738,15 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
             )}
             <button
               className="kz-btn kz-btn-primary kz-btn-split"
+              aria-label={`${partial ? "Pay the rest" : "Pay in full"} ${pes(remaining)}`}
               onClick={() =>
-                dispatch(
-                  isOrder
-                    ? go("pay")
-                    : { type: "patch-go", value: { shareMode: "full" }, to: "tip" },
-                )
+                dispatch(isOrder ? go("pay") : { type: "pay-full", to: "tip" })
               }
             >
-              <span>{partial ? "Pay the rest" : "Pay in full"}</span>
+              <span className="kz-btn-label">
+                <span className="kz-lbl-long">{partial ? "Pay the rest" : "Pay in full"}</span>
+                <span className="kz-lbl-short" aria-hidden="true">Pay</span>
+              </span>
               <span className="kz-btn-amount">{pes(remaining)}</span>
             </button>
           </div>,
@@ -709,10 +771,7 @@ export function Pay({ s, dispatch }: any) {
         <span>Your share</span>
         <strong>{pes(due)}</strong>
       </div>
-      <button
-        className="choice"
-        onClick={() => dispatch({ type: "patch-go", value: { shareMode: "full" }, to: "tip" })}
-      >
+      <button className="choice" onClick={() => dispatch({ type: "pay-full", to: "tip" })}>
         <span className="choice-icon">
           <CreditCard />
         </span>
@@ -834,7 +893,7 @@ export function Split({ s, dispatch }: any) {
             <div className="split-even-content">
               <div
                 className="split-even-ring"
-                aria-label={`Your share is about ${pes(Math.ceil(due / people))} of ${pes(due)}`}
+                aria-label={`Each share is about ${pes(Math.ceil(due / people))} of ${pes(due)}`}
               >
                 <svg viewBox="0 0 220 220" aria-hidden="true">
                   <circle className="split-even-track" cx="110" cy="110" r="96" />
@@ -847,7 +906,7 @@ export function Split({ s, dispatch }: any) {
                   />
                 </svg>
                 <div>
-                  <span>Your share</span>
+                  <span>Each pays about</span>
                   <strong>{pes(Math.ceil(due / people))}</strong>
                 </div>
               </div>
@@ -879,7 +938,7 @@ export function Split({ s, dispatch }: any) {
               </div>
               <div className="split-even-total">
                 <span>
-                  You pay<small>Excluding any tip</small>
+                  Each pays about<small>Shares are fixed when you confirm and can differ by a few pesewas. Excludes tip.</small>
                 </span>
                 <strong>{pes(Math.ceil(due / people))}</strong>
               </div>
@@ -1098,6 +1157,9 @@ export function SplitItems({ s, dispatch }: any) {
             <X />
           </button>
         </header>
+        {/* Only this middle part scrolls; the header (Close) and the confirm bar stay on screen
+            however long the bill is. */}
+        <div className="split-items-scroll">
         <div className="item-board">
           {items.map((it: any) => {
             const mine = myUnitsOn(it);
@@ -1182,6 +1244,16 @@ export function SplitItems({ s, dispatch }: any) {
             I&apos;ll cover the rest
           </button>
         )}
+        <div className="split-actions">
+          <button className="text-link" onClick={copyInvite}>
+            Copy table link
+          </button>
+          <button className="text-link" onClick={waInvite}>
+            Invite on WhatsApp
+          </button>
+        </div>
+        </div>
+        <div className="split-items-foot">
         {s?.splitError && (
           <div className="error">
             <X />
@@ -1213,13 +1285,6 @@ export function SplitItems({ s, dispatch }: any) {
                 : "Pick an item to pay"}
           </Action>
         )}
-        <div className="split-actions">
-          <button className="text-link" onClick={copyInvite}>
-            Copy table link
-          </button>
-          <button className="text-link" onClick={waInvite}>
-            Invite on WhatsApp
-          </button>
         </div>
       </section>
     </div>
@@ -1483,49 +1548,114 @@ export function Tip({ s, dispatch }: any) {
 export function Review({ s, dispatch }: any) {
   const q = s?.quote;
   const share = q?.sharePesewas ?? 0;
-  const tip = q?.tipPesewas ?? tipPesewasFor(s, share);
+  // The tip is worked out here from the diner's choice, with the same rounding as the server, so
+  // the screen never shows the quote fetched before the tip was picked (it used to read "Tip
+  // GH₵0.00, You pay GH₵295.00" for a moment while the button below said GH₵307.50).
+  const tip = tipPesewasFor(s, share);
   const grand = share + tip;
+  const err = s?.quoteError;
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (q) return;
+    setSlow(false);
+    const t = setTimeout(() => setSlow(true), 10000);
+    return () => clearTimeout(t);
+  }, [!!q]);
+  const shareGone = err === "invalid_share" || err === "share_paid";
   return (
     <section className="payment-stage">
       <CheckoutHeader s={s} dispatch={dispatch} title="Review & pay" step="pay" back="tip" />
       <div className="kz-page">
-        <div className="kz-bill-hero">
-          <span className="kz-bill-hero-label">You pay</span>
-          <Money value={grand} className="kz-bill-hero-amount" />
-          <span className="kz-total-sub">{s?.restaurantName || "Restaurant"}</span>
-        </div>
+        {s?.amountChanged && q && !err && (
+          <p className="kz-notice" role="alert">
+            {REASON_COPY["amount_changed"]}
+          </p>
+        )}
+        {err ? (
+          <div className="kz-bill-state" role="alert">
+            <strong>We can&apos;t take this payment</strong>
+            <span>{REASON_COPY[err] ?? "Something went wrong working out your total. Please try again."}</span>
+            <button
+              className="kz-btn kz-btn-secondary"
+              onClick={() => dispatch(shareGone ? { type: "pay-full", to: "bill" } : go("bill"))}
+            >
+              Back to the bill
+            </button>
+          </div>
+        ) : !q ? (
+          <div className="kz-bill-state" role="status" aria-live="polite">
+            <div className="loader" aria-hidden="true" />
+            <strong>Checking your total…</strong>
+            {slow && (
+              <>
+                <span>This is taking longer than usual. Check your signal.</span>
+                <button className="kz-btn kz-btn-secondary" onClick={() => dispatch({ type: "retry" })}>
+                  Try again
+                </button>
+              </>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="kz-bill-hero">
+              <span className="kz-bill-hero-label">You pay</span>
+              <Money value={grand} className="kz-bill-hero-amount" />
+              <span className="kz-total-sub">{s?.restaurantName || "Restaurant"}</span>
+            </div>
 
-        <h2 className="kz-group-title">
-          <span>Payment summary</span>
-        </h2>
-        <div className="kz-card">
-          <div className="kz-row">
-            <span>Your share{s?.claimedShareId ? " · split" : ""}</span>
-            <span>{pes(share)}</span>
-          </div>
-          <div className="kz-row">
-            <span>
-              Tip · {tipLabel(s)}{" "}
-              <button type="button" className="kz-inline-link" onClick={() => dispatch(go("tip"))}>
-                Edit
-              </button>
-            </span>
-            <span>{pes(tip)}</span>
-          </div>
-          <hr className="kz-divider" />
-          <div className="kz-row is-total">
-            <span>You pay</span>
-            <span>{pes(grand)}</span>
-          </div>
-        </div>
-        <p className="kz-secure-note">
-          <ShieldCheck aria-hidden="true" />
-          Payments are encrypted and processed securely
-        </p>
+            <h2 className="kz-group-title">
+              <span>Payment summary</span>
+            </h2>
+            <div className="kz-card">
+              <div className="kz-row">
+                <span>Your share{s?.claimedShareId ? " · split" : ""}</span>
+                <span>{pes(share)}</span>
+              </div>
+              <div className="kz-row">
+                <span>
+                  Tip · {tipLabel(s)}{" "}
+                  <button type="button" className="kz-inline-link" onClick={() => dispatch(go("tip"))}>
+                    Edit
+                  </button>
+                </span>
+                <span>{pes(tip)}</span>
+              </div>
+              <hr className="kz-divider" />
+              <div className="kz-row is-total">
+                <span>You pay</span>
+                <span>{pes(grand)}</span>
+              </div>
+            </div>
+            <p className="kz-secure-note">
+              <ShieldCheck aria-hidden="true" />
+              Payments are encrypted and processed securely
+            </p>
+          </>
+        )}
       </div>
-      <Action disabled={!q} onClick={() => dispatch(go("method"))}>
-        Choose payment method · {pes(grand)}
-      </Action>
+      {q &&
+        !err &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="kz-dock">
+            <button
+              type="button"
+              className="kz-btn kz-btn-primary kz-btn-split"
+              aria-label={`Choose payment method ${pes(grand)}`}
+              onClick={() =>
+                // Remember exactly what the diner agreed to pay; the server refuses anything else.
+                dispatch({ type: "patch-go", value: { reviewedTotalPesewas: grand, amountChanged: false }, to: "method" })
+              }
+            >
+              <span className="kz-btn-label">
+                <span className="kz-lbl-long">Choose payment method</span>
+                <span className="kz-lbl-short" aria-hidden="true">Continue</span>
+              </span>
+              <span className="kz-btn-amount">{pes(grand)}</span>
+            </button>
+          </div>,
+          document.body,
+        )}
     </section>
   );
 }
@@ -1574,7 +1704,7 @@ export function Method({ s, dispatch }: any) {
       to: active.id === "momo" ? "momo" : "processing",
     });
   const share = s?.quote?.sharePesewas ?? 0;
-  const grand = share + (s?.quote?.tipPesewas ?? tipPesewasFor(s, share));
+  const grand = s?.reviewedTotalPesewas ?? share + tipPesewasFor(s, share);
   return (
     <section className="method-screen">
       <CheckoutHeader s={s} dispatch={dispatch} title="Payment" step="pay" back="review" />
@@ -1606,22 +1736,33 @@ export function Method({ s, dispatch }: any) {
           </button>
         ))}
       </div>
-      <Action onClick={confirm}>
-        <span className="method-action-content">
-          <span className="method-action-icon">{active.icon}</span>
-          <span className="method-action-label">
-            <b>{active.id === "momo" ? "Continue with Mobile Money" : "Confirm payment"}</b>
-            <small>{active.name}</small>
-          </span>
-          <strong className="method-action-amount">{pes(grand)}</strong>
-        </span>
-      </Action>
+      {typeof document !== "undefined" &&
+        createPortal(
+          <div className="kz-dock">
+            <button type="button" className="kz-btn kz-btn-primary method-dock-btn" onClick={confirm}>
+              <span className="method-action-content">
+                <span className="method-action-icon">{active.icon}</span>
+                <span className="method-action-label">
+                  <b>{active.id === "momo" ? "Continue with Mobile Money" : "Confirm payment"}</b>
+                  <small>{active.name}</small>
+                </span>
+                <strong className="method-action-amount">{pes(grand)}</strong>
+              </span>
+            </button>
+          </div>,
+          document.body,
+        )}
     </section>
   );
 }
 
 export function Momo({ s, dispatch, error = false }: any) {
   const [number, setNumber] = useState("");
+  const [touched, setTouched] = useState(false);
+  const normalized = normalizeGhanaMobile(number);
+  // A number that cannot be a Ghana mobile number is a typing problem, not a failed payment:
+  // keep the diner here with a hint instead of sending them to "Payment didn't go through".
+  const showHint = touched && number.trim().length > 0 && !normalized;
   return (
     <section className="momo-screen">
       <CheckoutHeader s={s} dispatch={dispatch} title="Mobile Money" step="pay" back="method" />
@@ -1648,17 +1789,26 @@ export function Momo({ s, dispatch, error = false }: any) {
         <input
           value={number}
           onChange={(e) => setNumber(e.target.value)}
+          onBlur={() => setTouched(true)}
           placeholder="024 000 0000"
           inputMode="tel"
+          autoComplete="tel"
+          autoFocus
+          aria-invalid={showHint || undefined}
+          aria-describedby="momo-hint"
         />
       </label>
+      <p id="momo-hint" className={`field-hint${showHint ? " is-error" : ""}`}>
+        {showHint
+          ? "That doesn't look like a mobile number. Enter 10 digits, for example 024 123 4567."
+          : "The number that will approve the payment, for example 024 123 4567."}
+      </p>
       <Action
+        disabled={!normalized}
         onClick={() =>
-          dispatch(
-            number
-              ? { type: "patch-go", value: { momoNumber: number, method: "momo" }, to: "authorise" }
-              : { type: "error" },
-          )
+          normalized
+            ? dispatch({ type: "patch-go", value: { momoNumber: normalized, method: "momo" }, to: "authorise" })
+            : setTouched(true)
         }
       >
         Continue
@@ -1748,11 +1898,7 @@ export function Processing({ s, dispatch }: any) {
           <button
             className="text-link"
             onClick={() =>
-              dispatch({
-                type: "patch-go",
-                value: { failureReason: "The mobile money prompt was not approved in time." },
-                to: "payment-error",
-              })
+              dispatch({ type: "give-up", reason: "The payment was not approved in time." })
             }
           >
             It didn&apos;t go through
@@ -1764,14 +1910,17 @@ export function Processing({ s, dispatch }: any) {
 }
 
 export function Success({ s, dispatch }: any) {
-  const share = s?.quote?.sharePesewas ?? 0;
-  const tip = s?.quote?.tipPesewas ?? tipPesewasFor(s, share);
-  const paid = share + tip;
+  // What was actually captured (from the payment row) wins over the pre-pay quote.
+  const share = s?.lastPaid?.amountPesewas ?? s?.quote?.sharePesewas ?? 0;
+  const tip = s?.lastPaid?.tipPesewas ?? tipPesewasFor(s, share);
+  const paid = s?.lastPaid?.totalPesewas ?? share + tip;
   const name = s?.restaurantName || "the restaurant";
   const rating: number = s?.rating ?? 0;
   const [showSummary, setShowSummary] = useState(false);
   const [note, setNote] = useState("");
   const [noteSent, setNoteSent] = useState(false);
+  const [noteBusy, setNoteBusy] = useState(false);
+  const [noteFailed, setNoteFailed] = useState(false);
   const isShare = Boolean(s?.claimedShareId);
   const reviewUrl =
     s?.reviewUrl ||
@@ -1876,13 +2025,28 @@ export function Success({ s, dispatch }: any) {
                 <button
                   type="button"
                   className="kz-rate-send"
+                  disabled={noteBusy}
                   onClick={() => {
-                    dispatch({ type: "feedback", value: { rating, comment: note } });
-                    setNoteSent(true);
+                    setNoteBusy(true);
+                    setNoteFailed(false);
+                    dispatch({
+                      type: "feedback",
+                      value: { rating, comment: note },
+                      onDone: (ok: boolean) => {
+                        setNoteBusy(false);
+                        if (ok) setNoteSent(true);
+                        else setNoteFailed(true);
+                      },
+                    });
                   }}
                 >
-                  Send to the team
+                  {noteBusy ? "Sending…" : "Send to the team"}
                 </button>
+                {noteFailed && (
+                  <p className="field-hint is-error" role="alert">
+                    That didn&apos;t send. Check your signal and try again.
+                  </p>
+                )}
               </div>
             ))}
         </div>
@@ -1898,7 +2062,15 @@ export function Success({ s, dispatch }: any) {
           </button>
         </div>
       </div>
-      <Action onClick={() => dispatch(go("complete"))}>Done</Action>
+      {typeof document !== "undefined" &&
+        createPortal(
+          <div className="kz-dock">
+            <button type="button" className="kz-btn kz-btn-primary" onClick={() => dispatch(go("complete"))}>
+              Done
+            </button>
+          </div>,
+          document.body,
+        )}
     </section>
   );
 }
@@ -1908,23 +2080,27 @@ export function DownloadReceiptButton({ s }: any) {
 }
 
 export function ReceiptChoice({ s, dispatch }: any) {
-  const share = s?.quote?.sharePesewas ?? 0;
-  const paidPesewas = s?.totalPaidPesewas ?? share + (s?.quote?.tipPesewas ?? tipPesewasFor(s, share));
+  const share = s?.lastPaid?.amountPesewas ?? s?.quote?.sharePesewas ?? 0;
+  const paidPesewas = s?.totalPaidPesewas ?? s?.lastPaid?.totalPesewas ?? share + tipPesewasFor(s, share);
   const [name, setName] = useState(s?.firstName ?? "");
   const [phone, setPhone] = useState(s?.phone ?? s?.momoNumber ?? "");
+  const [touched, setTouched] = useState(false);
+  const normalized = normalizeGhanaMobile(phone);
   const submit = () => {
-    dispatch({ type: "rewards-consent", value: { phone, firstName: name.trim() || undefined } });
+    if (!normalized) { setTouched(true); return; }
+    dispatch({ type: "rewards-consent", value: { phone: normalized, firstName: name.trim() || undefined } });
   };
-  const canContinue = phone.trim().length > 0;
+  const canContinue = !!normalized && !s?.rewardsBusy;
+  const showHint = touched && phone.trim().length > 0 && !normalized;
   return (
-    <section>
+    <section className="receipt-choice">
       <p className="eyebrow">
         {(s?.restaurantName || "").toUpperCase()}{s?.receiptNumber ? ` · RECEIPT ${s.receiptNumber}` : " · RECEIPT"}
       </p>
       <h1>
-        Need a <em>receipt?</em>
+        Your <em>receipt.</em>
       </h1>
-      <p className="muted">Enter your number to download your receipt and earn rewards.</p>
+      <p className="muted">Add your number to collect rewards. Your receipt is ready either way.</p>
       <div className="receipt-card">
         <div className="receipt-head">
           <span>{s?.restaurantName || ""}</span>
@@ -1944,20 +2120,34 @@ export function ReceiptChoice({ s, dispatch }: any) {
         <input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          onBlur={() => setTouched(true)}
           placeholder="024 000 0000"
           inputMode="tel"
+          autoComplete="tel"
+          aria-invalid={showHint || undefined}
         />
       </label>
-      <Action
-        onClick={submit}
-        disabled={!canContinue}
-        style={{ opacity: canContinue ? 1 : 0.55, cursor: canContinue ? "pointer" : "not-allowed" }}
-      >
-        Continue
-      </Action>
-      <button className="text-link" onClick={() => dispatch(go("guest-receipt"))}>
-        Skip
-      </button>
+      {showHint && (
+        <p className="field-hint is-error">That doesn&apos;t look like a mobile number. Enter 10 digits, for example 024 123 4567.</p>
+      )}
+      {s?.rewardsError && (
+        <div className="error" role="alert">
+          <X />
+          {s.rewardsError}
+        </div>
+      )}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <div className="kz-dock">
+            <button type="button" className="kz-btn kz-btn-secondary" onClick={() => dispatch(go("guest-receipt"))}>
+              Skip
+            </button>
+            <button type="button" className="kz-btn kz-btn-primary" onClick={submit} disabled={!canContinue}>
+              {s?.rewardsBusy ? "Saving…" : "Save & earn rewards"}
+            </button>
+          </div>,
+          document.body,
+        )}
     </section>
   );
 }
@@ -2033,8 +2223,9 @@ export function Complete({ s, dispatch }: any) {
     >
       <button className="demo-control" onClick={() => dispatch({ type: "reset" })}>
         <RotateCcw />
-        Start again
+        Back to my table
       </button>
+      <p className="kz-version">Klown {KLOWN_VERSION}</p>
     </Center>
   );
 }
@@ -2181,50 +2372,90 @@ export function PaymentError({ s, dispatch }: any) {
   const isCard = s?.method === "card" || s?.method === "applepay";
   const reason = (s?.failureReason || "").toString().trim();
   const retryTo = isCard ? "processing" : "momo";
+  const kind = s?.failureKind;
+  // The copy says what actually happened. "Check your balance" only fits a real decline; a
+  // payment that was never started (someone else paying, bill changed) or never confirmed needs
+  // different words.
+  const body =
+    kind === "blocked"
+      ? null
+      : kind === "timeout"
+        ? "We didn\u2019t get a confirmation from your bank or mobile money provider in time."
+        : isCard
+          ? "Your card wasn\u2019t charged. This can happen if the card was declined, the details didn\u2019t match, or the payment page closed before it finished."
+          : "No money left your account. Check your mobile-money balance and that you approved the prompt, then try again.";
   return (
-    <section>
+    <section className="payment-error-screen">
       <Back dispatch={dispatch} to="method" />
       <p className="eyebrow">{isCard ? "BANK CARD" : "MOBILE MONEY"} · PAYMENT</p>
       <h1>
         Payment
         <br />
-        <em>didn&apos;t go through.</em>
+        <em>{kind === "blocked" ? "not started." : "didn\u2019t go through."}</em>
       </h1>
-      <p className="muted">
-        {isCard
-          ? "Your card wasn\u2019t charged. This can happen if the card was declined, the details didn\u2019t match, or the payment page closed before it finished."
-          : "No money left your account. Check your mobile-money balance and that you approved the prompt, then try again."}
-      </p>
+      {body && <p className="muted">{body}</p>}
       {reason && (
         <div className="error">
           <X />
           {reason}
         </div>
       )}
-      <Action
-        onClick={() =>
-          dispatch({
-            type: "patch-go",
-            value: { paymentRef: undefined, failureReason: undefined },
-            to: retryTo,
-          })
-        }
-      >
-        Try again
-      </Action>
-      <button
-        className="text-link"
-        onClick={() =>
-          dispatch({
-            type: "patch-go",
-            value: { paymentRef: undefined, failureReason: undefined },
-            to: "method",
-          })
-        }
-      >
-        Choose another method
-      </button>
+      {s?.lateRef && (
+        <p className="kz-notice" role="status">
+          If a payment prompt is still on your phone, don&apos;t approve it. We&apos;re checking for a few more
+          minutes in case it already went through, and this screen will move on by itself if it did.
+        </p>
+      )}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <div className="kz-dock">
+            <button
+              type="button"
+              className="kz-btn kz-btn-secondary"
+              onClick={() =>
+                dispatch({
+                  type: "patch-go",
+                  value: { paymentRef: undefined, failureReason: undefined },
+                  to: "method",
+                })
+              }
+            >
+              Other method
+            </button>
+            <button
+              type="button"
+              className="kz-btn kz-btn-primary"
+              onClick={() =>
+                dispatch({
+                  type: "patch-go",
+                  value: { paymentRef: undefined, failureReason: undefined },
+                  to: retryTo,
+                })
+              }
+            >
+              Try again
+            </button>
+          </div>,
+          document.body,
+        )}
     </section>
+  );
+}
+
+// The table session timed out (sessions last 4 hours). Every API call then fails, so instead of
+// each screen failing in its own way (it used to read as a failed mobile-money payment), say so
+// once and reconnect.
+export function SessionExpired({ s, dispatch }: any) {
+  return (
+    <Center
+      logoUrl={s?.logoUrl}
+      alt={s?.restaurantName}
+      eyebrow="TABLE SESSION ENDED"
+      title={"Let&rsquo;s reconnect<br /><em>your table.</em>"}
+      copy={`Your table session timed out. Reconnect to see the latest bill${s?.tableLabel ? ` for Table ${s.tableLabel}` : ""}. Anything you have already paid is safe.`}
+    >
+      <Action onClick={() => dispatch({ type: "rescan" })}>Reconnect to my table</Action>
+    </Center>
   );
 }
 

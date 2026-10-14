@@ -50,5 +50,5 @@ function ResolvedInner({ token }: { token: string }) {
   const checkoutRef = checkoutReturnRef()
   // Several groups at this table, each with its own bill: ask which is theirs first.
   const startScreen = checkoutRef ? 'processing' : isOrder ? (s.hasActiveBill ? 'bill' : 'waiting-bill') : ((s as any).chooseTab ? 'choose-tab' : s.hasActiveBill ? 'bill' : 'welcome')
-  return <App initialState={{ screen: startScreen, ...(checkoutRef ? { paymentRef: checkoutRef } : {}), hasOrder: s.hasActiveBill, mode: isOrder ? 'order' : 'table', tableLabel: s.table.label, restaurantName: s.restaurant.name, ...branding }} storageKey={`klown-dining:${token}`} sessionToken={s.sessionToken} />
+  return <App initialState={{ screen: startScreen, ...(checkoutRef ? { paymentRef: checkoutRef } : {}), hasOrder: s.hasActiveBill, mode: isOrder ? 'order' : 'table', tableLabel: s.table.label, restaurantName: s.restaurant.name, ...branding }} storageKey={`klown-dining:${token}`} sessionToken={s.sessionToken} qrToken={token} />
 }

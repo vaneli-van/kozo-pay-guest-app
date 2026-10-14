@@ -20,9 +20,12 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    // tests/diner-ui has its own config (phone viewports, faked backend): run it with
+    // `playwright test -c tests/diner-ui/playwright.config.ts`. Kept out of this gate until it has
+    // passed in CI once.
+    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: /tests\/diner-ui\// },
     // Money-path unit/contract tests need no browser; run them once.
-    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: /tests\/money\// },
+    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: /tests\/(money|diner-ui)\// },
   ],
   // Locally this boots the dev server for you. In CI the workflow starts it
   // first, and reuseExistingServer makes Playwright attach to that one.

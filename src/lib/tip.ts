@@ -8,7 +8,7 @@ export const TIP_PRESETS = [10, 12.5, 15]
 // Fat-finger guard for the custom field, in pesewas (GHS 1,000). The server does not cap.
 export const MAX_CUSTOM_TIP_PESEWAS = 100_000
 
-export type TipState = { tipPercent?: number; tipCustomPesewas?: number; tip?: number }
+export type TipState = { tipPercent?: number | undefined; tipCustomPesewas?: number | undefined; tip?: number | undefined }
 
 export function isCustomTip(s: TipState | null | undefined): boolean {
   return typeof s?.tipCustomPesewas === 'number' && Number.isFinite(s.tipCustomPesewas)
