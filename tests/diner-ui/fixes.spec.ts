@@ -358,8 +358,8 @@ test('fix 12: 16px note field, 44px Retry, network copy, receipt copy, rewards e
 // ─────────────── Fix 13: visible version ───────────────
 test('fix 13: the build version is visible', async ({ page, ctx }) => {
   await open(page)
-  await expect(page.locator('.kz-version')).toContainText('Klown 2026.10.14')
-  expect(await page.evaluate(() => (window as any).__KLOWN_VERSION)).toBe('2026.10.14')
+  await expect(page.locator('.kz-version')).toContainText('Klown 2026.10.14.2')
+  expect(await page.evaluate(() => (window as any).__KLOWN_VERSION)).toBe('2026.10.14.2')
 })
 
 // ─────────────── Additional items in this batch ───────────────
@@ -393,6 +393,37 @@ test('F4: one-line dock label and grouped amounts', async ({ page, ctx }) => {
   await expect(btn(page, /Pay in full GH₵12,641.00/)).toBeVisible() // full name for screen readers
   await ctx.shot('dock-one-line')
 })
+
+// 2026.10.14.2: on a Mac (real Georgia and Helvetica Neue) the SE bill button read "P..." beside a
+// GH₵12,641.00 pill, and "Choose payment method" was cut on iPhone 13. The label is now measured on
+// the phone. Every pinned pay button, at small and very large amounts, shows a whole label and a
+// whole amount that sits inside the button.
+const dockFits = async (page: Page, labels: string[]) => {
+  const b = page.locator('.kz-dock .kz-btn-split')
+  await b.waitFor(); await page.waitForTimeout(150)
+  const m = await b.evaluate((el) => {
+    const l = el.querySelector('.kz-btn-label') as HTMLElement, a = el.querySelector('.kz-btn-amount') as HTMLElement
+    const br = el.getBoundingClientRect(), ar = a.getBoundingClientRect()
+    return { text: l.innerText.trim(), clipped: l.scrollWidth > l.clientWidth + 1, amtClipped: a.scrollWidth > a.clientWidth + 1, amtInside: ar.right <= br.right + 0.5 && ar.left >= br.left - 0.5, h: l.getBoundingClientRect().height, fit: (el as HTMLElement).dataset.fit }
+  })
+  expect(m.clipped, `label "${m.text}" (${m.fit}) is whole`).toBe(false)
+  expect(m.amtClipped, 'amount is whole').toBe(false)
+  expect(m.amtInside, 'amount sits inside the button').toBe(true)
+  expect(m.h).toBeLessThan(24)
+  expect(labels).toContain(m.text)
+}
+for (const pesewas of [500, 1264100, 12500000]) {
+  test(`F4b: bill, tip and review pay buttons fit at GH₵${pesewas / 100}`, async ({ page, ctx }) => {
+    ctx.sc.items = [{ name: 'Big order', qty: 1, lineTotalPesewas: pesewas }]
+    await open(page)
+    await dockFits(page, ['Pay in full', 'Pay'])
+    await btn(page, /Pay in full/).click(); await page.waitForTimeout(500)
+    await dockFits(page, ['Review & pay', 'Review'])
+    await btn(page, /Review & pay/).click(); await page.waitForTimeout(700)
+    await dockFits(page, ['Choose payment method', 'Continue'])
+    await ctx.shot(`dock-review-${pesewas}`)
+  })
+}
 
 test('F8: the menu is reachable from an open bill', async ({ page, ctx }) => {
   await open(page)

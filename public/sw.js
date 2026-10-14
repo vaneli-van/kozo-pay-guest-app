@@ -4,7 +4,7 @@
 // charge itself always needs the network. This SW never caches API responses
 // and always passes /api/* straight through to the network.
 
-const VERSION = 'klown-v2'; // 2026.10.14: drop caches from earlier builds
+const VERSION = 'klown-v3'; // 2026.10.14.2: drop caches from earlier builds
 const STATIC_CACHE = VERSION + '-static';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE = [OFFLINE_URL, '/manifest.webmanifest', '/klown-logo.png', '/icon-192.png', '/favicon.ico'];

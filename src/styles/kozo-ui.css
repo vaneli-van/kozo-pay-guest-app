@@ -1953,10 +1953,14 @@ section > .kz-notice { margin-top: 18px; }
 .kz-btn-split .kz-btn-label { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kz-btn-split .kz-btn-amount { flex: none; white-space: nowrap; }
 .kz-lbl-short { display: none; }
+/* DockPayButton (screens.tsx) measures which label fits on the phone and sets data-fit. */
+.kz-btn-split[data-fit="short"] .kz-lbl-long, .kz-btn-split[data-fit="tight"] .kz-lbl-long { display: none; }
+.kz-btn-split[data-fit="short"] .kz-lbl-short, .kz-btn-split[data-fit="tight"] .kz-lbl-short { display: inline; }
+.kz-btn-split[data-fit="tight"] { padding-left: 14px; gap: 6px; }
+.kz-btn-split[data-fit="tight"] .kz-btn-amount { font-size: 14px; padding: 0 8px; }
 @media (max-width: 380px) {
-  /* iPhone SE and similar: a short label so the amount always fits beside it. */
-  .kz-lbl-long { display: none; }
-  .kz-lbl-short { display: inline; }
+  /* iPhone SE and similar: tighter spacing so the amount has room. */
+  .kz-dock { padding-left: 12px; padding-right: 12px; gap: 8px; }
   .kz-dock > .kz-btn-secondary { padding: 0 14px; }
   .kz-btn-split { padding-left: 16px; gap: 8px; }
   .kz-btn-amount { padding: 0 10px; }

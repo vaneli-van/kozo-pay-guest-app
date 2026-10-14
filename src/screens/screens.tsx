@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { ReceiptImage } from "./receipt-image";
 import {
@@ -736,23 +736,52 @@ export function Bill({ s, dispatch, ready = false, underlay = false }: any) {
                 Split
               </button>
             )}
-            <button
-              className="kz-btn kz-btn-primary kz-btn-split"
-              aria-label={`${partial ? "Pay the rest" : "Pay in full"} ${pes(remaining)}`}
+            <DockPayButton
+              label={partial ? "Pay the rest" : "Pay in full"}
+              short="Pay"
+              amount={pes(remaining)}
               onClick={() =>
                 dispatch(isOrder ? go("pay") : { type: "pay-full", to: "tip" })
               }
-            >
-              <span className="kz-btn-label">
-                <span className="kz-lbl-long">{partial ? "Pay the rest" : "Pay in full"}</span>
-                <span className="kz-lbl-short" aria-hidden="true">Pay</span>
-              </span>
-              <span className="kz-btn-amount">{pes(remaining)}</span>
-            </button>
+            />
           </div>,
           document.body,
         )}
     </>
+  );
+}
+
+// Pinned pay button: label on the left, amount pill on the right, always on one line.
+// Whether the label fits depends on the phone's width, the amount and the fonts the phone has
+// (Georgia on iPhone, a wider fallback on many Androids), so it is measured on the phone instead
+// of guessed with a breakpoint: the full label if it fits, else the short one, else the short one
+// with a smaller amount. Screen readers always get the full label and amount.
+function DockPayButton({ label, short, amount, onClick }: { label: string; short: string; amount: string; onClick: () => void }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => {
+    const b = ref.current;
+    const lbl = b?.querySelector<HTMLElement>(".kz-btn-label");
+    if (!b || !lbl) return;
+    const fit = () => {
+      for (const mode of ["long", "short", "tight"]) {
+        b.dataset["fit"] = mode;
+        if (lbl.scrollWidth <= lbl.clientWidth + 1) return;
+      }
+    };
+    fit();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(fit) : null;
+    ro?.observe(b);
+    document.fonts?.ready.then(fit).catch(() => {});
+    return () => ro?.disconnect();
+  }, [label, short, amount]);
+  return (
+    <button ref={ref} type="button" className="kz-btn kz-btn-primary kz-btn-split" aria-label={`${label} ${amount}`} onClick={onClick}>
+      <span className="kz-btn-label">
+        <span className="kz-lbl-long">{label}</span>
+        <span className="kz-lbl-short" aria-hidden="true">{short}</span>
+      </span>
+      <span className="kz-btn-amount">{amount}</span>
+    </button>
   );
 }
 
@@ -1530,14 +1559,12 @@ export function Tip({ s, dispatch }: any) {
       {typeof document !== "undefined" &&
         createPortal(
           <div className="kz-dock">
-            <button
-              type="button"
-              className="kz-btn kz-btn-primary kz-btn-split"
+            <DockPayButton
+              label="Review & pay"
+              short="Review"
+              amount={pes(share + tip)}
               onClick={() => dispatch(go("review"))}
-            >
-              <span>Review &amp; pay</span>
-              <span>{pes(share + tip)}</span>
-            </button>
+            />
           </div>,
           document.body,
         )}
@@ -1638,21 +1665,15 @@ export function Review({ s, dispatch }: any) {
         typeof document !== "undefined" &&
         createPortal(
           <div className="kz-dock">
-            <button
-              type="button"
-              className="kz-btn kz-btn-primary kz-btn-split"
-              aria-label={`Choose payment method ${pes(grand)}`}
+            <DockPayButton
+              label="Choose payment method"
+              short="Continue"
+              amount={pes(grand)}
               onClick={() =>
                 // Remember exactly what the diner agreed to pay; the server refuses anything else.
                 dispatch({ type: "patch-go", value: { reviewedTotalPesewas: grand, amountChanged: false }, to: "method" })
               }
-            >
-              <span className="kz-btn-label">
-                <span className="kz-lbl-long">Choose payment method</span>
-                <span className="kz-lbl-short" aria-hidden="true">Continue</span>
-              </span>
-              <span className="kz-btn-amount">{pes(grand)}</span>
-            </button>
+            />
           </div>,
           document.body,
         )}
