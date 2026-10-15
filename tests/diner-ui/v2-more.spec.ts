@@ -248,3 +248,53 @@ test('v2 session ended: reconnect screen in the new look', async ({ page, ctx })
   await page.waitForTimeout(1500)
   await expect(page.getByTestId('v2-due')).toHaveText('GH₵295.00')
 })
+
+// ── Found in the live run on Test Kitchen (15 Oct) ──
+
+test('v2 live fix: Done after a fully paid table opens the table, never the Paid screen again', async ({ page, ctx }) => {
+  await open(page)
+  // Live, the receipt number was still loading when Done was tapped; it arrived while the page
+  // was reloading (the live server is slow to send the page) and saved the Paid screen back.
+  ctx.sc.delayMs = { receipt: 1200 }
+  await payAndCapture(page, ctx)
+  ctx.sc.hasActiveBill = false
+  let loads = 0
+  await page.route('**/s/t1', async (route) => { if (route.request().resourceType() === 'document' && loads++ >= 0) await new Promise((r) => setTimeout(r, 2000)); await route.continue() })
+  await btn(page, /^Done$/).click()
+  await page.waitForTimeout(6000)
+  await expect(page.getByTestId('v2-paid')).toHaveCount(0)
+  await expect(v2(page)).toContainText('No bill at this table yet')
+})
+
+test('v2 live fix: asking for a different split than the one already open goes to that split and says why', async ({ page, ctx }) => {
+  ctx.sc.splitExistsMode = 'items'
+  await open(page)
+  await btn(page, /^Split the bill$/).click()
+  await page.waitForTimeout(300)
+  await btn(page, /^Split equally/).click()
+  await btn(page, /^Split 2 ways$/).click()
+  await expect(page.locator('.v2-subhead-title')).toHaveText('Pay for what you had')
+  await expect(page.locator('.v2-notice')).toContainText('already paying for what they had')
+})
+
+test('v2 live fix: the loading splash is the new one, with the restaurant once this phone has been here', async ({ page, ctx }) => {
+  ctx.sc.delayMs = { 'qr-resolve': 1500 }
+  await page.goto('/s/t1')
+  await expect(page.locator('[data-ui="v2-splash"]')).toContainText('Connecting to your table')
+  await expect(page.locator('body')).not.toContainText('feel closer')
+  await page.locator('[data-ui="v2"]').waitFor({ timeout: 40_000 })
+  await page.reload()
+  await expect(page.locator('[data-ui="v2-splash"]')).toContainText('Baobab')
+  await page.locator('[data-ui="v2"]').waitFor({ timeout: 40_000 })
+})
+
+test('v2 live fix: picking an item does not push the other rows down', async ({ page, ctx }) => {
+  ctx.sc.items = [{ name: 'Jollof Rice & Grilled Chicken with extra shito', qty: 2, lineTotalPesewas: 17000 }, ...ctx.sc.items]
+  await open(page)
+  await toItems(page)
+  const second = page.locator('.v2-picks li').nth(1)
+  const before = (await second.boundingBox())!.y
+  await btn(page, 'Add one Jollof Rice & Grilled Chicken with extra shito').click()
+  await page.waitForTimeout(300)
+  expect((await second.boundingBox())!.y).toBeCloseTo(before, 0)
+})

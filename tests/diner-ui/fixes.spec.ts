@@ -358,8 +358,8 @@ test('fix 12: 16px note field, 44px Retry, network copy, receipt copy, rewards e
 // ─────────────── Fix 13: visible version ───────────────
 test('fix 13: the build version is visible', async ({ page, ctx }) => {
   await open(page)
-  await expect(page.locator('.kz-version')).toContainText('Klown 2026.10.15.4')
-  expect(await page.evaluate(() => (window as any).__KLOWN_VERSION)).toBe('2026.10.15.4')
+  await expect(page.locator('.kz-version')).toContainText('Klown 2026.10.15.5')
+  expect(await page.evaluate(() => (window as any).__KLOWN_VERSION)).toBe('2026.10.15.5')
 })
 
 // ─────────────── Additional items in this batch ───────────────

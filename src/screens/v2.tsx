@@ -489,6 +489,7 @@ function SplitSheet({ s, dispatch }: any) {
   const each = Math.ceil(due / people);
   return (
     <Sheet s={s} dispatch={dispatch} title="Split the bill" onClose={() => dispatch(go("bill"))}>
+      {s?.splitError ? <p className="v2-notice" role="alert">{s.splitError}</p> : null}
       <div className="v2-options">
         <button type="button" className="v2-option" onClick={() => dispatch({ type: "split-create", mode: "items" })}>
           <b>Pay for what you had</b>
@@ -538,7 +539,6 @@ function SplitSheet({ s, dispatch }: any) {
           </div>
         ) : null}
       </div>
-      {s?.splitError ? <p className="v2-error-text" role="alert">{s.splitError}</p> : null}
     </Sheet>
   );
 }
@@ -865,6 +865,7 @@ function SplitItemsV2({ s, dispatch }: any) {
   );
   return (
     <Frame s={s} title="Pay for what you had" onBack={() => dispatch(go("bill"))} footer={footer}>
+      {s?.splitNotice ? <p className="v2-notice" role="status">{s.splitNotice}</p> : null}
       <p className="v2-lead">Tap + on what you had. Friends at the table can scan the same code and pick theirs.</p>
       <ul className="v2-card v2-picks">
         {items.map((it: any) => {
@@ -934,6 +935,7 @@ function SplitLobbyV2({ s, dispatch }: any) {
   );
   return (
     <Frame s={s} title="Split the bill" onBack={() => dispatch(go("bill"))} footer={footer}>
+      {s?.splitNotice ? <p className="v2-notice" role="status">{s.splitNotice}</p> : null}
       <p className="v2-lead">{split.mode === "even" ? `Split ${shares.length} ways. Each person pays one share.` : "Each share is paid separately. Take yours and pay it."}</p>
       <ul className="v2-card v2-shares">
         {shares.map((sh: any) => {
@@ -1286,6 +1288,46 @@ function ExpiredV2({ s, dispatch }: any) {
       <h2 className="v2-title">This table link has timed out</h2>
       <p className="v2-lead">Reconnect to see the latest bill{s?.tableLabel ? ` for Table ${s.tableLabel}` : ""}. Anything you&apos;ve already paid is safe.</p>
     </Frame>
+  );
+}
+
+
+// ───────────────────────────── Loading splash (before the table resolves) ─────────────────────────────
+// Shown by ResolvedDiningApp while qr-resolve runs, so a returning diner never sees the old splash.
+// `last` is the restaurant this phone resolved for this table before (its logo/name), if any.
+export function V2Splash({ slow, onRetry, confirming, last }: { slow?: boolean; onRetry?: () => void; confirming?: boolean; last?: { name?: string; logoUrl?: string } | null }) {
+  useFont();
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("v2-lock");
+    return () => root.classList.remove("v2-lock");
+  }, []);
+  return (
+    <div className="v2" data-ui="v2-splash">
+      <div className="v2-screen">
+        <div className="v2-scroll">
+          <main className="v2-body v2-center">
+            {last?.logoUrl ? (
+              <img className="v2-splash-logo" src={last.logoUrl} alt={last.name || ""} />
+            ) : last?.name ? (
+              <p className="v2-brand-name">{last.name}</p>
+            ) : (
+              <img className="v2-splash-klown" src="/klown-logo.png" alt="Klown" />
+            )}
+            <p className="v2-lead v2-row-center" role="status" aria-live="polite">
+              <Spinner /> {confirming ? "Confirming your payment…" : "Connecting to your table…"}
+            </p>
+            {slow ? (
+              <>
+                <p className="v2-small">This is taking longer than usual. Check your signal.</p>
+                {onRetry ? <button type="button" className="v2-btn v2-btn-secondary" onClick={onRetry}>Try again</button> : null}
+              </>
+            ) : null}
+          </main>
+        </div>
+        <footer className="v2-actions"><PoweredBy /></footer>
+      </div>
+    </div>
   );
 }
 

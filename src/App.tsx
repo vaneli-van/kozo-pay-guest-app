@@ -143,6 +143,8 @@ export default function App({
   // How many item-assignment writes are in flight. While > 0 (or a debounce timer is pending),
   // the background /split poll must not overwrite the diner's optimistic picks.
   const inFlightWritesRef = useRef(0)
+  // Set by reset/rescan: the page is about to reload, so nothing may be saved any more.
+  const leavingRef = useRef(false)
   // Latest split state for async callbacks (avoids stale closures in timers/polls).
   const splitRef = useRef<any>(undefined)
   splitRef.current = s.split
@@ -260,6 +262,9 @@ export default function App({
         // "Back to my table" at the end of a visit: forget this visit's screens and load the
         // table fresh (an open bill shows the bill, a closed one the welcome screen).
         if (!sessionToken) break
+        // Stop saving first: a late poll/receipt update between removeItem and the reload used to
+        // write the Paid screen back, so "Done" reopened Paid instead of the table.
+        leavingRef.current = true
         try { sessionStorage.removeItem(storageKey) } catch {}
         window.location.reload()
         return
@@ -272,6 +277,7 @@ export default function App({
       }
       case 'rescan': {
         // The table session timed out: drop the stored session so the reload starts a new one.
+        leavingRef.current = true
         try {
           sessionStorage.removeItem(storageKey)
           if (qrToken) localStorage.removeItem(`klown-session:${qrToken}`)
@@ -305,6 +311,14 @@ export default function App({
            else if (r?.reason === 'split_exists') {
              POST('/api/public/split', { sessionToken }).then((current) => {
                if (current?.ok && current.split?.mode === action.mode) { patch({ splitError: undefined }); goScreen(dest) }
+               else if (s.uiV2 && current?.ok && current.split) {
+                 // New screens: take the diner to the split the table already started, and say why.
+                 const items = current.split.mode === 'items'
+                 goScreen(items ? 'split-items' : 'split-lobby')
+                 patch({ splitNotice: items
+                   ? 'Someone at your table is already paying for what they had, so the rest of the table pays the same way. Pick what you had.'
+                   : 'This bill is already split into shares. Take one to pay it.' })
+               }
                else patch({ splitError: 'A different split is already open for this bill.' })
              })
            }
@@ -853,7 +867,7 @@ export default function App({
   }, [])
 
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || leavingRef.current) return
     try {
       const { menu, selectedItem, sessionExpired, ...persist } = s
       sessionStorage.setItem(storageKey, JSON.stringify({ ...persist, savedAt: Date.now(), savedFor: sessionToken ?? s.sessionToken }))

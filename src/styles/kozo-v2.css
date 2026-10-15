@@ -210,7 +210,7 @@ html.v2-lock, html.v2-lock body { height: 100%; overflow: hidden; overscroll-beh
 .v2-picks li.is-off .v2-pick-name { color: var(--v2-muted); }
 .v2-pick-main, .v2-share-main, .v2-dish-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; }
 .v2-pick-name { font-size: 16px; font-weight: 500; color: var(--v2-ink); overflow-wrap: anywhere; }
-.v2-stepper { flex: none; display: flex; align-items: center; gap: 6px; }
+.v2-stepper { flex: none; min-width: 114px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 .v2-round-s { width: 40px; height: 40px; font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center; }
 .v2-round-s.is-on { border-color: var(--v2-ink); background: var(--v2-ink); color: #fff; }
 .v2 .v2-round-s.is-on { color: #fff; }
@@ -239,3 +239,7 @@ html.v2-lock, html.v2-lock body { height: 100%; overflow: hidden; overscroll-beh
 .v2-paidcard { display: flex; flex-direction: column; gap: 4px; padding: 16px; }
 .v2-receipt-img { width: 100%; max-width: 380px; align-self: center; display: block; border-radius: 12px; border: 1px solid var(--v2-card-line); box-shadow: 0 6px 24px rgba(17, 19, 24, 0.08); }
 .v2-otp { font-size: 24px; letter-spacing: 0.3em; text-align: center; }
+
+/* Loading splash */
+.v2-splash-logo { height: 72px; width: auto; max-width: 70%; object-fit: contain; border-radius: 14px; }
+.v2-splash-klown { height: 28px; width: auto; }

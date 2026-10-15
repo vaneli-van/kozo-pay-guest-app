@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import App from './App'
 import { useDiningSession } from './session/useDiningSession'
-import { Connect } from './screens/screens'
 import { InvalidSession } from './screens/InvalidSession'
 import { checkoutReturnRef } from './session/checkoutReturn'
-import { Center } from './ui/primitives'
+import { V2Splash } from './screens/v2'
 
 // Client-only: the diner experience uses window/sessionStorage/history.
 export default function ResolvedDiningApp({ token }: { token: string }) {
@@ -35,6 +34,11 @@ function wantsV2(dinerUi?: string): boolean {
   return dinerUi === 'v2'
 }
 
+// The restaurant this phone last resolved for this table: logo and name for the loading splash.
+function lastFor(token: string): { name?: string; logoUrl?: string } | null {
+  try { const v = localStorage.getItem(`klown-last:${token}`); return v ? JSON.parse(v) : null } catch { return null }
+}
+
 function ResolvedInner({ token }: { token: string }) {
   const s = useDiningSession(token)
   // After 8 s still loading, the splash offers "Try again".
@@ -44,11 +48,14 @@ function ResolvedInner({ token }: { token: string }) {
     const t = setTimeout(() => setSlow(true), 8000)
     return () => clearTimeout(t)
   }, [s.status])
-  // Back from Paystack's full-page checkout (fallback path): say what is happening while the
-  // table session reloads, instead of the generic "connecting to your table" splash.
-  if (s.status === 'loading') return <div className="app-shell">{checkoutReturnRef()
-    ? <Center eyebrow="SECURE PAYMENT" title={"Confirming your<br /><em>payment.</em>"} copy="One moment while we check with your bank…"><div className="loader large" /></Center>
-    : <Connect slow={slow} onRetry={() => window.location.reload()} />}</div>
+  // Remember this table's restaurant (name + logo only) for the next loading splash on this phone.
+  useEffect(() => {
+    if (s.status !== 'ready') return
+    try { localStorage.setItem(`klown-last:${token}`, JSON.stringify({ name: s.restaurant.name, logoUrl: s.restaurant.logoUrl || undefined })) } catch {}
+  }, [s.status, token])
+  // Loading: the new splash for everyone (with this table's restaurant logo when this phone has
+  // been here before). Back from Paystack's full-page checkout, it says the payment is being checked.
+  if (s.status === 'loading') return <V2Splash slow={slow} confirming={!!checkoutReturnRef()} last={lastFor(token)} onRetry={() => window.location.reload()} />
   if (s.status === 'error') return <div className="app-shell"><InvalidSession reason={s.reason} onRetry={() => window.location.reload()} /></div>
   const r = s.restaurant
   const branding = {

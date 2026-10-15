@@ -45,6 +45,8 @@ export type State = {
   quoteError?: string | undefined
   method?: 'momo' | 'card' | 'applepay'
   momoNumber?: string | undefined
+  // New screens: why the diner landed on the split that is already open (set after the screen change)
+  splitNotice?: string | undefined
   // New screens only: which network and last digits the MoMo prompt went to (the number itself is
   // cleared once the payment starts), for the "check your phone" screen.
   momoHint?: { network?: string | undefined; last4?: string | undefined } | undefined
@@ -128,7 +130,7 @@ export function go(screen: Screen) { return { type: 'screen', value: screen } as
 
 export function reducer(s: State, a: { type: string; value?: any }): State {
   // A new screen starts clean: an error belongs to the screen it was shown on.
-  if (a.type === 'screen') return { ...s, screen: a.value, paymentError: false, connLost: false, pendingConfirm: false, splitError: undefined, rewardsError: undefined }
+  if (a.type === 'screen') return { ...s, screen: a.value, paymentError: false, connLost: false, pendingConfirm: false, splitError: undefined, splitNotice: undefined, rewardsError: undefined }
   if (a.type === 'patch') return { ...s, ...a.value }
   if (a.type === 'toggleOrder') return { ...s, hasOrder: !s.hasOrder, screen: !s.hasOrder ? 'welcome' : 'welcome' }
   if (a.type === 'dish') return { ...s, dish: a.value, screen: 'dish' }
