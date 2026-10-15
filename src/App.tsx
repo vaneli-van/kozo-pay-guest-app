@@ -9,6 +9,7 @@ import { DEMO_MODE_ENABLED, DEMO_BILL, createDemoSplit, demoQuote } from './lib/
 import { tipRequestFields } from './lib/tip'
 import { KLOWN_VERSION } from './lib/version'
 import { NOT_STARTED_REASONS, REASON_COPY } from './lib/reasons'
+import { DinerV2, V2_SCREENS } from './screens/v2'
 
 // Set by the mounted App. Any reply saying the table session has expired switches the app to the
 // "reconnect to your table" screen, instead of each screen failing quietly on its own.
@@ -844,7 +845,7 @@ export default function App({
       else if (prev) {
         // Keep the diner on whatever screen they were on, but let the freshly-resolved
         // table + order state win over a stale saved copy (order placed since last visit, etc.).
-        dispatch({ type: 'restore', value: { ...prev, checkoutOpen: false, ...(checkoutRefAtLoad.current ? { paymentRef: prev.paymentRef ?? checkoutRefAtLoad.current } : {}), screen: checkoutRefAtLoad.current ? 'processing' : initialState?.screen === 'choose-tab' ? 'choose-tab' : initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy, testMode: initialState?.testMode ?? false } })
+        dispatch({ type: 'restore', value: { ...prev, checkoutOpen: false, ...(checkoutRefAtLoad.current ? { paymentRef: prev.paymentRef ?? checkoutRefAtLoad.current } : {}), screen: checkoutRefAtLoad.current ? 'processing' : initialState?.screen === 'choose-tab' ? 'choose-tab' : initialState?.hasOrder ? 'bill' : (initialState?.mode === 'order' && !prev.paymentRef ? (prev.screen && prev.screen !== 'welcome' ? prev.screen : 'waiting-bill') : prev.screen), hasOrder: initialState?.hasOrder ?? prev.hasOrder, mode: initialState?.mode ?? prev.mode, tableLabel: initialState?.tableLabel ?? prev.tableLabel, restaurantName: initialState?.restaurantName ?? prev.restaurantName, logoUrl: initialState?.logoUrl ?? prev.logoUrl, heroUrl: initialState?.heroUrl ?? prev.heroUrl, accentColor: initialState?.accentColor ?? prev.accentColor, taglineTop: initialState?.taglineTop ?? prev.taglineTop, taglineBottom: initialState?.taglineBottom ?? prev.taglineBottom, welcomeCopy: initialState?.welcomeCopy ?? prev.welcomeCopy, testMode: initialState?.testMode ?? false, uiV2: initialState?.uiV2 ?? false } })
       }
     } catch {}
     setHydrated(true)
@@ -881,6 +882,8 @@ export default function App({
         <div className="app-shell" style={accentStyle(s.accentColor)}>
           <SessionExpired s={s} dispatch={navigate} />
         </div>
+      ) : s.uiV2 && s.mode !== 'order' && V2_SCREENS.has(s.screen) ? (
+        <DinerV2 s={s} dispatch={navigate} />
       ) : s.screen === 'welcome' ? (
         <div className="welcome-shell" style={accentStyle(s.accentColor)}>
           <Welcome s={s} dispatch={navigate} />

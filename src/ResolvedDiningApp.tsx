@@ -18,6 +18,23 @@ export default function ResolvedDiningApp({ token }: { token: string }) {
   return <ResolvedInner token={token} />
 }
 
+// The new diner screens are switched on per restaurant. On the preview (unpublished build) only,
+// ?ui=v2 or ?ui=classic overrides that for testing, and is remembered for the tab.
+function wantsV2(dinerUi?: string): boolean {
+  if (typeof window === 'undefined') return dinerUi === 'v2'
+  const h = window.location.hostname.toLowerCase()
+  const preview = h.startsWith('id-preview--') || h.startsWith('preview--') || h.endsWith('.lovableproject.com') || h === 'localhost' || h === '127.0.0.1'
+  if (preview) {
+    try {
+      const q = new URLSearchParams(window.location.search).get('ui')
+      if (q === 'v2' || q === 'classic') sessionStorage.setItem('klown-ui', q)
+      const o = sessionStorage.getItem('klown-ui')
+      if (o === 'v2' || o === 'classic') return o === 'v2'
+    } catch {}
+  }
+  return dinerUi === 'v2'
+}
+
 function ResolvedInner({ token }: { token: string }) {
   const s = useDiningSession(token)
   // After 8 s still loading, the splash offers "Try again".
@@ -42,6 +59,7 @@ function ResolvedInner({ token }: { token: string }) {
     ...(r.taglineBottom ? { taglineBottom: r.taglineBottom } : {}),
     ...(r.welcomeCopy ? { welcomeCopy: r.welcomeCopy } : {}),
     ...(r.paymentMode === 'test' ? { testMode: true } : {}),
+    uiV2: wantsV2(r.dinerUi),
   }
   const isOrder = (s as any).mode === 'order'
   // Coming back from Paystack's card / MoMo page (?reference=…): open straight on "processing"

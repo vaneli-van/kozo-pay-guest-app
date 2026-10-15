@@ -27,6 +27,9 @@ export type Scenario = {
   statusByRef?: Record<string, 'pending' | 'captured' | 'failed' | 'cancelled'>
   attempts?: { ref: string; total: number; share: number; tip: number }[]
   billId?: string
+  // New diner screens (restaurants.diner_ui) and test-mode restaurant, as qr-resolve reports them
+  dinerUi?: 'classic' | 'v2'
+  testMode?: boolean
   sessionTokenOut?: string
   // the item board for items-mode splits (server state)
   split?: any
@@ -122,7 +125,7 @@ export async function installMock(page: Page, sc: Scenario, captured: Captured[]
 
     switch (path) {
       case 'qr-resolve':
-        return json({ ok: true, sessionToken: sc.sessionTokenOut ?? 'sess-1', restaurant: { name: sc.restaurantName, city: 'Accra', logoUrl: null, heroUrl: null, accentColor: null, taglineTop: null, taglineBottom: null, welcomeCopy: null, paymentMode: 'live' }, branch: { name: 'Main' }, table: { label: sc.tableLabel }, hasActiveBill: sc.hasActiveBill, chooseTab: !!sc.chooseTab, billStatus: sc.hasActiveBill ? 'open' : 'none', expiresAt: new Date(Date.now() + 4 * 3600e3).toISOString(), mode: 'table' })
+        return json({ ok: true, sessionToken: sc.sessionTokenOut ?? 'sess-1', restaurant: { name: sc.restaurantName, city: 'Accra', logoUrl: null, heroUrl: null, accentColor: null, taglineTop: null, taglineBottom: null, welcomeCopy: null, paymentMode: sc.testMode ? 'test' : 'live', dinerUi: sc.dinerUi ?? 'classic' }, branch: { name: 'Main' }, table: { label: sc.tableLabel }, hasActiveBill: sc.hasActiveBill, chooseTab: !!sc.chooseTab, billStatus: sc.hasActiveBill ? 'open' : 'none', expiresAt: new Date(Date.now() + 4 * 3600e3).toISOString(), mode: 'table' })
       case 'bill':
         if (sc.chooseTab) return json({ ok: true, bill: null, chooseTab: true, tabs: sc.tabs ?? [] })
         if (!sc.hasActiveBill) return json({ ok: true, bill: null, chooseTab: false, tabs: [] })

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 export type ResolveResult =
   | { status: 'loading' }
   | { status: 'error'; reason: string }
-  | { status: 'ready'; sessionToken: string; restaurant: { name: string; city: string; logoUrl?: string | null; heroUrl?: string | null; accentColor?: string | null; taglineTop?: string | null; taglineBottom?: string | null; welcomeCopy?: string | null; paymentMode?: 'live' | 'test' }; branch: { name: string }; table: { label: string }; hasActiveBill: boolean; chooseTab?: boolean; billStatus: string; expiresAt: string; mode?: string; orderStatus?: string }
+  | { status: 'ready'; sessionToken: string; restaurant: { name: string; city: string; logoUrl?: string | null; heroUrl?: string | null; accentColor?: string | null; taglineTop?: string | null; taglineBottom?: string | null; welcomeCopy?: string | null; paymentMode?: 'live' | 'test'; dinerUi?: 'classic' | 'v2' }; branch: { name: string }; table: { label: string }; hasActiveBill: boolean; chooseTab?: boolean; billStatus: string; expiresAt: string; mode?: string; orderStatus?: string }
 
 const key = (qrToken: string) => `klown-session:${qrToken}`
 

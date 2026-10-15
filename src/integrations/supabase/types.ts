@@ -2742,6 +2742,7 @@ export type Database = {
       restaurants: {
         Row: {
           accent_color: string | null
+          diner_ui: string
           address: string | null
           city: string
           contact_phone: string | null
@@ -2765,6 +2766,7 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
+          diner_ui?: string
           address?: string | null
           city: string
           contact_phone?: string | null
@@ -2788,6 +2790,7 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
+          diner_ui?: string
           address?: string | null
           city?: string
           contact_phone?: string | null

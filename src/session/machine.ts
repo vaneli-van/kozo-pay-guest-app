@@ -27,6 +27,8 @@ export type State = {
   welcomeCopy?: string
   // Test-mode restaurant: Paystack test key, no real money (shows a banner + test-bill button)
   testMode?: boolean
+  // New diner screens (redesign B), switched on per restaurant (restaurants.diner_ui = 'v2').
+  uiV2?: boolean
   testBillBusy?: boolean
   testBillError?: string | undefined
   // Paystack popup checkout is open over the app (status polling pauses meanwhile)
@@ -43,6 +45,9 @@ export type State = {
   quoteError?: string | undefined
   method?: 'momo' | 'card' | 'applepay'
   momoNumber?: string | undefined
+  // New screens only: which network and last digits the MoMo prompt went to (the number itself is
+  // cleared once the payment starts), for the "check your phone" screen.
+  momoHint?: { network?: string | undefined; last4?: string | undefined } | undefined
   paymentRef?: string | undefined
   failureReason?: string | undefined
   // 'blocked' = never started (someone else paying, bill changed...), 'declined' = the provider
