@@ -56,8 +56,11 @@ test('v2: bill shows the restaurant, the amount once, the till note and Powered 
   await expect(body).toContainText('Joel is looking after you')
   await expect(body).toContainText('Includes NHIL, GETFund and VAT')
   await expect(body).toContainText("From Baobab's till")
-  await expect(body).toContainText('Powered by')
-  await expect(page.locator('.kz-version')).toContainText('Klown ')
+  // Powered by lives in the pinned footer under Split the bill; no version line on the new screens.
+  await expect(page.locator('.v2-actions .v2-powered')).toHaveCount(1)
+  await expect(page.locator('.v2-scroll .v2-powered')).toHaveCount(0)
+  await expect(page.locator('[data-ui="v2"] .kz-version')).toHaveCount(0)
+  await expect(body).not.toContainText('Klown 20')
   expect(await inView(page, /^Pay GH₵295\.00$/)).toBe(true)
   expect(await noSideScroll(page)).toBe(true)
   await ctx.shot('v2-bill')
@@ -240,10 +243,12 @@ test('v2: the pay sheet fits a small phone without sideways scrolling', async ({
   expect(await inView(page, /^Pay GH₵324\.50$/)).toBe(true)
 })
 
-test('v2: footer stays pinned while a long bill scrolls (page itself never scrolls)', async ({ page, ctx }) => {
+test('v2: header and footer stay pinned while a long bill scrolls (page itself never scrolls)', async ({ page, ctx }) => {
   ctx.sc.items = Array.from({ length: 24 }, (_, n) => ({ ...ctx.sc.items[0], name: `Dish ${n + 1}`, qty: 1, lineTotalPesewas: 1000 }))
   await open(page)
   const foot = page.locator('.v2-actions')
+  const head = page.locator('.v2-header')
+  const headBefore = (await head.boundingBox())!
   const before = await foot.boundingBox()
   const vh = page.viewportSize()!.height
   expect(before && Math.round(before.y + before.height)).toBeGreaterThanOrEqual(vh - 1)
@@ -258,9 +263,31 @@ test('v2: footer stays pinned while a long bill scrolls (page itself never scrol
   const after = await foot.boundingBox()
   expect(after!.y).toBeCloseTo(before!.y, 0)
   expect(await page.evaluate(() => (document.scrollingElement || document.documentElement).scrollTop)).toBe(0)
-  // The end of the bill is reachable above the footer, not hidden behind it.
-  const ver = (await page.locator('.kz-version').boundingBox())!
-  expect(ver.y + ver.height).toBeLessThanOrEqual(after!.y + 1)
+  // The header is pinned too.
+  expect((await head.boundingBox())!.y).toBeCloseTo(headBefore.y, 0)
+  // The end of the bill is reachable between the header and the footer, not hidden behind either.
+  const end = (await page.locator('.v2-links').boundingBox())!
+  expect(end.y + end.height).toBeLessThanOrEqual(after!.y + 1)
+  expect(end.y).toBeGreaterThanOrEqual(headBefore.y + headBefore.height - 1)
   expect(await inView(page, /^Pay GH₵/)).toBe(true)
   await ctx.shot('v2-long-bill-scrolled')
+})
+
+test('v2: the header shows the restaurant logo (not the Klown logo) and the table', async ({ page, ctx }) => {
+  ctx.sc.logoUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="160" height="100" rx="12" fill="#1d3b2a"/><text x="80" y="60" font-size="28" text-anchor="middle" fill="#fff">BAOBAB</text></svg>')
+  await open(page)
+  const logo = page.locator('.v2-header img.v2-brand-logo')
+  await expect(logo).toHaveAttribute('alt', 'Baobab')
+  expect(await logo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
+  await expect(page.locator('.v2-header img[alt="Klown"]')).toHaveCount(0)
+  await expect(page.locator('.v2-header .v2-table')).toContainText('Table')
+  const h = (await page.locator('.v2-header').boundingBox())!
+  expect(h.height).toBeLessThan(110)
+  await ctx.shot('v2-header-logo')
+})
+
+test('v2: without a logo the header shows the restaurant name', async ({ page, ctx }) => {
+  void ctx
+  await open(page)
+  await expect(page.locator('.v2-header .v2-brand-name')).toHaveText('Baobab')
 })

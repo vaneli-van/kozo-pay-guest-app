@@ -13,7 +13,6 @@ import { money } from "../lib/format";
 import { tipPesewasFor, isCustomTip, parseCediInput } from "../lib/tip";
 import { normalizeGhanaMobile } from "../lib/phone";
 import { REASON_COPY } from "../lib/reasons";
-import { KLOWN_VERSION } from "../lib/version";
 import { billTax } from "../integrations/billing/tax";
 import "../styles/kozo-v2.css";
 
@@ -106,22 +105,16 @@ function PoweredBy() {
 }
 
 function Header({ s, sub }: { s: any; sub?: string | null }) {
+  const name = s?.restaurantName || "Your table";
   return (
     <header className="v2-header">
-      <div className="v2-header-top">
-        <img className="v2-klown" src="/klown-logo.png" alt="Klown" />
+      <div className="v2-header-row">
+        <h1 className="v2-brand">
+          {s?.logoUrl ? <img className="v2-brand-logo" src={s.logoUrl} alt={name} /> : <span className="v2-brand-name">{name}</span>}
+        </h1>
         {s?.tableLabel ? <span className="v2-table">Table {s.tableLabel}</span> : null}
       </div>
-      <div className="v2-venue">
-        {s?.logoUrl ? (
-          <h1 className="v2-logo-slot">
-            <img src={s.logoUrl} alt={s?.restaurantName || "Restaurant"} />
-          </h1>
-        ) : (
-          <h1 className="v2-venue-name">{s?.restaurantName || "Your table"}</h1>
-        )}
-        {sub ? <p className="v2-muted">{sub}</p> : null}
-      </div>
+      {sub ? <p className="v2-header-sub">{sub}</p> : null}
     </header>
   );
 }
@@ -141,8 +134,8 @@ function BillView({ s, dispatch, underlay = false }: any) {
   const restaurant = s?.restaurantName || "the restaurant";
   return (
     <div className="v2-screen" aria-hidden={underlay || undefined} inert={underlay || undefined}>
+      <Header s={s} sub={server ? `${server} is looking after you` : null} />
       <div className="v2-scroll">
-        <Header s={s} sub={server ? `${server} is looking after you` : null} />
       <main className="v2-body">
         <section className="v2-due">
           <p className="v2-muted">{partial ? "Left to pay" : remaining <= 0 && paid > 0 ? "Paid" : "Your bill"}</p>
@@ -188,20 +181,21 @@ function BillView({ s, dispatch, underlay = false }: any) {
           ) : null}
           <button type="button" className="v2-link" onClick={() => dispatch(go("menu"))}>See the menu</button>
         </div>
-        <PoweredBy />
-        <p className="v2-version kz-version">Klown {KLOWN_VERSION}</p>
       </main>
       </div>
-      {remaining > 0 ? (
-        <footer className="v2-actions">
-          <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch({ type: "pay-full", to: "review" })}>
-            {partial ? "Pay the rest" : "Pay"} {pes(remaining)}
-          </button>
-          <button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch(go("split"))}>
-            Split the bill
-          </button>
-        </footer>
-      ) : null}
+      <footer className="v2-actions">
+        {remaining > 0 ? (
+          <>
+            <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch({ type: "pay-full", to: "review" })}>
+              {partial ? "Pay the rest" : "Pay"} {pes(remaining)}
+            </button>
+            <button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch(go("split"))}>
+              Split the bill
+            </button>
+          </>
+        ) : null}
+        <PoweredBy />
+      </footer>
     </div>
   );
 }
@@ -210,8 +204,8 @@ function NoBill({ s, dispatch }: any) {
   const restaurant = s?.restaurantName || "the restaurant";
   return (
     <div className="v2-screen">
+      <Header s={s} />
       <div className="v2-scroll">
-        <Header s={s} />
       <main className="v2-body v2-center">
         <Emoji name="receipt" size={84} />
         <h2 className="v2-title">No bill at this table yet</h2>
@@ -248,8 +242,8 @@ function BillOrState({ s, dispatch }: any) {
   if (s?.noBill || s?.screen === "welcome" || s?.screen === "empty" || s?.screen === "waiting-bill") return <NoBill s={s} dispatch={dispatch} />;
   return (
     <div className="v2-screen">
+      <Header s={s} />
       <div className="v2-scroll">
-        <Header s={s} />
       <main className="v2-body v2-center">
         {s?.billError ? (
           <div role="alert" className="v2-center">
@@ -262,6 +256,7 @@ function BillOrState({ s, dispatch }: any) {
         )}
       </main>
       </div>
+      <footer className="v2-actions"><PoweredBy /></footer>
     </div>
   );
 }
@@ -549,8 +544,8 @@ function Approve({ s, dispatch }: any) {
   const hint = s?.momoHint;
   return (
     <div className="v2-screen">
+      <Header s={s} />
       <div className="v2-scroll">
-        <Header s={s} />
       <main className="v2-body v2-center">
         <div className="v2-buzz" aria-hidden="true">
           <span className="v2-buzz-ring" />
@@ -571,6 +566,7 @@ function Approve({ s, dispatch }: any) {
       <footer className="v2-actions">
         <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch(go("processing"))}>I&apos;ve approved it</button>
         <button type="button" className="v2-btn v2-btn-text" onClick={() => dispatch(go("review"))}>Use another number or card</button>
+        <PoweredBy />
       </footer>
     </div>
   );
@@ -585,8 +581,8 @@ function Processing({ s, dispatch }: any) {
   const card = s?.method === "card" || s?.method === "applepay";
   return (
     <div className="v2-screen">
+      <Header s={s} />
       <div className="v2-scroll">
-        <Header s={s} />
       <main className="v2-body v2-center" role="status" aria-live="polite">
         <Spinner size={40} />
         <h2 className="v2-title">Confirming your payment</h2>
@@ -601,6 +597,7 @@ function Processing({ s, dispatch }: any) {
         ) : null}
       </main>
       </div>
+      <footer className="v2-actions"><PoweredBy /></footer>
     </div>
   );
 }
@@ -618,8 +615,8 @@ function PaymentError({ s, dispatch }: any) {
   const other = () => dispatch({ type: "patch-go", value: { paymentRef: undefined, failureReason: undefined }, to: "review" });
   return (
     <div className="v2-screen">
+      <Header s={s} />
       <div className="v2-scroll">
-        <Header s={s} />
       <main className="v2-body v2-center">
         <h2 className="v2-title">{kind === "blocked" ? "Payment not started" : "Payment didn’t go through"}</h2>
         {body ? <p className="v2-lead">{body}</p> : null}
@@ -634,6 +631,7 @@ function PaymentError({ s, dispatch }: any) {
       <footer className="v2-actions">
         <button type="button" className="v2-btn v2-btn-primary" onClick={again}>Try again</button>
         <button type="button" className="v2-btn v2-btn-secondary" onClick={other}>Use another number or card</button>
+        <PoweredBy />
       </footer>
     </div>
   );
@@ -656,8 +654,8 @@ function Paid({ s, dispatch }: any) {
   const tipLabelText = isCustomTip(s) ? "Tip" : `Tip${s?.tipPercent ? ` · ${s.tipPercent}%` : ""}`;
   return (
     <div className="v2-screen">
+      <Header s={s} />
       <div className="v2-scroll">
-        <Header s={s} />
       <main className="v2-body">
         <section className="v2-paid-top" aria-live="polite">
           <Emoji name="party_popper" size={76} />
