@@ -11,6 +11,8 @@ export type Scenario = {
   tabs?: any[]
   items: Item[]
   logoUrl?: string | null
+  // a full /menu reply (e.g. a Menu Studio menu) instead of the POS categories below
+  menuOverride?: any
   serviceChargePesewas: number
   paidPesewas: number
   serverName: string | null
@@ -138,6 +140,7 @@ export async function installMock(page: Page, sc: Scenario, captured: Captured[]
         return json({ ok: true })
       }
       case 'menu':
+        if (sc.menuOverride) return json(sc.menuOverride)
         return json({ ok: true, source: 'pos', categories: sc.menuCategories, items: sc.menuItems, recommendations: [], currency: 'GHS' })
       case 'quote':
         return json(sc.quoteOverride ?? quoteOf(sc, body))

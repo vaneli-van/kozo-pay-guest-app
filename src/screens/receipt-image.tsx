@@ -111,7 +111,9 @@ export async function renderOdooReceiptPng(d: any): Promise<Blob> {
     cv.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"));
 }
 
-export function ReceiptImage({ s }: any) {
+// The receipt PNG for this table's latest payment: preview URL, download, and its loading state.
+// Shared by the classic receipt screen (ReceiptImage) and the new one (screens/v2.tsx).
+export function useReceiptPng(s: any) {
   const [url, setUrl] = useState<string | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(true);
@@ -141,6 +143,11 @@ export function ReceiptImage({ s }: any) {
     a.download = `receipt-${s?.receiptNumber || "klown"}.png`;
     document.body.appendChild(a); a.click(); a.remove();
   };
+  return { url, busy, err, download, ready: !!blob };
+}
+
+export function ReceiptImage({ s }: any) {
+  const { url, busy, err, download } = useReceiptPng(s);
   return (
     <div className="kz-receipt-img">
       {busy && <p className="muted">Preparing your receipt…</p>}

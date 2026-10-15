@@ -878,7 +878,9 @@ export default function App({
       {(s.netOnline === false || s.connLost) && (
         <ConnBanner offline={s.netOnline === false} onRetry={() => setRetryTick((n) => n + 1)} />
       )}
-      {s.sessionExpired ? (
+      {s.sessionExpired && s.uiV2 && s.mode !== 'order' ? (
+        <DinerV2 s={s} dispatch={navigate} />
+      ) : s.sessionExpired ? (
         <div className="app-shell" style={accentStyle(s.accentColor)}>
           <SessionExpired s={s} dispatch={navigate} />
         </div>

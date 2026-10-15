@@ -5,8 +5,8 @@
 // screens: every money step dispatches the actions App.tsx already handles (pay-full, patch-go to
 // 'authorise' / 'processing', split-create, feedback, whatsapp-receipt, give-up, reset...).
 // Amounts come from the server quote; payment-init still refuses any total other than the one the
-// diner saw (reviewedTotalPesewas). Screens without a new design yet (split lobby, item picking,
-// menu, receipts...) render the classic ones.
+// diner saw (reviewedTotalPesewas). Every table-mode screen has a new version; QSR order mode
+// (counter ordering) still uses the classic screens.
 import { useEffect, useRef, useState } from "react";
 import { go } from "../session/machine";
 import { money } from "../lib/format";
@@ -14,15 +14,19 @@ import { tipPesewasFor, isCustomTip, parseCediInput } from "../lib/tip";
 import { normalizeGhanaMobile } from "../lib/phone";
 import { REASON_COPY } from "../lib/reasons";
 import { billTax } from "../integrations/billing/tax";
+import { openState } from "../lib/hours";
+import { useReceiptPng } from "./receipt-image";
 import "../styles/kozo-v2.css";
 
 const pes = (v?: number | null) => money((v ?? 0) / 100);
 
 // The screens this file draws. Anything else falls back to the classic screen.
 export const V2_SCREENS = new Set([
-  "welcome", "bill", "bill-ready", "empty", "waiting-bill", "pay",
-  "split", "tip", "review", "method", "momo",
+  "welcome", "bill", "bill-ready", "empty", "waiting-bill", "pay", "choose-tab",
+  "split", "split-items", "split-lobby", "tip", "review", "method", "momo", "otp",
   "authorise", "processing", "payment-error", "success",
+  "receipt-choice", "guest-receipt", "feedback", "review-handoff", "complete",
+  "menu", "category", "dish", "waiter", "waiter-notified",
 ]);
 
 const PAY_SHEET = new Set(["tip", "review", "method", "momo"]);
@@ -262,10 +266,10 @@ function BillOrState({ s, dispatch }: any) {
 }
 
 // ───────────────────────────── Sheets ─────────────────────────────
-function Sheet({ s, dispatch, title, onClose, children, footer }: any) {
+function Sheet({ s, dispatch, title, onClose, children, footer, under }: any) {
   return (
     <div className="v2-overlay">
-      <div className="v2-underlay"><BillView s={s} dispatch={dispatch} underlay /></div>
+      <div className="v2-underlay">{under ?? <BillView s={s} dispatch={dispatch} underlay />}</div>
       <button type="button" className="v2-scrim" aria-label="Close" onClick={onClose} />
       <section className="v2-sheet" role="dialog" aria-modal="true" aria-label={title}>
         <div className="v2-grabber" aria-hidden="true" />
@@ -341,7 +345,8 @@ function PaySheet({ s, dispatch }: any) {
   const badNumber = method === "momo" && !normalized;
   const shareGone = err === "invalid_share" || err === "share_paid";
   const canPay = !!q && !err && chosen && !badNumber;
-  const close = () => dispatch(shareGone ? { type: "pay-full", to: "bill" } : go("bill"));
+  const backTo = s?.claimedShareId && s?.split ? (s.split.mode === "items" ? "split-items" : "split-lobby") : "bill";
+  const close = () => dispatch(shareGone ? { type: "pay-full", to: "bill" } : go(backTo));
   const pay = () => {
     if (!canPay) { setTouched(true); return; }
     if (method === "momo" && normalized) lastNumber = normalized;
@@ -740,6 +745,550 @@ function Paid({ s, dispatch }: any) {
   );
 }
 
+// ───────────────────────────── Full-screen frame ─────────────────────────────
+// Pinned header (+ optional title row and pinned extras such as menu tabs), one scrolling middle,
+// pinned footer that always ends with "Powered by". Same shell as the bill.
+function BackIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+function Frame({ s, title, onBack, sub, pinned, footer, children, center = false, underlay = false }: any) {
+  return (
+    <div className="v2-screen" aria-hidden={underlay || undefined} inert={underlay || undefined}>
+      <Header s={s} sub={sub} />
+      {title ? (
+        <div className="v2-subhead">
+          {onBack ? (
+            <button type="button" className="v2-back" aria-label="Back" onClick={onBack}><BackIcon /></button>
+          ) : null}
+          <h2 className="v2-subhead-title">{title}</h2>
+        </div>
+      ) : null}
+      {pinned ? <div className="v2-pinned">{pinned}</div> : null}
+      <div className="v2-scroll">
+        <main className={`v2-body${center ? " v2-center" : ""}`}>{children}</main>
+      </div>
+      <footer className="v2-actions">
+        {footer}
+        <PoweredBy />
+      </footer>
+    </div>
+  );
+}
+
+// Invite someone at the table: the phone's share sheet when there is one, WhatsApp otherwise.
+function shareLink(text: string, url: string) {
+  try {
+    const nav: any = typeof navigator !== "undefined" ? navigator : null;
+    if (nav?.share) { nav.share({ text, url }).catch(() => {}); return; }
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank", "noopener");
+  } catch {}
+}
+const tableLink = () => (typeof window !== "undefined" ? window.location.origin + window.location.pathname : "");
+
+function SplitWait({ s, dispatch, title }: any) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 8000);
+    return () => clearTimeout(t);
+  }, []);
+  const stuck = slow || !!s?.splitError;
+  return (
+    <Frame
+      s={s}
+      title={title}
+      onBack={() => dispatch(go("bill"))}
+      center
+      footer={stuck ? <button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch({ type: "screen", value: "split" })}>Back to split options</button> : null}
+    >
+      {s?.splitError ? (
+        <>
+          <h2 className="v2-title">Can&apos;t split this bill yet</h2>
+          <p className="v2-lead" role="alert">{s.splitError}</p>
+        </>
+      ) : (
+        <p className="v2-lead v2-row-center" role="status" aria-live="polite"><Spinner /> Setting up the split…</p>
+      )}
+    </Frame>
+  );
+}
+
+function Progress({ paid, total, extra }: { paid: number; total: number; extra?: string | null }) {
+  const pct = total ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+  return (
+    <div className="v2-progress-wrap">
+      <div className="v2-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Share of the bill paid">
+        <div style={{ width: `${pct}%` }} />
+      </div>
+      <p className="v2-small">{pes(paid)} of {pes(total)} paid{extra ? ` · ${extra}` : ""}</p>
+    </div>
+  );
+}
+
+// ───────────────────────────── Split by item ─────────────────────────────
+function SplitItemsV2({ s, dispatch }: any) {
+  const split = s?.split;
+  if (!split || split.mode !== "items") return <SplitWait s={s} dispatch={dispatch} title="Pay for what you had" />;
+  const items: any[] = split.items ?? [];
+  const myId = split.myShareId ?? null;
+  const myAmount = split.myShareAmountPesewas ?? 0;
+  const total = split.totalPesewas ?? 0;
+  const paid = split.paidPesewas ?? 0;
+  const unassigned = split.unassignedPesewas ?? 0;
+  const iPaid = (split.shares ?? []).some((sh: any) => sh.mine && sh.status === "paid");
+  const done = total > 0 && paid >= total;
+  const myUnitsOn = (it: any) => it.takers.find((t: any) => t.shareId === myId)?.units ?? 0;
+  const picked = items.reduce((n: number, it: any) => n + myUnitsOn(it), 0);
+  const footer = done ? (
+    <p className="v2-notice is-good" role="status">Every item is paid for. Thank you!</p>
+  ) : iPaid ? (
+    <p className="v2-notice is-good" role="status">Your items are paid. Waiting on the rest of the table.</p>
+  ) : (
+    <>
+      <div className="v2-foot-line">
+        <span>{picked ? `Your items (${picked})` : "Nothing picked yet"}</span>
+        <b data-testid="v2-my-items">{pes(myAmount)}</b>
+      </div>
+      <button
+        type="button"
+        className="v2-btn v2-btn-primary"
+        disabled={myAmount <= 0 || !!s?.splitError || !!s?.pendingConfirm}
+        onClick={() => { if (myAmount > 0) dispatch({ type: "patch-go", value: { claimedShareId: myId ?? "__local_pending__" }, to: "tip" }); }}
+      >
+        {s?.pendingConfirm ? "Getting your share ready…" : myAmount > 0 ? `Pay ${pes(myAmount)}` : "Pick what you had"}
+      </button>
+    </>
+  );
+  return (
+    <Frame s={s} title="Pay for what you had" onBack={() => dispatch(go("bill"))} footer={footer}>
+      <p className="v2-lead">Tap + on what you had. Friends at the table can scan the same code and pick theirs.</p>
+      <ul className="v2-card v2-picks">
+        {items.map((it: any) => {
+          const mine = myUnitsOn(it);
+          const others = it.takers.filter((t: any) => t.shareId !== myId);
+          const canAdd = it.unitsFree > 0 && !iPaid;
+          const taken = it.unitsFree <= 0 && mine === 0;
+          const unit = it.qty > 0 ? Math.round(it.lineTotalPesewas / it.qty) : it.lineTotalPesewas;
+          return (
+            <li key={it.billItemId} className={taken ? "is-off" : undefined}>
+              <div className="v2-pick-main">
+                <span className="v2-pick-name">{it.name}</span>
+                <span className="v2-small">
+                  {pes(unit)}{it.qty > 1 ? ` each · ${it.qty} on the bill` : ""}{taken ? " · taken" : ""}
+                </span>
+                {others.length ? (
+                  <span className="v2-small">
+                    {others.map((t: any) => `${t.name}${t.units > 1 ? ` ×${t.units}` : ""}${t.paid ? " (paid)" : ""}`).join(", ")}
+                  </span>
+                ) : null}
+              </div>
+              <div className="v2-stepper">
+                {mine > 0 ? (
+                  <button type="button" className="v2-round v2-round-s" aria-label={`Remove one ${it.name}`} disabled={iPaid}
+                    onClick={() => dispatch({ type: "split-assign", billItemId: it.billItemId, units: mine - 1 })}>−</button>
+                ) : null}
+                {mine > 0 ? <b className="v2-step-count">{mine}</b> : null}
+                <button type="button" className={`v2-round v2-round-s${mine > 0 && canAdd ? " is-on" : ""}`} aria-label={`Add one ${it.name}`} disabled={!canAdd}
+                  onClick={() => dispatch({ type: "split-assign", billItemId: it.billItemId, units: mine + 1 })}>+</button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <Progress paid={paid} total={total} extra={unassigned > 0 ? `${pes(unassigned)} not picked yet` : null} />
+      {unassigned > 0 && !iPaid ? (
+        <button type="button" className="v2-link v2-centered" onClick={() => dispatch({ type: "assign-remaining" })}>
+          I&apos;ll pay for everything not picked yet
+        </button>
+      ) : null}
+      <div className="v2-links">
+        <button type="button" className="v2-link" onClick={() => shareLink("Join our bill and pick what you had:", tableLink())}>Invite someone at the table</button>
+      </div>
+      {s?.splitError ? <p className="v2-error-text" role="alert">{s.splitError}</p> : null}
+    </Frame>
+  );
+}
+
+// ───────────────────────────── Split equally / set amount: the shares ─────────────────────────────
+function SplitLobbyV2({ s, dispatch }: any) {
+  const split = s?.split;
+  if (!split) return <SplitWait s={s} dispatch={dispatch} title="Split the bill" />;
+  const shares: any[] = split.shares ?? [];
+  const paid = split.paidPesewas ?? 0;
+  const total = split.totalPesewas ?? 0;
+  const done = total > 0 && paid >= total;
+  const mine = shares.find((sh) => sh.mine && sh.status === "claimed");
+  const invite = (sh: any) => shareLink(`Your share of the bill is ${pes(sh.amountPesewas)}. Tap to pay:`, `${tableLink()}?claim=${sh.shareToken}`);
+  const footer = done ? (
+    <p className="v2-notice is-good" role="status">Every share is paid. Thank you!</p>
+  ) : mine ? (
+    <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch({ type: "patch-go", value: { claimedShareId: mine.id }, to: "tip" })}>
+      Pay my share {pes(mine.amountPesewas)}
+    </button>
+  ) : (
+    <p className="v2-small v2-centered">Take a share to pay it, or send one to someone at the table.</p>
+  );
+  return (
+    <Frame s={s} title="Split the bill" onBack={() => dispatch(go("bill"))} footer={footer}>
+      <p className="v2-lead">{split.mode === "even" ? `Split ${shares.length} ways. Each person pays one share.` : "Each share is paid separately. Take yours and pay it."}</p>
+      <ul className="v2-card v2-shares">
+        {shares.map((sh: any) => {
+          const who = sh.claimedByName && sh.claimedByName !== "You" ? sh.claimedByName : null;
+          const status = sh.status === "paid" ? "Paid" : sh.status === "claimed" ? (sh.mine ? "You're paying this one" : who ? `Taken by ${who}` : "Taken") : "Open";
+          return (
+            <li key={sh.id} className={`is-${sh.status}${sh.mine ? " is-mine" : ""}`}>
+              <div className="v2-share-main">
+                <span className="v2-pick-name">{sh.mine ? "Your share" : sh.label}</span>
+                <span className={`v2-small${sh.status === "paid" ? " is-good" : ""}`}>{status}</span>
+              </div>
+              <b className="v2-share-amt">{pes(sh.amountPesewas)}</b>
+              <div className="v2-share-acts">
+                {sh.status === "unclaimed" ? (
+                  <>
+                    <button type="button" className="v2-mini" onClick={() => dispatch({ type: "split-claim", shareId: sh.id })}>Take it</button>
+                    <button type="button" className="v2-mini v2-mini-ghost" onClick={() => invite(sh)}>Send</button>
+                  </>
+                ) : sh.status === "claimed" && sh.mine ? (
+                  <button type="button" className="v2-mini v2-mini-ghost" onClick={() => dispatch({ type: "split-release", shareId: sh.id })}>Give back</button>
+                ) : sh.status === "claimed" ? (
+                  <button type="button" className="v2-mini v2-mini-ghost" onClick={() => invite(sh)}>Remind</button>
+                ) : (
+                  <span className="v2-paid-tick" aria-label="Paid"><Check size={16} /></span>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <Progress paid={paid} total={total} />
+    </Frame>
+  );
+}
+
+// ───────────────────────────── Menu ─────────────────────────────
+const menuPhoto = (it: any): string | null => {
+  const k = it?.image_url || it?.image_key;
+  if (!k) return null;
+  return /^https?:\/\//.test(k) || k.startsWith("data:") ? k : `/assets/menu/${k}`;
+};
+// POS items and Menu Studio items in one shape.
+function menuEntry(it: any, studio: boolean) {
+  const priceText = studio && it?.price_display && String(it.price_display).trim() ? String(it.price_display).trim() : it?.price_pesewas != null ? pes(it.price_pesewas) : "";
+  return {
+    id: String(it?.id ?? it?.name),
+    name: it?.name ?? "",
+    desc: (studio ? it?.description : it?.tags?.desc ?? it?.tags?.sub) || "",
+    price: priceText,
+    photo: menuPhoto(it),
+    soldOut: !!it?.sold_out || it?.available === false,
+    tags: [it?.tags?.veg ? "Vegan" : null, it?.tags?.signature ? "Chef’s signature" : null, it?.tags?.origin || null].filter(Boolean) as string[],
+  };
+}
+
+function useMenuSections(s: any, mi: number) {
+  const m = s?.menu;
+  if (!m) return { sections: [] as any[], digital: {} as any, menus: [] as any[] };
+  if (m.source === "studio") {
+    const menus: any[] = m.menus ?? [];
+    const active = menus[mi] ?? { sections: m.sections ?? [], digital: m.digital };
+    const sections = (active.sections ?? []).map((sec: any) => ({ id: String(sec.id), name: sec.name || "", items: (sec.items ?? []).map((it: any) => menuEntry(it, true)) })).filter((x: any) => x.items.length);
+    return { sections, digital: active.digital || {}, menus };
+  }
+  const cats: any[] = [...(m.categories ?? [])].sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+  const items: any[] = m.items ?? [];
+  const sections = cats
+    .map((c) => ({ id: String(c.id), name: c.name || "", items: items.filter((i) => i.category_id === c.id).map((i) => menuEntry(i, false)) }))
+    .filter((x) => x.items.length);
+  return { sections, digital: {}, menus: [] };
+}
+
+function MenuV2({ s, dispatch, underlay = false }: any) {
+  const [mi, setMi] = useState(0);
+  const [tab, setTab] = useState<string>("all");
+  const [q, setQ] = useState("");
+  const { sections, digital, menus } = useMenuSections(s, mi);
+  const back = () => dispatch(go(s?.bill ? "bill" : "welcome"));
+  const remaining = s?.bill ? s.bill.remainingPesewas ?? s.bill.totalPesewas ?? 0 : 0;
+  const footer = s?.bill && remaining > 0 ? (
+    <button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch(go("bill"))}>See my bill · {pes(remaining)}</button>
+  ) : null;
+  if (!s?.menu) {
+    return (
+      <Frame s={s} title="Menu" onBack={back} center footer={footer} underlay={underlay}>
+        <p className="v2-lead v2-row-center" role="status" aria-live="polite"><Spinner /> Loading the menu…</p>
+      </Frame>
+    );
+  }
+  const needle = q.trim().toLowerCase();
+  const shown = sections
+    .filter((sec: any) => tab === "all" || sec.id === tab)
+    .map((sec: any) => ({ ...sec, items: needle ? sec.items.filter((it: any) => `${it.name} ${it.desc}`.toLowerCase().includes(needle)) : sec.items }))
+    .filter((sec: any) => sec.items.length);
+  const open = s?.menu?.source === "studio" ? openState(digital?.hours) : null;
+  const pinned = sections.length ? (
+    <>
+      <label className="v2-search">
+        <SearchIcon />
+        <input type="search" placeholder="Search the menu" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search the menu" enterKeyHint="search" />
+      </label>
+      {menus.length > 1 ? (
+        <div className="v2-tabs" role="tablist" aria-label="Menus">
+          {menus.map((m: any, i: number) => (
+            <button key={m.id ?? i} type="button" role="tab" aria-selected={i === mi} className={i === mi ? "is-on" : undefined} onClick={() => { setMi(i); setTab("all"); }}>{m.name}</button>
+          ))}
+        </div>
+      ) : null}
+      <div className="v2-tabs v2-tabs-line" role="tablist" aria-label="Sections">
+        {[{ id: "all", name: "All" }, ...sections].map((sec: any) => (
+          <button key={sec.id} type="button" role="tab" aria-selected={tab === sec.id} className={tab === sec.id ? "is-on" : undefined} onClick={() => setTab(sec.id)}>{sec.name}</button>
+        ))}
+      </div>
+    </>
+  ) : null;
+  return (
+    <Frame s={s} title="Menu" onBack={back} pinned={pinned} footer={footer} underlay={underlay}>
+      {digital?.welcome_alert ? <p className="v2-notice">{digital.welcome_alert}</p> : null}
+      {open ? <p className={`v2-small${open.open ? " is-good" : ""}`}>{open.open ? "Open now" : "Closed now"}</p> : null}
+      {!sections.length ? (
+        <div className="v2-center v2-stack">
+          <Emoji name="fork_and_knife_with_plate" size={56} />
+          <p className="v2-lead">The menu isn&apos;t online yet. Ask your waiter for a menu.</p>
+        </div>
+      ) : !shown.length ? (
+        <p className="v2-lead">Nothing matches “{q.trim()}”.</p>
+      ) : (
+        shown.map((sec: any) => (
+          <section key={sec.id} className="v2-menu-sec" aria-label={sec.name}>
+            <h3 className="v2-sec-title">{sec.name}</h3>
+            <ul className="v2-card v2-dishes">
+              {sec.items.map((it: any) => (
+                <li key={it.id}>
+                  <button type="button" className={it.soldOut ? "is-off" : undefined} onClick={() => dispatch({ type: "patch-go", value: { selectedItem: it, dish: it.name }, to: "dish" })}>
+                    {it.photo ? <img src={it.photo} alt="" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} /> : null}
+                    <span className="v2-dish-main">
+                      <span className="v2-pick-name">{it.name}</span>
+                      {it.soldOut ? <span className="v2-small">Sold out</span> : it.desc ? <span className="v2-small v2-clamp">{it.desc}</span> : null}
+                    </span>
+                    <b className="v2-dish-price">{it.price}</b>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      )}
+    </Frame>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-3.5-3.5" />
+    </svg>
+  );
+}
+
+function DishV2({ s, dispatch }: any) {
+  const raw = s?.selectedItem;
+  // Saved by the new menu (already one shape) or by the classic one (a raw POS item).
+  const it = raw && "price" in raw && "photo" in raw ? raw : menuEntry(raw ?? { name: s?.dish }, false);
+  return (
+    <Sheet
+      s={s}
+      dispatch={dispatch}
+      title={it.name}
+      onClose={() => dispatch(go("menu"))}
+      under={<MenuV2 s={s} dispatch={dispatch} underlay />}
+      footer={<button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch(go("waiter"))}>Ask your waiter about it</button>}
+    >
+      {it.photo ? <img className="v2-dish-photo" src={it.photo} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} /> : null}
+      <div className="v2-stack">
+        <p className="v2-amount-l">{it.price}</p>
+        {it.soldOut ? <p className="v2-small is-bad">Sold out today</p> : null}
+        {it.desc ? <p className="v2-lead">{it.desc}</p> : null}
+        {it.tags?.length ? <p className="v2-small">{it.tags.join(" · ")}</p> : null}
+      </div>
+    </Sheet>
+  );
+}
+
+// ───────────────────────────── Waiter ─────────────────────────────
+function WaiterV2({ s, dispatch }: any) {
+  const server = serverOf(s);
+  return (
+    <Frame s={s} title="Call your waiter" onBack={() => dispatch(go("menu"))}>
+      <p className="v2-lead">{server ? `${server} will` : `Someone from ${s?.restaurantName || "the team"} will`} come to your table.</p>
+      <div className="v2-options">
+        <button type="button" className="v2-option" onClick={() => dispatch({ type: "waiter", kind: "assistance" })}>
+          <b>Come to my table</b>
+          <small>For anything you need</small>
+        </button>
+        <button type="button" className="v2-option" onClick={() => dispatch({ type: "waiter", kind: "recommendation" })}>
+          <b>Help me choose</b>
+          <small>Ask about a dish or what&apos;s good today</small>
+        </button>
+      </div>
+    </Frame>
+  );
+}
+
+function WaiterSentV2({ s, dispatch }: any) {
+  const server = serverOf(s);
+  return (
+    <Frame
+      s={s}
+      center
+      footer={
+        <>
+          <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch(go(s?.bill ? "bill" : "welcome"))}>{s?.bill ? "Back to my bill" : "Back to my table"}</button>
+          <button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch(go("menu"))}>Back to the menu</button>
+        </>
+      }
+    >
+      <Emoji name="check_mark_button" size={72} />
+      <h2 className="v2-title">{server ? `${server} is on the way` : "Your waiter is on the way"}</h2>
+      <p className="v2-lead">Usually within 2 or 3 minutes. No need to wave.</p>
+    </Frame>
+  );
+}
+
+// ───────────────────────────── Which bill is yours (separate groups at one table) ─────────────────────────────
+function ChooseTabV2({ s, dispatch }: any) {
+  const tabs: any[] = s?.tabs ?? [];
+  const opened = (iso: string) => {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+  return (
+    <Frame s={s} title="Which bill is yours?" footer={<p className="v2-small v2-centered">Not sure which is yours? Ask your waiter.</p>}>
+      <p className="v2-lead">{tabs.length > 1 ? `There are ${tabs.length} groups at Table ${s?.tableLabel ?? ""}, each with their own bill. Pick the one you're with.` : "Looking for your bill…"}</p>
+      <ul className="v2-card v2-tabs-list">
+        {tabs.map((t: any) => (
+          <li key={t.billId}>
+            <button type="button" disabled={!!s?.tabSelectBusy} onClick={() => dispatch({ type: "tab-select", billId: t.billId })}>
+              <span className="v2-avatar" aria-hidden="true">{(t.label || String(s?.tableLabel ?? "T")).slice(0, 1).toUpperCase()}</span>
+              <span className="v2-dish-main">
+                <span className="v2-pick-name">{t.label ? `${t.label}'s bill` : `Table ${s?.tableLabel ?? ""}`}</span>
+                <span className="v2-small">
+                  {t.itemCount} {t.itemCount === 1 ? "item" : "items"}
+                  {t.preview?.length ? ` · ${t.preview.join(", ")}${t.itemCount > t.preview.length ? "…" : ""}` : ""}
+                </span>
+                <span className="v2-small">{t.serverName ? `${t.serverName} · ` : ""}opened {opened(t.openedAt)}</span>
+              </span>
+              <b className="v2-dish-price">{pes(t.remainingPesewas)}</b>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Frame>
+  );
+}
+
+// ───────────────────────────── One-time code (some MoMo networks / cards) ─────────────────────────────
+function OtpV2({ s, dispatch }: any) {
+  const [otp, setOtp] = useState("");
+  const ok = otp.replace(/\D/g, "").length >= 4;
+  return (
+    <Frame
+      s={s}
+      title="Enter the code"
+      onBack={() => dispatch(go("review"))}
+      footer={<button type="button" className="v2-btn v2-btn-primary" disabled={!ok} onClick={() => dispatch({ type: "pay-otp", value: { otp: otp.replace(/\D/g, "") } })}>Confirm payment</button>}
+    >
+      <p className="v2-lead">We sent a one-time code by SMS. Enter it to confirm this payment.</p>
+      <label className="v2-label">
+        Code
+        <input className="v2-input v2-otp" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" inputMode="numeric" autoComplete="one-time-code" aria-label="Payment code" autoFocus />
+      </label>
+    </Frame>
+  );
+}
+
+// ───────────────────────────── Receipt ─────────────────────────────
+function ReceiptRewardsV2({ s, dispatch }: any) {
+  const share = s?.lastPaid?.amountPesewas ?? s?.quote?.sharePesewas ?? 0;
+  const paid = s?.totalPaidPesewas ?? s?.lastPaid?.totalPesewas ?? share + tipPesewasFor(s, share);
+  const [name, setName] = useState(s?.firstName ?? "");
+  const [phone, setPhone] = useState(s?.phone ?? s?.momoNumber ?? "");
+  const [touched, setTouched] = useState(false);
+  const normalized = normalizeGhanaMobile(phone);
+  const showHint = touched && phone.trim().length > 0 && !normalized;
+  const save = () => {
+    if (!normalized) { setTouched(true); return; }
+    dispatch({ type: "rewards-consent", value: { phone: normalized, firstName: name.trim() || undefined } });
+  };
+  return (
+    <Frame
+      s={s}
+      title="Your receipt"
+      onBack={() => dispatch(go("success"))}
+      footer={
+        <>
+          <button type="button" className="v2-btn v2-btn-primary" disabled={!normalized || !!s?.rewardsBusy} onClick={save}>{s?.rewardsBusy ? "Saving…" : "Save and see my receipt"}</button>
+          <button type="button" className="v2-btn v2-btn-text" onClick={() => dispatch(go("guest-receipt"))}>Skip, just show the receipt</button>
+        </>
+      }
+    >
+      <div className="v2-card v2-paidcard">
+        <span className="v2-muted">{s?.receiptNumber ? `Receipt ${s.receiptNumber}` : "Paid"}</span>
+        <p className="v2-amount-l">{pes(paid)}</p>
+        <span className="v2-small is-good">Paid to {s?.restaurantName || "the restaurant"}</span>
+      </div>
+      <div className="v2-stack">
+        <h3 className="v2-subtitle">Collect rewards on this visit</h3>
+        <p className="v2-small">Add your number and we&apos;ll keep your receipts and rewards together. Your receipt is ready either way.</p>
+      </div>
+      <label className="v2-label">
+        First name (optional)
+        <input className="v2-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ama" autoComplete="given-name" />
+      </label>
+      <label className="v2-label">
+        Phone number
+        <input className="v2-input" value={phone} onChange={(e) => setPhone(e.target.value)} onBlur={() => setTouched(true)} placeholder="024 000 0000" inputMode="tel" autoComplete="tel" aria-invalid={showHint || undefined} />
+      </label>
+      {showHint ? <p className="v2-error-text">That doesn&apos;t look like a mobile number. Enter 10 digits, for example 024 123 4567.</p> : null}
+      {s?.rewardsError ? <p className="v2-error-text" role="alert">{s.rewardsError}</p> : null}
+    </Frame>
+  );
+}
+
+function ReceiptV2({ s, dispatch }: any) {
+  const { url, busy, err, download, ready } = useReceiptPng(s);
+  return (
+    <Frame
+      s={s}
+      title="Your receipt"
+      onBack={() => dispatch(go("success"))}
+      footer={
+        <>
+          <button type="button" className="v2-btn v2-btn-primary" disabled={!ready} onClick={download}>Download receipt</button>
+          <button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch(go("success"))}>Done</button>
+        </>
+      }
+    >
+      {busy ? <p className="v2-lead v2-row-center" role="status" aria-live="polite"><Spinner /> Preparing your receipt…</p> : null}
+      {url ? <img className="v2-receipt-img" src={url} alt={`Receipt${s?.receiptNumber ? ` ${s.receiptNumber}` : ""}`} /> : null}
+      {err ? <p className="v2-error-text" role="alert">{err}</p> : null}
+    </Frame>
+  );
+}
+
+// ───────────────────────────── Table session ended ─────────────────────────────
+function ExpiredV2({ s, dispatch }: any) {
+  return (
+    <Frame s={s} center footer={<button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch({ type: "rescan" })}>Reconnect to my table</button>}>
+      <h2 className="v2-title">This table link has timed out</h2>
+      <p className="v2-lead">Reconnect to see the latest bill{s?.tableLabel ? ` for Table ${s.tableLabel}` : ""}. Anything you&apos;ve already paid is safe.</p>
+    </Frame>
+  );
+}
+
 // ───────────────────────────── Router ─────────────────────────────
 export function DinerV2({ s, dispatch }: any) {
   useFont();
@@ -758,7 +1307,19 @@ export function DinerV2({ s, dispatch }: any) {
   const banner = !!s?.testMode || onPreviewHost();
   const screen = s?.screen;
   let body: any;
-  if (PAY_SHEET.has(screen)) body = <PaySheet s={s} dispatch={dispatch} />;
+  if (s?.sessionExpired) body = <ExpiredV2 s={s} dispatch={dispatch} />;
+  else if (PAY_SHEET.has(screen)) body = <PaySheet s={s} dispatch={dispatch} />;
+  else if (screen === "choose-tab") body = <ChooseTabV2 s={s} dispatch={dispatch} />;
+  else if (screen === "split-items") body = <SplitItemsV2 s={s} dispatch={dispatch} />;
+  else if (screen === "split-lobby") body = <SplitLobbyV2 s={s} dispatch={dispatch} />;
+  else if (screen === "otp") body = <OtpV2 s={s} dispatch={dispatch} />;
+  else if (screen === "menu" || screen === "category") body = <MenuV2 s={s} dispatch={dispatch} />;
+  else if (screen === "dish") body = <DishV2 s={s} dispatch={dispatch} />;
+  else if (screen === "waiter") body = <WaiterV2 s={s} dispatch={dispatch} />;
+  else if (screen === "waiter-notified") body = <WaiterSentV2 s={s} dispatch={dispatch} />;
+  else if (screen === "receipt-choice") body = <ReceiptRewardsV2 s={s} dispatch={dispatch} />;
+  else if (screen === "guest-receipt") body = <ReceiptV2 s={s} dispatch={dispatch} />;
+  else if (screen === "feedback" || screen === "review-handoff" || screen === "complete") body = <Paid s={s} dispatch={dispatch} />;
   else if (screen === "split") body = <SplitSheet s={s} dispatch={dispatch} />;
   else if (screen === "authorise") body = <Approve s={s} dispatch={dispatch} />;
   else if (screen === "processing") body = <Processing s={s} dispatch={dispatch} />;
