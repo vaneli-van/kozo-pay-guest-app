@@ -267,3 +267,22 @@ html.v2-lock, html.v2-lock body { height: 100%; overflow: hidden; overscroll-beh
 .v2-btn-row { justify-content: flex-start; gap: 14px; padding: 0 18px; min-height: 58px; }
 .v2-btn-row > span { flex: 1 1 auto; text-align: left; }
 .v2-chev { color: var(--v2-muted); }
+
+/* The bill: a receipt card that fills the screen */
+.v2-receipt { flex: 1 1 auto; display: flex; flex-direction: column; background: var(--v2-card); border: 1px solid var(--v2-card-line); border-radius: 18px; padding: 20px 18px 16px; box-shadow: 0 1px 0 rgba(17, 19, 24, 0.03), 0 10px 30px rgba(17, 19, 24, 0.05); }
+.v2-rc-top { display: flex; flex-direction: column; gap: 4px; }
+.v2-rc-cut { height: 0; border-top: 1.5px dashed var(--v2-line); margin: 18px -18px; }
+.v2-rc-label { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--v2-muted); }
+.v2-rc-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.v2-rc-items li { display: flex; align-items: baseline; gap: 10px; padding: 9px 0; font-size: 15px; }
+.v2-rc-foot { margin-top: auto; }
+.v2-rc-sum { margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+.v2-rc-sum > div { display: flex; justify-content: space-between; gap: 12px; }
+.v2-rc-sum dt { color: var(--v2-muted); }
+.v2-rc-sum dd { margin: 0; }
+.v2-rc-sum .is-tax-head { margin-top: 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.v2-rc-sum .is-tax { padding-left: 12px; font-size: 13px; }
+.v2-rc-sum .is-total { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--v2-line); font-size: 18px; font-weight: 700; }
+.v2-rc-sum .is-total dt { color: var(--v2-ink); }
+.v2-rc-note { margin: 16px 0 0; display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.5; color: var(--v2-muted); }
+.v2-rc-note .v2-emoji { flex: none; margin-top: 1px; }

@@ -127,6 +127,30 @@ function Header({ s, sub, onHome }: { s: any; sub?: string | null; onHome?: (() 
 const serverOf = (s: any) => (s?.bill?.serverName || "").toString().trim();
 
 // ───────────────────────────── Bill ─────────────────────────────
+
+function taxRows(b: any): { name: string; amount: number }[] {
+  const est = billTax(b?.subtotalPesewas ?? b?.totalPesewas ?? 0, null);
+  const tax = b?.tax && Array.isArray(b.tax.lines) ? b.tax : est;
+  return (tax?.lines ?? []).filter((l: any) => (l?.amountPesewas ?? 0) > 0).map((l: any) => ({ name: String(l.name), amount: l.amountPesewas }));
+}
+function BillFooter({ s, dispatch, remaining, partial }: any) {
+  return (
+    <footer className="v2-actions">
+      {remaining > 0 ? (
+        <>
+          <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch({ type: "pay-full", to: "review" })}>
+            {partial ? "Pay the rest" : "Pay"} {pes(remaining)}
+          </button>
+          <button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch(go("split"))}>Split the bill</button>
+        </>
+      ) : null}
+      <PoweredBy />
+    </footer>
+  );
+}
+
+// The bill: one receipt card that fills the screen (chosen by Samuel, 15 Oct). Items at the top,
+// subtotal, taxes and total at the foot, so a short bill reads like a printed one, not an empty page.
 function BillView({ s, dispatch, underlay = false }: any) {
   const b = s?.bill;
   const items = b?.items ?? [];
@@ -135,38 +159,33 @@ function BillView({ s, dispatch, underlay = false }: any) {
   const remaining = b?.remainingPesewas ?? total;
   const partial = paid > 0 && remaining > 0;
   const server = serverOf(s);
-  const tax = taxLine(b);
-  const restaurant = s?.restaurantName || "the restaurant";
+  const subtotal = b?.subtotalPesewas ?? total;
+  const service = b?.serviceChargePesewas ?? 0;
+  const count = items.reduce((n: number, i: any) => n + (i.qty || 1), 0);
   return (
     <div className="v2-screen" aria-hidden={underlay || undefined} inert={underlay || undefined}>
-      <Header s={s} sub={server ? `${server} is looking after you` : null} onHome={underlay ? undefined : () => dispatch(go("welcome"))} />
+      <Header s={s} onHome={underlay ? undefined : () => dispatch(go("welcome"))} />
       <div className="v2-scroll">
-      <main className="v2-body">
-        <section className="v2-due">
-          <p className="v2-muted">{partial ? "Left to pay" : remaining <= 0 && paid > 0 ? "Paid" : "Your bill"}</p>
-          <p className="v2-amount-xl" data-testid="v2-due">{pes(remaining > 0 ? remaining : total)}</p>
-          {partial ? (
-            <div className="v2-progress-wrap">
-              <div className="v2-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((paid / Math.max(1, total)) * 100)} aria-label="Share of the bill already paid">
-                <div style={{ width: `${Math.min(100, Math.round((paid / Math.max(1, total)) * 100))}%` }} />
-              </div>
-              <p className="v2-small">{pes(paid)} of {pes(total)} already paid at your table</p>
+        <main className="v2-body">
+          <article className="v2-receipt">
+            <div className="v2-rc-top">
+              <p className="v2-muted">{partial ? "Left to pay" : "Your bill"}</p>
+              <p className="v2-amount-xl" data-testid="v2-due">{pes(remaining > 0 ? remaining : total)}</p>
+              <p className="v2-small">Table {s?.tableLabel}{server ? ` · ${server} is looking after you` : ""}</p>
+              {partial ? (
+                <div className="v2-progress-wrap">
+                  <div className="v2-progress"><div style={{ width: `${Math.min(100, Math.round((paid / Math.max(1, total)) * 100))}%` }} /></div>
+                  <p className="v2-small">{pes(paid)} of {pes(total)} already paid at your table</p>
+                </div>
+              ) : null}
             </div>
-          ) : null}
-          {tax ? <p className="v2-small">{tax}</p> : null}
-        </section>
-
-        {remaining <= 0 ? (
-          <p className="v2-note-card" role="status">
-            {paid > 0 ? "This bill is fully paid. Thank you!" : "There is nothing to pay on this bill yet."}
-          </p>
-        ) : null}
-
-        <div className="v2-card v2-items">
-          {items.length === 0 ? (
-            <p className="v2-muted">No items on this bill yet.</p>
-          ) : (
-            <ul>
+            <div className="v2-rc-cut" aria-hidden="true" />
+            <p className="v2-rc-label">{count} {count === 1 ? "item" : "items"}</p>
+            {remaining <= 0 ? (
+              <p className="v2-note-card" role="status">{paid > 0 ? "This bill is fully paid. Thank you!" : "There is nothing to pay on this bill yet."}</p>
+            ) : null}
+            {items.length === 0 ? <p className="v2-muted">No items on this bill yet.</p> : null}
+            <ul className="v2-rc-items">
               {items.map((i: any, n: number) => (
                 <li key={`${i.name}-${n}`}>
                   <span className="v2-qty">{i.qty}×</span>
@@ -175,32 +194,28 @@ function BillView({ s, dispatch, underlay = false }: any) {
                 </li>
               ))}
             </ul>
-          )}
-        </div>
-        <p className="v2-small v2-pad">
-          From {restaurant}&apos;s till, updated just now. Something not right? Ask {server || "your waiter"} before you pay.
-        </p>
-        <div className="v2-links">
-          {(s?.tabCount ?? 1) > 1 ? (
-            <button type="button" className="v2-link" onClick={() => dispatch(go("choose-tab"))}>Not your bill? Switch</button>
-          ) : null}
-          <button type="button" className="v2-link" onClick={() => dispatch(go("menu"))}>See the menu</button>
-        </div>
-      </main>
+            <div className="v2-rc-foot">
+              <div className="v2-rc-cut" aria-hidden="true" />
+              <dl className="v2-rc-sum">
+                <div><dt>Subtotal</dt><dd>{pes(subtotal)}</dd></div>
+                {service > 0 ? <div><dt>Service charge</dt><dd>{pes(service)}</dd></div> : null}
+                {taxRows(b).length ? <div className="is-tax-head"><dt>Taxes in this bill</dt></div> : null}
+                {taxRows(b).map((r) => <div key={r.name} className="is-tax"><dt>{r.name}</dt><dd>{pes(r.amount)}</dd></div>)}
+                {partial ? <div><dt>Paid at your table</dt><dd>−{pes(paid)}</dd></div> : null}
+                <div className="is-total"><dt>{partial ? "Left to pay" : "Total"}</dt><dd>{pes(remaining > 0 ? remaining : total)}</dd></div>
+              </dl>
+              <p className="v2-rc-note"><Emoji name="receipt" size={20} /> From {s?.restaurantName || "the restaurant"}&apos;s till, updated just now. Something not right? Ask {server || "your waiter"} before you pay.</p>
+            </div>
+          </article>
+          <div className="v2-links">
+            {(s?.tabCount ?? 1) > 1 ? (
+              <button type="button" className="v2-link" onClick={() => dispatch(go("choose-tab"))}>Not your bill? Switch</button>
+            ) : null}
+            <button type="button" className="v2-link" onClick={() => dispatch(go("menu"))}>See the menu</button>
+          </div>
+        </main>
       </div>
-      <footer className="v2-actions">
-        {remaining > 0 ? (
-          <>
-            <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch({ type: "pay-full", to: "review" })}>
-              {partial ? "Pay the rest" : "Pay"} {pes(remaining)}
-            </button>
-            <button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch(go("split"))}>
-              Split the bill
-            </button>
-          </>
-        ) : null}
-        <PoweredBy />
-      </footer>
+      <BillFooter s={s} dispatch={dispatch} remaining={remaining} partial={partial} />
     </div>
   );
 }

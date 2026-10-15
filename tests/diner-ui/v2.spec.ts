@@ -59,7 +59,13 @@ test('v2: bill shows the restaurant, the amount once, the till note and Powered 
   const body = page.locator('body')
   await expect(body).toContainText('Baobab')
   await expect(body).toContainText('Joel is looking after you')
-  await expect(body).toContainText('Includes NHIL, GETFund and VAT')
+  // Receipt card: subtotal, each tax (no "included" label), total
+  const sum = page.locator('.v2-rc-sum')
+  await expect(sum).toContainText('Subtotal')
+  await expect(sum).toContainText('VAT 15%')
+  await expect(sum).toContainText('NHIL 2.5%')
+  await expect(sum).toContainText('Total')
+  await expect(sum).not.toContainText('included')
   await expect(body).toContainText("From Baobab's till")
   // Powered by lives in the pinned footer under Split the bill; no version line on the new screens.
   await expect(page.locator('.v2-actions .v2-powered')).toHaveCount(1)
@@ -295,4 +301,16 @@ test('v2: without a logo the header shows the restaurant name', async ({ page, c
   void ctx
   await open(page)
   await expect(page.locator('.v2-header .v2-brand-name')).toHaveText('Baobab')
+})
+
+test('v2: a short bill fills the screen as one receipt card, totals at its foot', async ({ page, ctx }) => {
+  ctx.sc.items = [{ name: 'Jollof with chicken', qty: 1, lineTotalPesewas: 9500 }]
+  await open(page)
+  const card = (await page.locator('.v2-receipt').boundingBox())!
+  const area = (await page.locator('.v2-scroll').boundingBox())!
+  // the card reaches down to the links under it: no big empty gap below the bill
+  expect(area.y + area.height - (card.y + card.height)).toBeLessThan(110)
+  const total = (await page.locator('.v2-rc-sum .is-total').boundingBox())!
+  expect(total.y).toBeGreaterThan(card.y + card.height / 2)
+  await ctx.shot('v2-bill-short')
 })
