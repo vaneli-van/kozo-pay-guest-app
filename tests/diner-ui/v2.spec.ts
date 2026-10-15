@@ -26,6 +26,11 @@ const open = async (page: Page) => {
   await page.goto('/s/t1')
   await page.locator('[data-ui="v2"], .app-shell section, .welcome-shell section').first().waitFor({ state: 'attached', timeout: 40_000 })
   await page.waitForTimeout(400)
+  // The new screens open on the restaurant's home screen; the bill is one tap away.
+  if (await page.locator('.v2-welcome').count()) {
+    await page.getByRole('button', { name: /View & pay your bill/ }).click()
+    await page.waitForTimeout(400)
+  }
 }
 const btn = (page: Page, name: string | RegExp) => page.getByRole('button', { name }).first()
 const inView = async (page: Page, name: string | RegExp) => {

@@ -26,6 +26,11 @@ const open = async (page: Page) => {
   await page.goto('/s/t1')
   await page.locator('[data-ui="v2"], .app-shell section, .welcome-shell section').first().waitFor({ state: 'attached', timeout: 40_000 })
   await page.waitForTimeout(400)
+  // The new screens open on the restaurant's home screen; the bill is one tap away.
+  if (await page.locator('.v2-welcome').count()) {
+    await page.getByRole('button', { name: /View & pay your bill/ }).click()
+    await page.waitForTimeout(400)
+  }
 }
 const btn = (page: Page, name: string | RegExp) => page.getByRole('button', { name }).first()
 const v2 = (page: Page) => page.locator('[data-ui="v2"]')
@@ -246,7 +251,7 @@ test('v2 session ended: reconnect screen in the new look', async ({ page, ctx })
   ctx.sc.fail = {}
   await btn(page, /^Reconnect to my table$/).click()
   await page.waitForTimeout(1500)
-  await expect(page.getByTestId('v2-due')).toHaveText('GH₵295.00')
+  await expect(page.locator('.v2-welcome')).toBeVisible()
 })
 
 // ── Found in the live run on Test Kitchen (15 Oct) ──
@@ -263,7 +268,7 @@ test('v2 live fix: Done after a fully paid table opens the table, never the Paid
   await btn(page, /^Done$/).click()
   await page.waitForTimeout(6000)
   await expect(page.getByTestId('v2-paid')).toHaveCount(0)
-  await expect(v2(page)).toContainText('No bill at this table yet')
+  await expect(page.locator('.v2-welcome')).toBeVisible()
 })
 
 test('v2 live fix: asking for a different split than the one already open goes to that split and says why', async ({ page, ctx }) => {
@@ -297,4 +302,57 @@ test('v2 live fix: picking an item does not push the other rows down', async ({ 
   await btn(page, 'Add one Jollof Rice & Grilled Chicken with extra shito').click()
   await page.waitForTimeout(300)
   expect((await second.boundingBox())!.y).toBeCloseTo(before, 0)
+})
+
+// ── Home screen (restaurant photo, View & pay your bill, Browse the menu) ──
+const home = async (page: Page) => {
+  await page.goto('/s/t1')
+  await page.locator('.v2-welcome').waitFor({ timeout: 40_000 })
+}
+
+test('v2 home: the restaurant photo, logo and welcome line come first, then the bill', async ({ page, ctx }) => {
+  ctx.sc.logoUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="160" height="100" rx="12" fill="#000"/><text x="80" y="60" font-size="26" text-anchor="middle" fill="#fff">BAOBAB</text></svg>')
+  await home(page)
+  await noClassic(page)
+  await expect(page.locator('.v2-hero-eyebrow')).toHaveText(/welcome to/i)
+  await expect(page.locator('.v2-hero-logo img')).toHaveAttribute('alt', 'Baobab')
+  await expect(page.locator('.v2-hero-table')).toContainText('Table 12')
+  await expect(page.locator('.v2-welcome-copy')).toContainText('View your bill')
+  await expect(page.locator('.v2-welcome')).toContainText('Powered by')
+  await expect(page.locator('body')).not.toContainText('Klown 20')
+  expect(await noSideScroll(page)).toBe(true)
+  await ctx.shot('v2-home')
+  await btn(page, /View & pay your bill/).click()
+  await expect(page.getByTestId('v2-due')).toHaveText('GH₵295.00')
+  // the logo in the bill header goes back home
+  await page.getByRole('button', { name: /Baobab, home/ }).click()
+  await expect(page.locator('.v2-welcome')).toBeVisible()
+})
+
+test('v2 home: with no bill yet, "View & pay your bill" shows the no-bill screen', async ({ page, ctx }) => {
+  ctx.sc.hasActiveBill = false
+  await home(page)
+  await btn(page, /View & pay your bill/).click()
+  await expect(v2(page)).toContainText('No bill at this table yet')
+})
+
+test('v2 home: Browse the menu opens the menu, and Back returns home', async ({ page, ctx }) => {
+  await home(page)
+  await btn(page, /Browse the menu/).click()
+  await expect(page.locator('.v2-subhead-title')).toHaveText('Menu')
+  await btn(page, /^Back$/).click()
+  await expect(page.locator('.v2-welcome')).toBeVisible()
+})
+
+test('v2 home: several groups at the table stay on home until the diner asks for the bill', async ({ page, ctx }) => {
+  ctx.sc.chooseTab = true
+  ctx.sc.tabs = [
+    { billId: 'b1', label: 'Ama', itemCount: 3, preview: ['Jollof'], serverName: 'Joel', openedAt: new Date().toISOString(), remainingPesewas: 29500 },
+    { billId: 'b2', label: 'Kofi', itemCount: 1, preview: ['Club beer'], serverName: 'Joel', openedAt: new Date().toISOString(), remainingPesewas: 3500 },
+  ]
+  await home(page)
+  await page.waitForTimeout(1500)
+  await expect(page.locator('.v2-welcome')).toBeVisible()
+  await btn(page, /View & pay your bill/).click()
+  await expect(page.locator('.v2-subhead-title')).toHaveText('Which bill is yours?')
 })

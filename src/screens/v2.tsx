@@ -14,7 +14,7 @@ import { tipPesewasFor, isCustomTip, parseCediInput } from "../lib/tip";
 import { normalizeGhanaMobile } from "../lib/phone";
 import { REASON_COPY } from "../lib/reasons";
 import { billTax } from "../integrations/billing/tax";
-import { openState } from "../lib/hours";
+import { openState, hoursLine } from "../lib/hours";
 import { useReceiptPng } from "./receipt-image";
 import "../styles/kozo-v2.css";
 
@@ -108,13 +108,14 @@ function PoweredBy() {
   );
 }
 
-function Header({ s, sub }: { s: any; sub?: string | null }) {
+function Header({ s, sub, onHome }: { s: any; sub?: string | null; onHome?: (() => void) | undefined }) {
   const name = s?.restaurantName || "Your table";
+  const brand = s?.logoUrl ? <img className="v2-brand-logo" src={s.logoUrl} alt={name} /> : <span className="v2-brand-name">{name}</span>;
   return (
     <header className="v2-header">
       <div className="v2-header-row">
         <h1 className="v2-brand">
-          {s?.logoUrl ? <img className="v2-brand-logo" src={s.logoUrl} alt={name} /> : <span className="v2-brand-name">{name}</span>}
+          {onHome ? <button type="button" className="v2-home" aria-label={`${name}, home`} onClick={onHome}>{brand}</button> : brand}
         </h1>
         {s?.tableLabel ? <span className="v2-table">Table {s.tableLabel}</span> : null}
       </div>
@@ -138,7 +139,7 @@ function BillView({ s, dispatch, underlay = false }: any) {
   const restaurant = s?.restaurantName || "the restaurant";
   return (
     <div className="v2-screen" aria-hidden={underlay || undefined} inert={underlay || undefined}>
-      <Header s={s} sub={server ? `${server} is looking after you` : null} />
+      <Header s={s} sub={server ? `${server} is looking after you` : null} onHome={underlay ? undefined : () => dispatch(go("welcome"))} />
       <div className="v2-scroll">
       <main className="v2-body">
         <section className="v2-due">
@@ -208,7 +209,7 @@ function NoBill({ s, dispatch }: any) {
   const restaurant = s?.restaurantName || "the restaurant";
   return (
     <div className="v2-screen">
-      <Header s={s} />
+      <Header s={s} onHome={() => dispatch(go("welcome"))} />
       <div className="v2-scroll">
       <main className="v2-body v2-center">
         <Emoji name="receipt" size={84} />
@@ -243,10 +244,10 @@ function NoBill({ s, dispatch }: any) {
 function BillOrState({ s, dispatch }: any) {
   const b = s?.bill;
   if (b) return <BillView s={s} dispatch={dispatch} />;
-  if (s?.noBill || s?.screen === "welcome" || s?.screen === "empty" || s?.screen === "waiting-bill") return <NoBill s={s} dispatch={dispatch} />;
+  if (s?.noBill || s?.screen === "empty" || s?.screen === "waiting-bill") return <NoBill s={s} dispatch={dispatch} />;
   return (
     <div className="v2-screen">
-      <Header s={s} />
+      <Header s={s} onHome={() => dispatch(go("welcome"))} />
       <div className="v2-scroll">
       <main className="v2-body v2-center">
         {s?.billError ? (
@@ -1013,7 +1014,7 @@ function MenuV2({ s, dispatch, underlay = false }: any) {
   const [tab, setTab] = useState<string>("all");
   const [q, setQ] = useState("");
   const { sections, digital, menus } = useMenuSections(s, mi);
-  const back = () => dispatch(go(s?.bill ? "bill" : "welcome"));
+  const back = () => dispatch(go("welcome"));
   const remaining = s?.bill ? s.bill.remainingPesewas ?? s.bill.totalPesewas ?? 0 : 0;
   const footer = s?.bill && remaining > 0 ? (
     <button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch(go("bill"))}>See my bill · {pes(remaining)}</button>
@@ -1168,7 +1169,7 @@ function ChooseTabV2({ s, dispatch }: any) {
     return isNaN(d.getTime()) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
   return (
-    <Frame s={s} title="Which bill is yours?" footer={<p className="v2-small v2-centered">Not sure which is yours? Ask your waiter.</p>}>
+    <Frame s={s} title="Which bill is yours?" onBack={() => dispatch(go("welcome"))} footer={<p className="v2-small v2-centered">Not sure which is yours? Ask your waiter.</p>}>
       <p className="v2-lead">{tabs.length > 1 ? `There are ${tabs.length} groups at Table ${s?.tableLabel ?? ""}, each with their own bill. Pick the one you're with.` : "Looking for your bill…"}</p>
       <ul className="v2-card v2-tabs-list">
         {tabs.map((t: any) => (
@@ -1331,6 +1332,59 @@ export function V2Splash({ slow, onRetry, confirming, last }: { slow?: boolean; 
   );
 }
 
+
+// ───────────────────────────── Home (the first screen after scanning) ─────────────────────────────
+// The restaurant's own photo, logo and welcome line, then two choices. The bill (or "no bill yet")
+// comes after "View and pay the bill"; with several groups at the table, it asks which bill first.
+function WelcomeV2({ s, dispatch }: any) {
+  const dig = s?.menu?.digital || {};
+  const open = openState(dig.hours);
+  const hrs = hoursLine(dig.hours);
+  const name = s?.restaurantName || "Welcome";
+  const hero = s?.heroUrl || "/assets/restaurant-hero.png";
+  const copy = s?.welcomeCopy || `View your bill, split it with friends and pay from your phone.`;
+  const pickTab = !s?.bill && (s?.tabs?.length ?? 0) > 1;
+  return (
+    <div className="v2-screen v2-welcome">
+      <div className="v2-hero" style={{ backgroundImage: `url(${hero})` }}>
+        <div className="v2-hero-shade" aria-hidden="true" />
+        {s?.tableLabel ? <span className="v2-table v2-hero-table"><span className="v2-dot is-ink" aria-hidden="true" />Table {s.tableLabel}</span> : null}
+        <div className="v2-hero-brand">
+          <p className="v2-hero-eyebrow">Welcome to</p>
+          {s?.logoUrl ? (
+            <h1 className="v2-hero-logo"><img src={s.logoUrl} alt={name} /></h1>
+          ) : (
+            <h1 className="v2-hero-name">{name}</h1>
+          )}
+          {s?.taglineBottom && !s?.logoUrl ? <p className="v2-hero-tag">{s.taglineBottom}</p> : null}
+          {open || hrs ? (
+            <p className="v2-hero-open">
+              {open ? <><span className={`v2-dot${open.open ? " is-open" : ""}`} aria-hidden="true" />{open.open ? "Open now" : "Closed now"}</> : null}
+              {open && hrs ? <span aria-hidden="true"> · </span> : null}
+              {hrs ? <span>{hrs}</span> : null}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <div className="v2-welcome-panel">
+        <p className="v2-lead v2-welcome-copy">{copy}</p>
+        <button type="button" className="v2-btn v2-btn-primary v2-btn-go" onClick={() => dispatch(go(pickTab ? "choose-tab" : "bill"))}>
+          <span>View &amp; pay your bill</span>
+          <span className="v2-go-circle" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </span>
+        </button>
+        <button type="button" className="v2-btn v2-btn-secondary v2-btn-row" onClick={() => dispatch(go("menu"))}>
+          <Emoji name="fork_and_knife_with_plate" size={26} />
+          <span>Browse the menu</span>
+          <svg className="v2-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+        </button>
+        <PoweredBy />
+      </div>
+    </div>
+  );
+}
+
 // ───────────────────────────── Router ─────────────────────────────
 export function DinerV2({ s, dispatch }: any) {
   useFont();
@@ -1351,6 +1405,7 @@ export function DinerV2({ s, dispatch }: any) {
   let body: any;
   if (s?.sessionExpired) body = <ExpiredV2 s={s} dispatch={dispatch} />;
   else if (PAY_SHEET.has(screen)) body = <PaySheet s={s} dispatch={dispatch} />;
+  else if (screen === "welcome") body = <WelcomeV2 s={s} dispatch={dispatch} />;
   else if (screen === "choose-tab") body = <ChooseTabV2 s={s} dispatch={dispatch} />;
   else if (screen === "split-items") body = <SplitItemsV2 s={s} dispatch={dispatch} />;
   else if (screen === "split-lobby") body = <SplitLobbyV2 s={s} dispatch={dispatch} />;

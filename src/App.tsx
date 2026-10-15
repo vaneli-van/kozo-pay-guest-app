@@ -538,7 +538,8 @@ export default function App({
       // Several groups at this table and this phone has not picked its bill: ask.
       if (!r.bill && r.chooseTab) {
         patch({ tabs: r.tabs ?? [], tabCount: (r.tabs ?? []).length, billError: false })
-        if (s.screen !== 'choose-tab') goScreen('choose-tab')
+        // (New screens: the home screen stays put; "View and pay the bill" asks which one.)
+        if (s.screen !== 'choose-tab' && !(s.uiV2 && s.screen === 'welcome')) goScreen('choose-tab')
         return
       }
       // No open bill at this table right now (nothing ordered yet, or it was settled).

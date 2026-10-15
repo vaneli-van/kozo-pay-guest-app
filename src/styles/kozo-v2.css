@@ -243,3 +243,27 @@ html.v2-lock, html.v2-lock body { height: 100%; overflow: hidden; overscroll-beh
 /* Loading splash */
 .v2-splash-logo { height: 72px; width: auto; max-width: 70%; object-fit: contain; border-radius: 14px; }
 .v2-splash-klown { height: 28px; width: auto; }
+
+/* Home: the restaurant's photo, then the two choices */
+.v2-home { padding: 0; border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; line-height: 0; color: inherit; }
+.v2-welcome { background: #0f1013; }
+.v2-hero { position: relative; flex: 1 1 auto; min-height: 220px; background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px 20px 44px; color: #fff; }
+.v2-hero-shade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 26%, rgba(0, 0, 0, 0.1) 50%, rgba(10, 10, 12, 0.82) 100%); }
+.v2-hero-table { position: absolute; top: 16px; left: 16px; display: flex; align-items: center; gap: 8px; color: var(--v2-ink); }
+.v2-dot.is-ink { background: var(--v2-ink); }
+.v2-hero-eyebrow { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.85; }
+.v2-hero-brand { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.v2-hero-logo { margin: 0; line-height: 0; }
+.v2-hero-logo img { height: 76px; width: auto; max-width: 70vw; object-fit: contain; border-radius: 14px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35); }
+.v2-hero-name { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; text-wrap: balance; text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35); }
+.v2-hero-tag { margin: 0; font-size: 15px; opacity: 0.9; }
+.v2-hero-open { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; opacity: 0.95; }
+.v2-dot { width: 8px; height: 8px; border-radius: 999px; background: #9a948a; display: inline-block; }
+.v2-dot.is-open { background: #34c472; }
+.v2-welcome-panel { position: relative; flex: none; margin-top: -22px; display: flex; flex-direction: column; gap: 10px; padding: 22px 16px calc(16px + env(safe-area-inset-bottom)); background: var(--v2-bg); border-radius: 22px 22px 0 0; }
+.v2-welcome-copy { max-width: none; margin-bottom: 4px; color: var(--v2-ink); }
+.v2-btn-go { justify-content: space-between; min-height: 60px; padding: 0 8px 0 22px; }
+.v2-go-circle { width: 44px; height: 44px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); display: flex; align-items: center; justify-content: center; }
+.v2-btn-row { justify-content: flex-start; gap: 14px; padding: 0 18px; min-height: 58px; }
+.v2-btn-row > span { flex: 1 1 auto; text-align: left; }
+.v2-chev { color: var(--v2-muted); }
