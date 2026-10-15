@@ -239,3 +239,28 @@ test('v2: the pay sheet fits a small phone without sideways scrolling', async ({
   expect(clipped).toBe(0)
   expect(await inView(page, /^Pay GH₵324\.50$/)).toBe(true)
 })
+
+test('v2: footer stays pinned while a long bill scrolls (page itself never scrolls)', async ({ page, ctx }) => {
+  ctx.sc.items = Array.from({ length: 24 }, (_, n) => ({ ...ctx.sc.items[0], name: `Dish ${n + 1}`, qty: 1, lineTotalPesewas: 1000 }))
+  await open(page)
+  const foot = page.locator('.v2-actions')
+  const before = await foot.boundingBox()
+  const vh = page.viewportSize()!.height
+  expect(before && Math.round(before.y + before.height)).toBeGreaterThanOrEqual(vh - 1)
+  // Scroll the content like a thumb would, all the way down.
+  const area = page.locator('.v2-scroll')
+  const box = (await area.boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  for (let i = 0; i < 12; i++) await page.mouse.wheel(0, 600)
+  await page.waitForTimeout(300)
+  const scrolled = await area.evaluate((el) => el.scrollTop)
+  expect(scrolled).toBeGreaterThan(200)
+  const after = await foot.boundingBox()
+  expect(after!.y).toBeCloseTo(before!.y, 0)
+  expect(await page.evaluate(() => (document.scrollingElement || document.documentElement).scrollTop)).toBe(0)
+  // The end of the bill is reachable above the footer, not hidden behind it.
+  const ver = (await page.locator('.kz-version').boundingBox())!
+  expect(ver.y + ver.height).toBeLessThanOrEqual(after!.y + 1)
+  expect(await inView(page, /^Pay GH₵/)).toBe(true)
+  await ctx.shot('v2-long-bill-scrolled')
+})

@@ -141,7 +141,8 @@ function BillView({ s, dispatch, underlay = false }: any) {
   const restaurant = s?.restaurantName || "the restaurant";
   return (
     <div className="v2-screen" aria-hidden={underlay || undefined} inert={underlay || undefined}>
-      <Header s={s} sub={server ? `${server} is looking after you` : null} />
+      <div className="v2-scroll">
+        <Header s={s} sub={server ? `${server} is looking after you` : null} />
       <main className="v2-body">
         <section className="v2-due">
           <p className="v2-muted">{partial ? "Left to pay" : remaining <= 0 && paid > 0 ? "Paid" : "Your bill"}</p>
@@ -190,6 +191,7 @@ function BillView({ s, dispatch, underlay = false }: any) {
         <PoweredBy />
         <p className="v2-version kz-version">Klown {KLOWN_VERSION}</p>
       </main>
+      </div>
       {remaining > 0 ? (
         <footer className="v2-actions">
           <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch({ type: "pay-full", to: "review" })}>
@@ -208,7 +210,8 @@ function NoBill({ s, dispatch }: any) {
   const restaurant = s?.restaurantName || "the restaurant";
   return (
     <div className="v2-screen">
-      <Header s={s} />
+      <div className="v2-scroll">
+        <Header s={s} />
       <main className="v2-body v2-center">
         <Emoji name="receipt" size={84} />
         <h2 className="v2-title">No bill at this table yet</h2>
@@ -227,6 +230,7 @@ function NoBill({ s, dispatch }: any) {
           </>
         ) : null}
       </main>
+      </div>
       <footer className="v2-actions">
         <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch(go("menu"))}>
           <Emoji name="fork_and_knife_with_plate" size={26} /> See the menu
@@ -244,7 +248,8 @@ function BillOrState({ s, dispatch }: any) {
   if (s?.noBill || s?.screen === "welcome" || s?.screen === "empty" || s?.screen === "waiting-bill") return <NoBill s={s} dispatch={dispatch} />;
   return (
     <div className="v2-screen">
-      <Header s={s} />
+      <div className="v2-scroll">
+        <Header s={s} />
       <main className="v2-body v2-center">
         {s?.billError ? (
           <div role="alert" className="v2-center">
@@ -256,6 +261,7 @@ function BillOrState({ s, dispatch }: any) {
           <p className="v2-lead v2-row-center" role="status" aria-live="polite"><Spinner /> Loading your bill…</p>
         )}
       </main>
+      </div>
     </div>
   );
 }
@@ -543,7 +549,8 @@ function Approve({ s, dispatch }: any) {
   const hint = s?.momoHint;
   return (
     <div className="v2-screen">
-      <Header s={s} />
+      <div className="v2-scroll">
+        <Header s={s} />
       <main className="v2-body v2-center">
         <div className="v2-buzz" aria-hidden="true">
           <span className="v2-buzz-ring" />
@@ -560,6 +567,7 @@ function Approve({ s, dispatch }: any) {
           <p className="v2-note-card">No prompt yet? Dial *170# and look under My Approvals.</p>
         ) : null}
       </main>
+      </div>
       <footer className="v2-actions">
         <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch(go("processing"))}>I&apos;ve approved it</button>
         <button type="button" className="v2-btn v2-btn-text" onClick={() => dispatch(go("review"))}>Use another number or card</button>
@@ -577,7 +585,8 @@ function Processing({ s, dispatch }: any) {
   const card = s?.method === "card" || s?.method === "applepay";
   return (
     <div className="v2-screen">
-      <Header s={s} />
+      <div className="v2-scroll">
+        <Header s={s} />
       <main className="v2-body v2-center" role="status" aria-live="polite">
         <Spinner size={40} />
         <h2 className="v2-title">Confirming your payment</h2>
@@ -591,6 +600,7 @@ function Processing({ s, dispatch }: any) {
           </>
         ) : null}
       </main>
+      </div>
     </div>
   );
 }
@@ -608,7 +618,8 @@ function PaymentError({ s, dispatch }: any) {
   const other = () => dispatch({ type: "patch-go", value: { paymentRef: undefined, failureReason: undefined }, to: "review" });
   return (
     <div className="v2-screen">
-      <Header s={s} />
+      <div className="v2-scroll">
+        <Header s={s} />
       <main className="v2-body v2-center">
         <h2 className="v2-title">{kind === "blocked" ? "Payment not started" : "Payment didn’t go through"}</h2>
         {body ? <p className="v2-lead">{body}</p> : null}
@@ -619,6 +630,7 @@ function PaymentError({ s, dispatch }: any) {
           </p>
         ) : null}
       </main>
+      </div>
       <footer className="v2-actions">
         <button type="button" className="v2-btn v2-btn-primary" onClick={again}>Try again</button>
         <button type="button" className="v2-btn v2-btn-secondary" onClick={other}>Use another number or card</button>
@@ -644,7 +656,8 @@ function Paid({ s, dispatch }: any) {
   const tipLabelText = isCustomTip(s) ? "Tip" : `Tip${s?.tipPercent ? ` · ${s.tipPercent}%` : ""}`;
   return (
     <div className="v2-screen">
-      <Header s={s} />
+      <div className="v2-scroll">
+        <Header s={s} />
       <main className="v2-body">
         <section className="v2-paid-top" aria-live="polite">
           <Emoji name="party_popper" size={76} />
@@ -717,6 +730,7 @@ function Paid({ s, dispatch }: any) {
         ) : null}
         <button type="button" className="v2-link v2-centered" onClick={() => dispatch(go("receipt-choice"))}>View or download the receipt</button>
       </main>
+      </div>
       <footer className="v2-actions">
         {!waOpen ? (
           <button type="button" className="v2-btn v2-btn-secondary" onClick={() => setWaOpen(true)}>Send receipt to WhatsApp</button>
@@ -736,6 +750,13 @@ export function DinerV2({ s, dispatch }: any) {
   useEffect(() => {
     if (!PAY_SHEET.has(s?.screen) && s?.screen !== "split" && typeof window !== "undefined") window.scrollTo(0, 0);
   }, [s?.screen]);
+  // App-shell layout: the page itself never scrolls, only the content area does, so Safari's
+  // toolbar stays put and the pinned footer never moves (same feel as the waiter app).
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("v2-lock");
+    return () => root.classList.remove("v2-lock");
+  }, []);
   const banner = !!s?.testMode || onPreviewHost();
   const screen = s?.screen;
   let body: any;
