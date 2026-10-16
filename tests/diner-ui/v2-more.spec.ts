@@ -356,3 +356,27 @@ test('v2 home: several groups at the table stay on home until the diner asks for
   await btn(page, /View & pay your bill/).click()
   await expect(page.locator('.v2-subhead-title')).toHaveText('Which bill is yours?')
 })
+
+test('v2 Apple Pay: the Apple Pay mark in "Pay with" and Apple\'s own button to pay', async ({ page, ctx }) => {
+  // Stand in for an iPhone with Apple Pay set up: Safari exposes ApplePaySession and draws -apple-pay-button.
+  await page.addInitScript(() => {
+    ;(window as any).ApplePaySession = { canMakePayments: () => true }
+    const orig = CSS.supports.bind(CSS)
+    ;(CSS as any).supports = (a: string, b?: string) => (a === '-webkit-appearance' && b === '-apple-pay-button') || (b === undefined ? orig(a) : orig(a, b))
+  })
+  ctx.sc.paymentInit = 'card'
+  await open(page)
+  await btn(page, /^Pay GH₵/).click()
+  await page.waitForTimeout(600)
+  const chip = page.getByRole('radio', { name: /Apple Pay/ })
+  await expect(chip.locator('.v2-applepay-mark')).toHaveCount(1)
+  await chip.click()
+  // no tip chosen yet: the normal button asks for one
+  await expect(page.locator('.v2-applepay-btn')).toHaveCount(0)
+  await page.getByRole('radio', { name: /^None/ }).click()
+  const pay = page.locator('.v2-applepay-btn')
+  await expect(pay).toHaveAttribute('aria-label', 'Pay GH₵295.00 with Apple Pay')
+  await pay.click()
+  await page.waitForTimeout(800)
+  expect(ctx.last('payment-init').method).toBe('applepay')
+})

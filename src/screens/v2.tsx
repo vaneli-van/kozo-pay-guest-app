@@ -329,6 +329,8 @@ function PaySheet({ s, dispatch }: any) {
   const [customText, setCustomText] = useState(() => (reviewed && isCustomTip(s) ? ((s.tipCustomPesewas as number) / 100).toFixed(2) : ""));
   const [method, setMethod] = useState<"momo" | "card" | "applepay">(s?.method === "card" || s?.method === "applepay" ? s.method : "momo");
   const [applePay, setApplePay] = useState(false);
+  // Safari draws Apple's own Apple Pay mark and button (-apple-pay-button), as Apple's guidelines ask.
+  const [nativeApplePay, setNativeApplePay] = useState(false);
   const [number, setNumber] = useState("");
   const [remember, setRemember] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -337,6 +339,7 @@ function PaySheet({ s, dispatch }: any) {
     try {
       const A = (window as any).ApplePaySession;
       setApplePay(!!A && A.canMakePayments());
+      setNativeApplePay(typeof CSS !== "undefined" && !!CSS.supports && CSS.supports("-webkit-appearance", "-apple-pay-button"));
     } catch { setApplePay(false); }
     try {
       const saved = localStorage.getItem(REMEMBER_KEY);
@@ -412,7 +415,11 @@ function PaySheet({ s, dispatch }: any) {
       onClose={close}
       footer={!err && q ? (
         <>
-          <button type="button" className="v2-btn v2-btn-primary" disabled={!canPay} onClick={pay}>{payLabel}</button>
+          {method === "applepay" && nativeApplePay && canPay ? (
+            <button type="button" className="v2-applepay-btn" aria-label={payLabel} onClick={pay} />
+          ) : (
+            <button type="button" className="v2-btn v2-btn-primary" disabled={!canPay} onClick={pay}>{payLabel}</button>
+          )}
           <p className="v2-small v2-centered">{hint}</p>
         </>
       ) : null}
@@ -462,8 +469,8 @@ function PaySheet({ s, dispatch }: any) {
             <legend className="v2-legend"><span>Pay with</span></legend>
             <div className={`v2-chips v2-chips-${methods.length}`} role="radiogroup" aria-label="Payment method">
               {methods.map((m) => (
-                <button key={m.key} type="button" role="radio" aria-checked={method === m.key} className={`v2-chip v2-chip-left${method === m.key ? " is-on" : ""}`} onClick={() => setMethod(m.key)}>
-                  <b>{m.label}</b>
+                <button key={m.key} type="button" role="radio" aria-checked={method === m.key} aria-label={m.key === "applepay" ? `Apple Pay, ${m.sub}` : undefined} className={`v2-chip v2-chip-left${method === m.key ? " is-on" : ""}`} onClick={() => setMethod(m.key)}>
+                  {m.key === "applepay" && nativeApplePay ? <span className="v2-applepay-mark" aria-hidden="true" /> : <b>{m.label}</b>}
                   <small>{m.sub}</small>
                 </button>
               ))}
