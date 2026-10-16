@@ -286,3 +286,6 @@ html.v2-lock, html.v2-lock body { height: 100%; overflow: hidden; overscroll-beh
 .v2-rc-sum .is-total dt { color: var(--v2-ink); }
 .v2-rc-note { margin: 16px 0 0; display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.5; color: var(--v2-muted); }
 .v2-rc-note .v2-emoji { flex: none; margin-top: 1px; }
+
+.v2-utensils { flex: none; display: block; }
+.v2-btn-row .v2-utensils { margin: 0 2px; }

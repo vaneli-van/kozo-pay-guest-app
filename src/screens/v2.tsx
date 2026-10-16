@@ -100,6 +100,17 @@ function Check({ size = 14 }: { size?: number }) {
   );
 }
 
+// Fork and knife, flat line icon (Lucide "utensils", ISC), drawn like the chevrons and arrows.
+function UtensilsIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg className="v2-utensils" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+      <path d="M7 2v20" />
+      <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+    </svg>
+  );
+}
+
 function PoweredBy() {
   return (
     <p className="v2-powered">
@@ -247,7 +258,7 @@ function NoBill({ s, dispatch }: any) {
       </div>
       <footer className="v2-actions">
         <button type="button" className="v2-btn v2-btn-primary" onClick={() => dispatch(go("menu"))}>
-          <Emoji name="fork_and_knife_with_plate" size={26} /> See the menu
+          <UtensilsIcon size={22} /> See the menu
         </button>
         <p className="v2-small v2-centered">Already ordered a while ago? Ask your waiter to check it was sent to the till.</p>
         <PoweredBy />
@@ -1073,7 +1084,7 @@ function MenuV2({ s, dispatch, underlay = false }: any) {
       {open ? <p className={`v2-small${open.open ? " is-good" : ""}`}>{open.open ? "Open now" : "Closed now"}</p> : null}
       {!sections.length ? (
         <div className="v2-center v2-stack">
-          <Emoji name="fork_and_knife_with_plate" size={56} />
+          <span className="v2-muted"><UtensilsIcon size={44} /></span>
           <p className="v2-lead">The menu isn&apos;t online yet. Ask your waiter for a menu.</p>
         </div>
       ) : !shown.length ? (
@@ -1390,7 +1401,7 @@ function WelcomeV2({ s, dispatch }: any) {
           </span>
         </button>
         <button type="button" className="v2-btn v2-btn-secondary v2-btn-row" onClick={() => dispatch(go("menu"))}>
-          <Emoji name="fork_and_knife_with_plate" size={26} />
+          <UtensilsIcon size={24} />
           <span>Browse the menu</span>
           <svg className="v2-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
         </button>
