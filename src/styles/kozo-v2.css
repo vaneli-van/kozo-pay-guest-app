@@ -287,6 +287,9 @@ html.v2-lock, html.v2-lock body { height: 100%; overflow: hidden; overscroll-beh
 .v2-rc-note .v2-emoji { flex: none; margin-top: 1px; }
 
 .v2-utensils { flex: none; display: block; }
+.v2-method-head { display: inline-flex; align-items: center; gap: 6px; }
+.v2-method-icon { flex: none; display: block; color: var(--v2-muted); }
+.v2-chip.is-on .v2-method-icon { color: currentColor; }
 .v2-btn-row .v2-utensils { margin: 0 2px; }
 
 /* Apple Pay: Safari draws Apple's own mark and button. Used only where Safari supports it. */

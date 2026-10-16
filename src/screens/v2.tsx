@@ -101,6 +101,25 @@ function Check({ size = 14 }: { size?: number }) {
 }
 
 // Fork and knife, flat line icon (Lucide "utensils", ISC), drawn like the chevrons and arrows.
+function MethodIcon({ kind }: { kind: "momo" | "card" }) {
+  return (
+    <svg className="v2-method-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {kind === "momo" ? (
+        <>
+          <rect x="6" y="2" width="12" height="20" rx="2.5" />
+          <path d="M11 18h2" />
+        </>
+      ) : (
+        <>
+          <rect x="2" y="5" width="20" height="14" rx="2.5" />
+          <path d="M2 10h20" />
+          <path d="M6 15h4" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 function UtensilsIcon({ size = 24 }: { size?: number }) {
   return (
     <svg className="v2-utensils" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -403,7 +422,7 @@ function PaySheet({ s, dispatch }: any) {
   const methods = [
     { key: "momo" as const, label: "MoMo", sub: "All networks" },
     { key: "card" as const, label: "Card", sub: "Visa, Mastercard" },
-    ...(applePay ? [{ key: "applepay" as const, label: "Apple Pay", sub: "On this iPhone" }] : []),
+    ...(applePay ? [{ key: "applepay" as const, label: "Apple Pay", sub: "" }] : []),
   ];
   const payLabel = !chosen ? "Choose a tip to continue" : method === "applepay" ? `Pay ${pes(grand)} with Apple Pay` : `Pay ${pes(grand)}`;
   const hint = method === "momo" ? "You approve it on your phone with your MoMo PIN" : method === "applepay" ? "Confirm with Face ID or your passcode" : "Next, a secure page for your card details";
@@ -469,9 +488,13 @@ function PaySheet({ s, dispatch }: any) {
             <legend className="v2-legend"><span>Pay with</span></legend>
             <div className={`v2-chips v2-chips-${methods.length}`} role="radiogroup" aria-label="Payment method">
               {methods.map((m) => (
-                <button key={m.key} type="button" role="radio" aria-checked={method === m.key} aria-label={m.key === "applepay" ? `Apple Pay, ${m.sub}` : undefined} className={`v2-chip v2-chip-left${method === m.key ? " is-on" : ""}`} onClick={() => setMethod(m.key)}>
-                  {m.key === "applepay" && nativeApplePay ? <span className="v2-applepay-mark" aria-hidden="true" /> : <b>{m.label}</b>}
-                  <small>{m.sub}</small>
+                <button key={m.key} type="button" role="radio" aria-checked={method === m.key} aria-label={m.key === "applepay" ? "Apple Pay" : undefined} className={`v2-chip v2-chip-left${method === m.key ? " is-on" : ""}`} onClick={() => setMethod(m.key)}>
+                  {m.key === "applepay" ? (
+                    nativeApplePay ? <span className="v2-applepay-mark" aria-hidden="true" /> : <b>{m.label}</b>
+                  ) : (
+                    <span className="v2-method-head"><MethodIcon kind={m.key} /><b>{m.label}</b></span>
+                  )}
+                  {m.sub ? <small>{m.sub}</small> : null}
                 </button>
               ))}
             </div>

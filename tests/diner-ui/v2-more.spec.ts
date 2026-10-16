@@ -375,6 +375,9 @@ test('v2 Apple Pay: the Apple Pay mark in "Pay with" and Apple\'s own button to 
   await page.waitForTimeout(600)
   const chip = page.getByRole('radio', { name: /Apple Pay/ })
   await expect(chip.locator('.v2-applepay-mark')).toHaveCount(1)
+  await expect(chip).not.toContainText('On this iPhone')
+  await expect(page.getByRole('radio', { name: /MoMo/ }).locator('.v2-method-icon')).toHaveCount(1)
+  await expect(page.getByRole('radio', { name: /Card/ }).locator('.v2-method-icon')).toHaveCount(1)
   await chip.click()
   // no tip chosen yet: the normal button asks for one
   await expect(page.locator('.v2-applepay-btn')).toHaveCount(0)
