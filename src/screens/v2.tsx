@@ -790,7 +790,7 @@ function BackIcon() {
   );
 }
 
-function Frame({ s, title, onBack, sub, pinned, footer, children, center = false, underlay = false }: any) {
+function Frame({ s, title, onBack, sub, pinned, footer, children, center = false, underlay = false, scrollRef }: any) {
   return (
     <div className="v2-screen" aria-hidden={underlay || undefined} inert={underlay || undefined}>
       <Header s={s} sub={sub} />
@@ -803,7 +803,7 @@ function Frame({ s, title, onBack, sub, pinned, footer, children, center = false
         </div>
       ) : null}
       {pinned ? <div className="v2-pinned">{pinned}</div> : null}
-      <div className="v2-scroll">
+      <div className="v2-scroll" ref={scrollRef}>
         <main className={`v2-body${center ? " v2-center" : ""}`}>{children}</main>
       </div>
       <footer className="v2-actions">
@@ -1044,9 +1044,50 @@ function useMenuSections(s: any, mi: number) {
 
 function MenuV2({ s, dispatch, underlay = false }: any) {
   const [mi, setMi] = useState(0);
-  const [tab, setTab] = useState<string>("all");
+  const [active, setActive] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const { sections, digital, menus } = useMenuSections(s, mi);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const lockUntil = useRef(0);
+  const needle = q.trim().toLowerCase();
+  const shown = sections
+    .map((sec: any) => ({ ...sec, items: needle ? sec.items.filter((it: any) => `${it.name} ${it.desc}`.toLowerCase().includes(needle)) : sec.items }))
+    .filter((sec: any) => sec.items.length);
+  const shownKey = shown.map((x: any) => x.id).join("|");
+  const current = active && shown.some((x: any) => x.id === active) ? active : shown[0]?.id ?? null;
+  // The section tabs follow the list: whichever section is at the top of the scroll area is the
+  // selected tab, and the tab row slides to keep it in view (same feel as the waiter app).
+  useEffect(() => {
+    const box = scrollRef.current;
+    if (!box || underlay) return;
+    const onScroll = () => {
+      if (Date.now() < lockUntil.current) return;
+      const top = box.getBoundingClientRect().top;
+      const secs = Array.from(box.querySelectorAll<HTMLElement>("[data-sec]"));
+      if (!secs.length) return;
+      const sid = (el: HTMLElement | undefined) => el?.getAttribute("data-sec") || null;
+      let id = sid(secs[0]);
+      for (const el of secs) if (el.getBoundingClientRect().top - top <= 24) id = sid(el) || id;
+      if (box.scrollTop + box.clientHeight >= box.scrollHeight - 4) id = sid(secs[secs.length - 1]) || id;
+      setActive(id);
+    };
+    box.addEventListener("scroll", onScroll, { passive: true });
+    return () => box.removeEventListener("scroll", onScroll);
+  }, [shownKey, underlay]);
+  useEffect(() => {
+    const strip = tabsRef.current;
+    const btn = strip?.querySelector<HTMLElement>(`[data-tab="${current}"]`);
+    if (strip && btn) strip.scrollTo({ left: btn.offsetLeft - strip.clientWidth / 2 + btn.clientWidth / 2, behavior: "smooth" });
+  }, [current]);
+  const jump = (id: string) => {
+    const box = scrollRef.current;
+    const el = box?.querySelector<HTMLElement>(`[data-sec="${id}"]`);
+    setActive(id);
+    if (!box || !el) return;
+    lockUntil.current = Date.now() + 700;
+    box.scrollTo({ top: box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top - 8, behavior: "smooth" });
+  };
   const back = () => dispatch(go("welcome"));
   const remaining = s?.bill ? s.bill.remainingPesewas ?? s.bill.totalPesewas ?? 0 : 0;
   const footer = s?.bill && remaining > 0 ? (
@@ -1059,11 +1100,6 @@ function MenuV2({ s, dispatch, underlay = false }: any) {
       </Frame>
     );
   }
-  const needle = q.trim().toLowerCase();
-  const shown = sections
-    .filter((sec: any) => tab === "all" || sec.id === tab)
-    .map((sec: any) => ({ ...sec, items: needle ? sec.items.filter((it: any) => `${it.name} ${it.desc}`.toLowerCase().includes(needle)) : sec.items }))
-    .filter((sec: any) => sec.items.length);
   const open = s?.menu?.source === "studio" ? openState(digital?.hours) : null;
   const pinned = sections.length ? (
     <>
@@ -1074,19 +1110,21 @@ function MenuV2({ s, dispatch, underlay = false }: any) {
       {menus.length > 1 ? (
         <div className="v2-tabs" role="tablist" aria-label="Menus">
           {menus.map((m: any, i: number) => (
-            <button key={m.id ?? i} type="button" role="tab" aria-selected={i === mi} className={i === mi ? "is-on" : undefined} onClick={() => { setMi(i); setTab("all"); }}>{m.name}</button>
+            <button key={m.id ?? i} type="button" role="tab" aria-selected={i === mi} className={i === mi ? "is-on" : undefined} onClick={() => { setMi(i); setActive(null); scrollRef.current?.scrollTo({ top: 0 }); }}>{m.name}</button>
           ))}
         </div>
       ) : null}
-      <div className="v2-tabs v2-tabs-line" role="tablist" aria-label="Sections">
-        {[{ id: "all", name: "All" }, ...sections].map((sec: any) => (
-          <button key={sec.id} type="button" role="tab" aria-selected={tab === sec.id} className={tab === sec.id ? "is-on" : undefined} onClick={() => setTab(sec.id)}>{sec.name}</button>
-        ))}
-      </div>
+      {shown.length ? (
+        <div className="v2-tabs v2-tabs-line" role="tablist" aria-label="Sections" ref={tabsRef}>
+          {shown.map((sec: any) => (
+            <button key={sec.id} type="button" role="tab" data-tab={sec.id} aria-selected={current === sec.id} className={current === sec.id ? "is-on" : undefined} onClick={() => jump(sec.id)}>{sec.name}</button>
+          ))}
+        </div>
+      ) : null}
     </>
   ) : null;
   return (
-    <Frame s={s} title="Menu" onBack={back} pinned={pinned} footer={footer} underlay={underlay}>
+    <Frame s={s} title="Menu" onBack={back} pinned={pinned} footer={footer} underlay={underlay} scrollRef={scrollRef}>
       {digital?.welcome_alert ? <p className="v2-notice">{digital.welcome_alert}</p> : null}
       {open ? <p className={`v2-small${open.open ? " is-good" : ""}`}>{open.open ? "Open now" : "Closed now"}</p> : null}
       {!sections.length ? (
@@ -1098,7 +1136,7 @@ function MenuV2({ s, dispatch, underlay = false }: any) {
         <p className="v2-lead">Nothing matches “{q.trim()}”.</p>
       ) : (
         shown.map((sec: any) => (
-          <section key={sec.id} className="v2-menu-sec" aria-label={sec.name}>
+          <section key={sec.id} className="v2-menu-sec" aria-label={sec.name} data-sec={sec.id}>
             <h3 className="v2-sec-title">{sec.name}</h3>
             <ul className="v2-card v2-dishes">
               {sec.items.map((it: any) => (
@@ -1327,9 +1365,9 @@ function ExpiredV2({ s, dispatch }: any) {
 
 
 // ───────────────────────────── Loading splash (before the table resolves) ─────────────────────────────
-// Shown by ResolvedDiningApp while qr-resolve runs, so a returning diner never sees the old splash.
-// `last` is the restaurant this phone resolved for this table before (its logo/name), if any.
-export function V2Splash({ slow, onRetry, confirming, last }: { slow?: boolean; onRetry?: () => void; confirming?: boolean; last?: { name?: string; logoUrl?: string } | null }) {
+// Shown by ResolvedDiningApp while qr-resolve runs: always the Klown logo (Samuel, 16 Oct), so a
+// returning diner never sees the old splash.
+export function V2Splash({ slow, onRetry, confirming }: { slow?: boolean; onRetry?: () => void; confirming?: boolean }) {
   useFont();
   useEffect(() => {
     const root = document.documentElement;
@@ -1341,13 +1379,7 @@ export function V2Splash({ slow, onRetry, confirming, last }: { slow?: boolean; 
       <div className="v2-screen">
         <div className="v2-scroll">
           <main className="v2-body v2-center">
-            {last?.logoUrl ? (
-              <img className="v2-splash-logo" src={last.logoUrl} alt={last.name || ""} />
-            ) : last?.name ? (
-              <p className="v2-brand-name">{last.name}</p>
-            ) : (
-              <img className="v2-splash-klown" src="/klown-logo.png" alt="Klown" />
-            )}
+            <img className="v2-splash-klown" src="/klown-logo.png" alt="Klown" />
             <p className="v2-lead v2-row-center" role="status" aria-live="polite">
               <Spinner /> {confirming ? "Confirming your payment…" : "Connecting to your table…"}
             </p>

@@ -115,14 +115,14 @@ test('v2 menu: sections, search, a dish, and calling the waiter', async ({ page,
   await btn(page, /^See the menu$/).click()
   await expect(page.locator('.v2-subhead-title')).toHaveText('Menu')
   await noClassic(page)
-  await expect(page.locator('.v2-tabs-line button')).toHaveText(['All', 'Mains', 'Drinks'])
+  await expect(page.locator('.v2-tabs-line button')).toHaveText(['Mains', 'Drinks'])
+  await expect(page.getByRole('tab', { name: 'Mains' })).toHaveAttribute('aria-selected', 'true')
   await expect(page.locator('.v2-dishes li')).toHaveCount(2)
   await page.getByLabel('Search the menu').fill('beer')
   await expect(page.locator('.v2-dishes li')).toHaveCount(1)
   await expect(page.locator('.v2-dishes')).toContainText('Club beer')
   await page.getByLabel('Search the menu').fill('')
-  await page.getByRole('tab', { name: 'Mains' }).click()
-  await expect(page.locator('.v2-dishes li')).toHaveCount(1)
+  await expect(page.locator('.v2-dishes li')).toHaveCount(2)
   await expect(btn(page, /^See my bill · GH₵295\.00$/)).toBeVisible()
   expect(await footerPinned(page)).toBe(true)
   await ctx.shot('v2-menu')
@@ -282,14 +282,19 @@ test('v2 live fix: asking for a different split than the one already open goes t
   await expect(page.locator('.v2-notice')).toContainText('already paying for what they had')
 })
 
-test('v2 live fix: the loading splash is the new one, with the restaurant once this phone has been here', async ({ page, ctx }) => {
+test('v2 live fix: the loading splash is the new one, always with the Klown logo', async ({ page, ctx }) => {
   ctx.sc.delayMs = { 'qr-resolve': 1500 }
+  ctx.sc.logoUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>')
   await page.goto('/s/t1')
-  await expect(page.locator('[data-ui="v2-splash"]')).toContainText('Connecting to your table')
+  const splash = page.locator('[data-ui="v2-splash"]')
+  await expect(splash).toContainText('Connecting to your table')
+  await expect(splash.locator('.v2-splash-klown')).toHaveAttribute('alt', 'Klown')
   await expect(page.locator('body')).not.toContainText('feel closer')
   await page.locator('[data-ui="v2"]').waitFor({ timeout: 40_000 })
+  // a returning phone still sees Klown, not the restaurant
   await page.reload()
-  await expect(page.locator('[data-ui="v2-splash"]')).toContainText('Baobab')
+  await expect(splash.locator('.v2-splash-klown')).toHaveAttribute('alt', 'Klown')
+  await expect(splash).not.toContainText('Baobab')
   await page.locator('[data-ui="v2"]').waitFor({ timeout: 40_000 })
 })
 
@@ -379,4 +384,31 @@ test('v2 Apple Pay: the Apple Pay mark in "Pay with" and Apple\'s own button to 
   await pay.click()
   await page.waitForTimeout(800)
   expect(ctx.last('payment-init').method).toBe('applepay')
+})
+
+test('v2 menu: the section tab follows the list as you scroll, and a tab jumps to its section', async ({ page, ctx }) => {
+  const sec = (id: string, name: string) => ({ id, name, items: Array.from({ length: 9 }, (_, n) => ({ id: `${id}-${n}`, name: `${name} dish ${n + 1}`, price_pesewas: 1500 + n * 500 })) })
+  ctx.sc.menuOverride = { ok: true, source: 'studio', categories: [], items: [], recommendations: [], currency: 'GHS',
+    menus: [{ id: 'local', name: 'Local', sections: [sec('sw', 'Swallows'), sec('so', 'Soups'), sec('st', 'Stews & Sauces'), sec('fi', 'Fish & Seafood')] }] }
+  await open(page)
+  await btn(page, /^See the menu$/).click()
+  const tab = (n: string) => page.getByRole('tab', { name: n })
+  await expect(tab('Swallows')).toHaveAttribute('aria-selected', 'true')
+  const area = page.locator('.v2-scroll')
+  // scroll the list down to the soups
+  await area.evaluate((box) => { const el = box.querySelector('[data-sec="so"]') as HTMLElement; box.scrollTop += el.getBoundingClientRect().top - box.getBoundingClientRect().top })
+  await page.waitForTimeout(300)
+  await expect(tab('Soups')).toHaveAttribute('aria-selected', 'true')
+  await expect(tab('Swallows')).toHaveAttribute('aria-selected', 'false')
+  // to the very bottom: the last section
+  await area.evaluate((box) => { box.scrollTop = box.scrollHeight })
+  await page.waitForTimeout(300)
+  await expect(tab('Fish & Seafood')).toHaveAttribute('aria-selected', 'true')
+  // tapping a tab scrolls to that section and selects it
+  await tab('Stews & Sauces').click()
+  await page.waitForTimeout(1200)
+  await expect(tab('Stews & Sauces')).toHaveAttribute('aria-selected', 'true')
+  const y = await area.evaluate((box) => (box.querySelector('[data-sec="st"]') as HTMLElement).getBoundingClientRect().top - box.getBoundingClientRect().top)
+  expect(Math.abs(y)).toBeLessThan(30)
+  await ctx.shot('v2-menu-scrollspy')
 })

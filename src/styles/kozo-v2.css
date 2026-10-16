@@ -241,7 +241,6 @@ html.v2-lock, html.v2-lock body { height: 100%; overflow: hidden; overscroll-beh
 .v2-otp { font-size: 24px; letter-spacing: 0.3em; text-align: center; }
 
 /* Loading splash */
-.v2-splash-logo { height: 72px; width: auto; max-width: 70%; object-fit: contain; border-radius: 14px; }
 .v2-splash-klown { height: 28px; width: auto; }
 
 /* Home: the restaurant's photo, then the two choices */
