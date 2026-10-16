@@ -251,7 +251,7 @@ test('v2 session ended: reconnect screen in the new look', async ({ page, ctx })
   ctx.sc.fail = {}
   await btn(page, /^Reconnect to my table$/).click()
   await page.waitForTimeout(1500)
-  await expect(page.locator('.v2-welcome')).toBeVisible()
+  await expect(page.getByTestId('v2-due')).toHaveText('GH₵295.00')
 })
 
 // ── Found in the live run on Test Kitchen (15 Oct) ──
@@ -315,10 +315,14 @@ const home = async (page: Page) => {
   await page.locator('.v2-welcome').waitFor({ timeout: 40_000 })
 }
 
-test('v2 home: the restaurant photo, logo and welcome line come first, then the bill', async ({ page, ctx }) => {
+test('v2 home: a table with an order opens on the bill; the logo goes home and back to the bill', async ({ page, ctx }) => {
   ctx.sc.logoUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="160" height="100" rx="12" fill="#000"/><text x="80" y="60" font-size="26" text-anchor="middle" fill="#fff">BAOBAB</text></svg>')
-  await home(page)
+  await page.goto('/s/t1')
+  await expect(page.getByTestId('v2-due')).toHaveText('GH₵295.00', { timeout: 40_000 })
+  await expect(page.locator('.v2-welcome')).toHaveCount(0)
   await noClassic(page)
+  await page.getByRole('button', { name: /Baobab, home/ }).click()
+  await expect(page.locator('.v2-welcome')).toBeVisible()
   await expect(page.locator('.v2-hero-eyebrow')).toHaveText(/welcome to/i)
   await expect(page.locator('.v2-hero-logo img')).toHaveAttribute('alt', 'Baobab')
   await expect(page.locator('.v2-hero-table')).toContainText('Table 12')
@@ -329,12 +333,9 @@ test('v2 home: the restaurant photo, logo and welcome line come first, then the 
   await ctx.shot('v2-home')
   await btn(page, /View & pay your bill/).click()
   await expect(page.getByTestId('v2-due')).toHaveText('GH₵295.00')
-  // the logo in the bill header goes back home
-  await page.getByRole('button', { name: /Baobab, home/ }).click()
-  await expect(page.locator('.v2-welcome')).toBeVisible()
 })
 
-test('v2 home: with no bill yet, "View & pay your bill" shows the no-bill screen', async ({ page, ctx }) => {
+test('v2 home: with no order yet the home screen comes first, and "View & pay your bill" shows the no-bill screen', async ({ page, ctx }) => {
   ctx.sc.hasActiveBill = false
   await home(page)
   await btn(page, /View & pay your bill/).click()
@@ -342,6 +343,7 @@ test('v2 home: with no bill yet, "View & pay your bill" shows the no-bill screen
 })
 
 test('v2 home: Browse the menu opens the menu, and Back returns home', async ({ page, ctx }) => {
+  ctx.sc.hasActiveBill = false
   await home(page)
   await btn(page, /Browse the menu/).click()
   await expect(page.locator('.v2-subhead-title')).toHaveText('Menu')
@@ -349,17 +351,15 @@ test('v2 home: Browse the menu opens the menu, and Back returns home', async ({ 
   await expect(page.locator('.v2-welcome')).toBeVisible()
 })
 
-test('v2 home: several groups at the table stay on home until the diner asks for the bill', async ({ page, ctx }) => {
+test('v2 home: several groups at the table go straight to "Which bill is yours?"', async ({ page, ctx }) => {
   ctx.sc.chooseTab = true
   ctx.sc.tabs = [
     { billId: 'b1', label: 'Ama', itemCount: 3, preview: ['Jollof'], serverName: 'Joel', openedAt: new Date().toISOString(), remainingPesewas: 29500 },
     { billId: 'b2', label: 'Kofi', itemCount: 1, preview: ['Club beer'], serverName: 'Joel', openedAt: new Date().toISOString(), remainingPesewas: 3500 },
   ]
-  await home(page)
-  await page.waitForTimeout(1500)
-  await expect(page.locator('.v2-welcome')).toBeVisible()
-  await btn(page, /View & pay your bill/).click()
-  await expect(page.locator('.v2-subhead-title')).toHaveText('Which bill is yours?')
+  await page.goto('/s/t1')
+  await expect(page.locator('.v2-subhead-title')).toHaveText('Which bill is yours?', { timeout: 40_000 })
+  await expect(page.locator('.v2-welcome')).toHaveCount(0)
 })
 
 test('v2 Apple Pay: the Apple Pay mark in "Pay with" and Apple\'s own button to pay', async ({ page, ctx }) => {

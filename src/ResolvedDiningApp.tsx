@@ -64,7 +64,8 @@ function ResolvedInner({ token }: { token: string }) {
   // bill or welcome screen before the success screen.
   const checkoutRef = checkoutReturnRef()
   // Several groups at this table, each with its own bill: ask which is theirs first.
-  // The new screens always open on the restaurant's home screen; the bill comes after "View and pay".
-  const startScreen = checkoutRef ? 'processing' : isOrder ? (s.hasActiveBill ? 'bill' : 'waiting-bill') : branding.uiV2 ? 'welcome' : ((s as any).chooseTab ? 'choose-tab' : s.hasActiveBill ? 'bill' : 'welcome')
+  // A table with an open order opens straight on the bill (the restaurant logo in the header goes
+  // home); a table with no order yet opens on the restaurant's home screen.
+  const startScreen = checkoutRef ? 'processing' : isOrder ? (s.hasActiveBill ? 'bill' : 'waiting-bill') : ((s as any).chooseTab ? 'choose-tab' : s.hasActiveBill ? 'bill' : 'welcome')
   return <App initialState={{ screen: startScreen, ...(checkoutRef ? { paymentRef: checkoutRef } : {}), hasOrder: s.hasActiveBill, mode: isOrder ? 'order' : 'table', tableLabel: s.table.label, restaurantName: s.restaurant.name, ...branding }} storageKey={`klown-dining:${token}`} sessionToken={s.sessionToken} qrToken={token} />
 }
