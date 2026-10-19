@@ -416,7 +416,10 @@ async function notifyOwnerPaid(restaurantId: string, label: string, totalPesewas
     const { data: r } = await supabaseAdmin.from('restaurants').select('name, notify_phones').eq('id', restaurantId).maybeSingle()
     const { parsePhoneList, sendSms } = await import('@/integrations/notify/arkesel.server')
     const phones = parsePhoneList((r as any)?.notify_phones)
-    if (!phones.length) return
+    if (!phones.length) {
+      await supabaseAdmin.from('audit_events').insert({ type: 'sms.owner_payment', data: { billId, restaurantId, skipped: true, reason: 'no notify_phones' } })
+      return
+    }
     const { data: items } = await supabaseAdmin.from('bill_items').select('name, qty').eq('bill_id', billId).order('sort')
     const list = (items ?? []).map((i: any) => `${i.qty}x ${i.name}`)
     const shown = list.slice(0, 6).join(', ')
@@ -424,8 +427,12 @@ async function notifyOwnerPaid(restaurantId: string, label: string, totalPesewas
     const amt = (totalPesewas / 100).toFixed(2)
     const name = (r as any)?.name || 'your restaurant'
     const msg = `Klown: ${label} paid GHS ${amt} at ${name}.` + (shown ? ` Items: ${shown}${more}.` : '')
-    await sendSms(phones, msg)
-  } catch { /* SMS is best-effort */ }
+    const res = await sendSms(phones, msg)
+    // Keep Arkesel's answer, so "the owner didn't get the text" can be traced like the staff SMS.
+    await supabaseAdmin.from('audit_events').insert({ type: 'sms.owner_payment', data: { billId, restaurantId, recipients: phones.length, ok: res.ok, skipped: !!res.skipped, status: res.status ?? null, message: res.message ?? null } })
+  } catch (e) {
+    try { await supabaseAdmin.from('audit_events').insert({ type: 'sms.owner_payment', data: { billId, restaurantId, ok: false, error: String(e).slice(0, 300) } }) } catch {}
+  }
 }
 
 export async function onBillSettled(billId: string, totalPesewas: number) {
