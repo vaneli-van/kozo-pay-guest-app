@@ -76,14 +76,17 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               // merges orders; tolerate the column not being there yet so a code-before-migration
               // deploy keeps syncing exactly as before.
               const BILL_COLS = 'id, table_id, status, odoo_order_id, odoo_order_ids, subtotal_pesewas, total_pesewas, tax_pesewas, server_name, tab_key, tab_label'
+              // bills.server_employee_id (20261019120000 migration): who opened the order, for tips.
+              const hasServerEmp = !(await supabaseAdmin.from('bills').select('server_employee_id').limit(1)).error
               const liveQuery = (cols: string) => supabaseAdmin.from('bills').select(cols).in('table_id', klownTableIds).in('status', ['open', 'ready']).order('opened_at', { ascending: true })
               let hasLineIds = true
               let existBills: any[] | null = []
               if (klownTableIds.length) {
-                const first = await liveQuery(BILL_COLS + ', odoo_line_ids')
+                const extra = hasServerEmp ? ', server_employee_id' : ''
+                const first = await liveQuery(BILL_COLS + ', odoo_line_ids' + extra)
                 if (first.error && /odoo_line_ids/.test(first.error.message)) {
                   hasLineIds = false
-                  existBills = ((await liveQuery(BILL_COLS)).data ?? []) as any[]
+                  existBills = ((await liveQuery(BILL_COLS + extra)).data ?? []) as any[]
                 } else existBills = (first.data ?? []) as any[]
               }
               const liveBills = (existBills ?? []) as any[]
@@ -254,8 +257,12 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 // The waiter on the most recent order (employee_id = who punched it; cashier as fallback).
                 // First name only keeps the tip prompt friendly.
                 const latest = orders[orders.length - 1]
-                const rawServer = (Array.isArray(latest.employee_id) ? latest.employee_id[1] : '') || (typeof latest.cashier === 'string' ? latest.cashier : '')
+                // The bill's waiter is whoever opened the table's order (the first, oldest order):
+                // a colleague adding a round doesn't take the table over. Their tip goes to them.
+                const opener = orders[0]
+                const rawServer = (Array.isArray(opener.employee_id) ? opener.employee_id[1] : '') || (typeof opener.cashier === 'string' ? opener.cashier : '')
                 const serverName = rawServer ? String(rawServer).trim().split(/\s+/)[0] || null : null
+                const serverEmployeeId = Array.isArray(opener.employee_id) ? (opener.employee_id[0] as number) : null
                 const header = {
                   subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total,
                   tax_lines: taxLines, tax_pesewas: taxLines ? taxPesewas : null, server_name: serverName as string | null,
@@ -263,6 +270,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                   // line ids let a later sync follow these items if the POS merges this order into another
                   ...(hasLineIds ? { odoo_line_ids: orders.flatMap((o) => (linesByOrder.get(o.id) ?? []).map((l: any) => l.id as number)) } : {}),
                   odoo_session_id: Array.isArray(latest.session_id) ? latest.session_id[0] : null,
+                  ...(hasServerEmp ? { server_employee_id: serverEmployeeId } : {}),
                 }
 
                 const existing = liveByTable.get(key)
@@ -280,6 +288,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 const sameIds = JSON.stringify(existing.odoo_order_ids ?? (existing.odoo_order_id != null ? [existing.odoo_order_id] : [])) === JSON.stringify(orderIds)
                 const changed = !sameIds || existing.total_pesewas !== total || existing.subtotal_pesewas !== total || (existing.tax_pesewas ?? null) !== (taxLines ? taxPesewas : null) || (existing.server_name ?? null) !== serverName || (existing.tab_label ?? null) !== tabLabel
                   || (hasLineIds && JSON.stringify(existing.odoo_line_ids ?? null) !== JSON.stringify((header as any).odoo_line_ids))
+                  || (hasServerEmp && (existing.server_employee_id ?? null) !== serverEmployeeId)
                 const { data: curItems } = await supabaseAdmin.from('bill_items').select('id,name,qty,line_total_pesewas,sort').eq('bill_id', existing.id).order('sort')
                 const sameItems = (curItems ?? []).length === items.length && (curItems ?? []).every((ci: any, i: number) => ci.name === items[i]!.name && ci.qty === items[i]!.qty && ci.line_total_pesewas === items[i]!.line_total_pesewas)
                 if (!changed && sameItems) continue

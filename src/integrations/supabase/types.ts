@@ -505,6 +505,7 @@ export type Database = {
           odoo_order_ids: number[] | null
           odoo_line_ids: number[] | null
           merged_into_bill_id: string | null
+          server_employee_id: number | null
           tab_key: string
           tab_label: string | null
           odoo_pos_config_id: number | null
@@ -528,6 +529,7 @@ export type Database = {
           odoo_order_ids?: number[] | null
           odoo_line_ids?: number[] | null
           merged_into_bill_id?: string | null
+          server_employee_id?: number | null
           tab_key?: string
           tab_label?: string | null
           odoo_pos_config_id?: number | null
@@ -551,6 +553,7 @@ export type Database = {
           odoo_order_ids?: number[] | null
           odoo_line_ids?: number[] | null
           merged_into_bill_id?: string | null
+          server_employee_id?: number | null
           tab_key?: string
           tab_label?: string | null
           odoo_pos_config_id?: number | null

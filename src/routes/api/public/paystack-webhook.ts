@@ -18,9 +18,18 @@ export const Route = createFileRoute('/api/public/paystack-webhook')({
         const mode = await verifyPaystackSignature(raw, header)
         if (!mode) return json({ ok: false, reason: 'bad_signature' }, 401)
 
-        const event = JSON.parse(raw) as { event?: string; data?: { reference?: string; status?: string; gateway_response?: string } }
+        const event = JSON.parse(raw) as { event?: string; data?: { reference?: string; status?: string; gateway_response?: string; transfer_code?: string; reason?: string } }
         const reference = event?.data?.reference
         if (!reference) return json({ received: true, ignored: 'no_reference' })
+
+        // Waiters' tip payouts (Paystack Transfers, live key only).
+        if (event.event && event.event.startsWith('transfer.')) {
+          if (mode === 'live') {
+            const { applyTransferEvent } = await import('@/integrations/payments/tips.server')
+            await applyTransferEvent(event.event, reference, event.data?.transfer_code, event.data?.gateway_response || event.data?.reason)
+          }
+          return json({ received: true })
+        }
 
         if (event.event === 'charge.success') {
           await applyProviderCallback(reference, 'captured', undefined, mode)
