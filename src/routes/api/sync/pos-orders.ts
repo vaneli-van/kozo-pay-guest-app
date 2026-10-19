@@ -72,9 +72,20 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               // payment_attempts.bill_id and an open split pointing at a real bill. Legacy bills
               // without an order id are adopted by table on first sight.
               const nowMs = Date.now()
-              const { data: existBills } = klownTableIds.length
-                ? await supabaseAdmin.from('bills').select('id, table_id, status, odoo_order_id, odoo_order_ids, subtotal_pesewas, total_pesewas, tax_pesewas, server_name, tab_key, tab_label').in('table_id', klownTableIds).in('status', ['open', 'ready'])
-                : { data: [] as any[] }
+              // bills.odoo_line_ids (20261019 migration) lets a bill follow its items when the POS
+              // merges orders; tolerate the column not being there yet so a code-before-migration
+              // deploy keeps syncing exactly as before.
+              const BILL_COLS = 'id, table_id, status, odoo_order_id, odoo_order_ids, subtotal_pesewas, total_pesewas, tax_pesewas, server_name, tab_key, tab_label'
+              const liveQuery = (cols: string) => supabaseAdmin.from('bills').select(cols).in('table_id', klownTableIds).in('status', ['open', 'ready']).order('opened_at', { ascending: true })
+              let hasLineIds = true
+              let existBills: any[] | null = []
+              if (klownTableIds.length) {
+                const first = await liveQuery(BILL_COLS + ', odoo_line_ids')
+                if (first.error && /odoo_line_ids/.test(first.error.message)) {
+                  hasLineIds = false
+                  existBills = ((await liveQuery(BILL_COLS)).data ?? []) as any[]
+                } else existBills = (first.data ?? []) as any[]
+              }
               const liveBills = (existBills ?? []) as any[]
               const billIds = liveBills.map((b) => b.id as string)
 
@@ -154,11 +165,47 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               const liveByTable = new Map<string, any>()
               for (const b of liveBills) if (!liveByTable.has(billKey(b))) liveByTable.set(billKey(b), b)
 
+              // ---- Orders moved to another table (waiter app "Move", the register's Transfer) ----
+              // The bill follows its order: same bill on the new table, or folded into the bill
+              // already there, carrying captured payments and diners' sessions with it. See
+              // planTableMoves for the rules.
+              const moved = new Set<string>()
+              {
+                const { planTableMoves } = await import('@/integrations/pos/table-moves')
+                const plan = planTableMoves({ liveBills, ordersByKey: ordersByTable, linesByOrder, pendingBillIds })
+                for (const id of plan.hold) moved.add(id)
+                for (const r of plan.rehome) {
+                  const b = liveBills.find((x) => x.id === r.billId)
+                  if (!b) continue
+                  const { error } = await supabaseAdmin.from('bills').update({ table_id: r.tableId, tab_key: r.tabKey }).eq('id', r.billId).in('status', ['open', 'ready'])
+                  if (error) { console.error('pos-orders: bill move failed', r.billId, error.message); moved.add(r.billId); continue }
+                  liveByTable.delete(billKey(b))
+                  b.table_id = r.tableId; b.tab_key = r.tabKey
+                  liveByTable.set(r.key, b)
+                  moved.add(r.billId)
+                  console.log('pos-orders: bill moved with its order', r.billId, '->', r.key)
+                }
+                for (const m of plan.merge) {
+                  // money first: captured payments count towards the bill that carries on
+                  if (paidBillIds.has(m.fromBillId)) {
+                    const { error } = await supabaseAdmin.from('payment_attempts').update({ bill_id: m.intoBillId }).eq('bill_id', m.fromBillId).eq('status', 'captured')
+                    if (error) { console.error('pos-orders: payment carry-over failed, bill kept', m.fromBillId, error.message); moved.add(m.fromBillId); continue }
+                    paidBillIds.add(m.intoBillId)
+                  }
+                  await supabaseAdmin.from('bill_splits').update({ status: 'cancelled', updated_at: new Date(nowMs).toISOString() }).eq('bill_id', m.fromBillId).eq('status', 'open')
+                  await supabaseAdmin.from('dining_sessions').update({ active_bill_id: m.intoBillId }).eq('active_bill_id', m.fromBillId)
+                  const closed = await supabaseAdmin.from('bills').update({ status: 'void', merged_into_bill_id: m.intoBillId } as any).eq('id', m.fromBillId)
+                  if (closed.error) await supabaseAdmin.from('bills').update({ status: 'void' }).eq('id', m.fromBillId)
+                  moved.add(m.fromBillId)
+                  console.log('pos-orders: bill merged with its order', m.fromBillId, '->', m.intoBillId)
+                }
+              }
+
               // Live bills on a table with no unpaid open order left on the POS are finished:
               // settled if anything was captured on them, void otherwise. Odoo is the source of
               // truth for "still open". (A bill with a MoMo prompt still awaiting approval gets one
               // more cycle before closing.)
-              const finished = liveBills.filter((b) => !ordersByTable.has(billKey(b)) && !pendingBillIds.has(b.id))
+              const finished = liveBills.filter((b) => !moved.has(b.id) && !ordersByTable.has(billKey(b)) && !pendingBillIds.has(b.id))
               if (finished.length) {
                 const ids = finished.map((b) => b.id as string)
                 const settledIds = ids.filter((id) => paidBillIds.has(id))
@@ -213,6 +260,8 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                   subtotal_pesewas: total, service_charge_pesewas: 0, total_pesewas: total,
                   tax_lines: taxLines, tax_pesewas: taxLines ? taxPesewas : null, server_name: serverName as string | null,
                   odoo_order_id: orderIds[0]!, odoo_order_ids: orderIds, tab_label: tabLabel,
+                  // line ids let a later sync follow these items if the POS merges this order into another
+                  ...(hasLineIds ? { odoo_line_ids: orders.flatMap((o) => (linesByOrder.get(o.id) ?? []).map((l: any) => l.id as number)) } : {}),
                   odoo_session_id: Array.isArray(latest.session_id) ? latest.session_id[0] : null,
                 }
 
@@ -230,6 +279,7 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
                 // the totals still refresh, so the diner never sees a stale balance.
                 const sameIds = JSON.stringify(existing.odoo_order_ids ?? (existing.odoo_order_id != null ? [existing.odoo_order_id] : [])) === JSON.stringify(orderIds)
                 const changed = !sameIds || existing.total_pesewas !== total || existing.subtotal_pesewas !== total || (existing.tax_pesewas ?? null) !== (taxLines ? taxPesewas : null) || (existing.server_name ?? null) !== serverName || (existing.tab_label ?? null) !== tabLabel
+                  || (hasLineIds && JSON.stringify(existing.odoo_line_ids ?? null) !== JSON.stringify((header as any).odoo_line_ids))
                 const { data: curItems } = await supabaseAdmin.from('bill_items').select('id,name,qty,line_total_pesewas,sort').eq('bill_id', existing.id).order('sort')
                 const sameItems = (curItems ?? []).length === items.length && (curItems ?? []).every((ci: any, i: number) => ci.name === items[i]!.name && ci.qty === items[i]!.qty && ci.line_total_pesewas === items[i]!.line_total_pesewas)
                 if (!changed && sameItems) continue

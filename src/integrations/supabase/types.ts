@@ -503,6 +503,8 @@ export type Database = {
           id: string
           odoo_order_id: number | null
           odoo_order_ids: number[] | null
+          odoo_line_ids: number[] | null
+          merged_into_bill_id: string | null
           tab_key: string
           tab_label: string | null
           odoo_pos_config_id: number | null
@@ -524,6 +526,8 @@ export type Database = {
           id?: string
           odoo_order_id?: number | null
           odoo_order_ids?: number[] | null
+          odoo_line_ids?: number[] | null
+          merged_into_bill_id?: string | null
           tab_key?: string
           tab_label?: string | null
           odoo_pos_config_id?: number | null
@@ -545,6 +549,8 @@ export type Database = {
           id?: string
           odoo_order_id?: number | null
           odoo_order_ids?: number[] | null
+          odoo_line_ids?: number[] | null
+          merged_into_bill_id?: string | null
           tab_key?: string
           tab_label?: string | null
           odoo_pos_config_id?: number | null
