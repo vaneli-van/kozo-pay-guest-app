@@ -70,8 +70,13 @@ export const Route = createFileRoute('/api/public/payment-init')({
         // Transaction split (direct-to-restaurant settlement). With a Paystack subaccount the charge
         // is grossed up so the diner covers the fee (shown only at the MoMo prompt / card page), the
         // restaurant is settled exactly B, and Klown keeps its bps. No subaccount: charge B, no split.
-        const { computeGrossUp } = await import('@/integrations/payments/split.server')
-        const g = ctx.splitConfig ? computeGrossUp(quote.grandTotalPesewas, ctx.splitConfig.klownFeeBps) : null
+        // Who bears Paystack's fee is per restaurant (paystack_fee_bearer): 'customer' grosses the
+        // charge up for both fees; 'restaurant' grosses up for Klown's fee only and Paystack takes
+        // its fee from the restaurant's share.
+        const { computeGrossUp, heldTipCharge, feeBearerFor, resolveRestaurantForBill } = await import('@/integrations/payments/split.server')
+        const restaurantId = ctx.splitConfig ? await resolveRestaurantForBill(ctx.bill.id) : null
+        const feeBearer = ctx.splitConfig ? await feeBearerFor(restaurantId) : 'customer'
+        const g = ctx.splitConfig ? computeGrossUp(quote.grandTotalPesewas, ctx.splitConfig.klownFeeBps, feeBearer) : null
         const chargePesewas = g ? g.totalPesewas : quote.grandTotalPesewas
         // Tips to the waiter (restaurants with tips_to_staff): the tip is held back from the
         // restaurant's share and stays in Klown's balance; the daily payout sends it to the
@@ -80,13 +85,12 @@ export const Route = createFileRoute('/api/public/payment-init')({
         if (g && ctx.splitConfig && payMode === 'live' && quote.tipPesewas > 0) {
           try {
             const { tipRecipientForBill } = await import('@/integrations/payments/tips.server')
-            const { resolveRestaurantForBill } = await import('@/integrations/payments/split.server')
-            tipAccountId = await tipRecipientForBill(ctx.bill.id, await resolveRestaurantForBill(ctx.bill.id))
+            tipAccountId = await tipRecipientForBill(ctx.bill.id, restaurantId)
           } catch { tipAccountId = null }   // never block a payment over a tip routing lookup
         }
-        const transactionCharge = g ? g.transactionChargePesewas + (tipAccountId ? quote.tipPesewas : 0) : 0
+        const transactionCharge = g ? g.transactionChargePesewas + (tipAccountId ? heldTipCharge(quote.tipPesewas, feeBearer) : 0) : 0
         const splitFields: { subaccount?: string; transactionChargePesewas?: number; bearer?: 'account' | 'subaccount' } =
-          g && ctx.splitConfig ? { subaccount: ctx.splitConfig.subaccountCode, transactionChargePesewas: transactionCharge, bearer: 'account' } : {}
+          g && ctx.splitConfig ? { subaccount: ctx.splitConfig.subaccountCode, transactionChargePesewas: transactionCharge, bearer: g.bearer } : {}
 
         const provider = typeof body.provider === 'string' ? body.provider : 'momo'
         const method = typeof body.method === 'string' ? body.method : null
@@ -112,7 +116,7 @@ export const Route = createFileRoute('/api/public/payment-init')({
         const phone = typeof body.phone === 'string' ? body.phone : undefined
         const callbackUrl = typeof body.callbackUrl === 'string' ? body.callbackUrl : undefined
         const splitAudit = g && ctx.splitConfig
-          ? supabaseAdmin.from('audit_events').insert({ session_id: ctx.sessionId, type: 'payment.split', data: { paymentRef: attemptId, base: g.basePesewas, charged: g.totalPesewas, transactionCharge: splitFields.transactionChargePesewas, tipHeldForStaff: tipAccountId ? quote.tipPesewas : 0, tipPayoutAccount: tipAccountId, subaccount: ctx.splitConfig.subaccountCode, klownFeeBps: g.klownFeeBps } })
+          ? supabaseAdmin.from('audit_events').insert({ session_id: ctx.sessionId, type: 'payment.split', data: { paymentRef: attemptId, base: g.basePesewas, charged: g.totalPesewas, transactionCharge: splitFields.transactionChargePesewas, tipHeldForStaff: tipAccountId ? quote.tipPesewas : 0, tipPayoutAccount: tipAccountId, subaccount: ctx.splitConfig.subaccountCode, klownFeeBps: g.klownFeeBps, feeBearer: g.feeBearer, bearer: g.bearer } })
           : null
 
         let init

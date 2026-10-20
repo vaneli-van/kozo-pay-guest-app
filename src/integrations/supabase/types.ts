@@ -2766,6 +2766,7 @@ export type Database = {
           paystack_test_subaccount_code: string | null
           notify_phones: string | null
           paystack_subaccount_code: string | null
+          paystack_fee_bearer: string
           settlement_account_name: string | null
           settlement_account_number: string | null
           settlement_bank_code: string | null
@@ -2790,6 +2791,7 @@ export type Database = {
           paystack_test_subaccount_code: string | null
           notify_phones?: string | null
           paystack_subaccount_code?: string | null
+          paystack_fee_bearer?: string
           settlement_account_name?: string | null
           settlement_account_number?: string | null
           settlement_bank_code?: string | null
@@ -2814,6 +2816,7 @@ export type Database = {
           paystack_test_subaccount_code?: string | null
           notify_phones?: string | null
           paystack_subaccount_code?: string | null
+          paystack_fee_bearer?: string
           settlement_account_name?: string | null
           settlement_account_number?: string | null
           settlement_bank_code?: string | null

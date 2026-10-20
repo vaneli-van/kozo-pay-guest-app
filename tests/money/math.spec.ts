@@ -102,3 +102,44 @@ test.describe("Paystack gross-up (restaurant is made whole)", () => {
     }
   });
 });
+
+// Who bears Paystack's fee (restaurants.paystack_fee_bearer). 'restaurant': the diner's surcharge
+// is Klown's fee only, Paystack takes its 1.95% from the restaurant's share.
+import { heldTipCharge, PAYSTACK_FEE_BPS } from "../../src/integrations/payments/split.server";
+test.describe("computeGrossUp, restaurant bears Paystack's fee", () => {
+  test("GH₵100 bill at 1%: diner pays 101.00, Klown 1.00, restaurant 98.03", () => {
+    const g = computeGrossUp(10000, 100, "restaurant");
+    expect(g.totalPesewas).toBe(10100);
+    expect(g.transactionChargePesewas).toBe(100);
+    expect(g.bearer).toBe("subaccount");
+    const paystack = Math.ceil((g.totalPesewas * PAYSTACK_FEE_BPS) / 10000); // 197
+    expect(g.totalPesewas - g.transactionChargePesewas - paystack).toBe(9803);
+  });
+  test("the diner's surcharge is exactly Klown's fee (rounded up), never Paystack's", () => {
+    for (let base = 1; base <= 200000; base += 997) {
+      const g = computeGrossUp(base, 100, "restaurant");
+      expect(g.transactionChargePesewas).toBe(Math.ceil(base * 1.01) - base);
+      expect(g.transactionChargePesewas).toBeLessThanOrEqual(Math.ceil(base / 100));
+      expect(g.feeBearer).toBe("restaurant");
+    }
+  });
+  test("default stays the customer model, byte for byte", () => {
+    const a = computeGrossUp(20000, 50), b = computeGrossUp(20000, 50, "customer");
+    expect(a.totalPesewas).toBe(20500);
+    expect(b).toEqual(a);
+    expect(a.bearer).toBe("account");
+  });
+  test("a tip held for the waiter: Klown gives the restaurant back Paystack's fee on the tip", () => {
+    expect(heldTipCharge(1000, "customer")).toBe(1000);
+    expect(heldTipCharge(1000, "restaurant")).toBe(1000 - 20); // 1.95% of 10.00 = 0.195 -> 0.20
+    expect(heldTipCharge(0, "restaurant")).toBe(0);
+    // whole bill + held tip under the restaurant model: restaurant nets bill - fee on (bill + Klown's cut)
+    const share = 29500, tip = 3000;
+    const g = computeGrossUp(share + tip, 100, "restaurant");
+    const charge = g.transactionChargePesewas + heldTipCharge(tip, "restaurant");
+    const paystack = Math.ceil((g.totalPesewas * PAYSTACK_FEE_BPS) / 10000);
+    const restaurant = g.totalPesewas - charge - paystack;
+    expect(restaurant).toBeGreaterThanOrEqual(share - Math.ceil(((share + g.transactionChargePesewas) * PAYSTACK_FEE_BPS) / 10000) - 1);
+    expect(restaurant).toBeLessThan(share);
+  });
+});

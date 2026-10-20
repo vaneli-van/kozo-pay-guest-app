@@ -26,31 +26,63 @@ import { supabaseAdmin } from '@/integrations/supabase/client.server'
 export const PAYSTACK_FEE_BPS = 195     // Paystack Ghana: 1.95% flat, no cap (MoMo / local card / bank)
 export const DEFAULT_KLOWN_FEE_BPS = 50 // 0.50%
 
+// Who bears Paystack's 1.95% (restaurants.paystack_fee_bearer):
+//   'customer'   (default, the model above): the diner's surcharge covers Paystack's fee AND
+//                Klown's fee; the restaurant receives exactly B. bearer = 'account'.
+//   'restaurant': the diner's surcharge is only Klown's fee (k on B, bill and tip alike);
+//                Paystack deducts its fee from the restaurant's share. bearer = 'subaccount'.
+//                T = B(1+k); transaction_charge = T − B (Klown); restaurant receives B − r·T.
+//                Worked (B = GH₵100, k = 100bps): diner pays 101.00, Klown 1.00, Paystack 1.97
+//                (1.95% of 101), restaurant 98.03.
+export type FeeBearer = 'customer' | 'restaurant'
+
 export interface SplitConfig {
   subaccountCode: string
   klownFeeBps: number
+  feeBearer?: FeeBearer
 }
 
 export interface GrossUp {
-  basePesewas: number          // B — restaurant receives this
+  basePesewas: number          // B — the bill-settling figure (share + tip)
   totalPesewas: number         // T — diner is charged this
   transactionChargePesewas: number // T − B — flat to Klown main account
   klownFeeBps: number
+  feeBearer: FeeBearer
+  bearer: 'account' | 'subaccount' // what we tell Paystack
 }
 
-// Made-whole gross-up. Rounds T UP so the restaurant always receives the full
-// base and the fees are always fully covered (the diner absorbs the sub-pesewa).
-export function computeGrossUp(basePesewas: number, klownFeeBps = DEFAULT_KLOWN_FEE_BPS): GrossUp {
+// Gross-up. Rounds T UP so the fees are always fully covered (the diner absorbs the sub-pesewa).
+// 'customer': the restaurant always receives the full base. 'restaurant': Klown always receives
+// its full fee; the restaurant receives the base less Paystack's fee on the charge.
+export function computeGrossUp(basePesewas: number, klownFeeBps = DEFAULT_KLOWN_FEE_BPS, feeBearer: FeeBearer = 'customer'): GrossUp {
   const B = Math.max(0, Math.trunc(basePesewas))
   const k = Math.max(0, Math.trunc(klownFeeBps))
-  const denom = 10000 - PAYSTACK_FEE_BPS
+  const bearer = feeBearer === 'restaurant' ? 'subaccount' : 'account'
+  const denom = feeBearer === 'restaurant' ? 10000 : 10000 - PAYSTACK_FEE_BPS
   // Guard against a nonsensical fee config; fall back to no gross-up.
   if (denom <= 0 || B <= 0) {
-    return { basePesewas: B, totalPesewas: B, transactionChargePesewas: 0, klownFeeBps: k }
+    return { basePesewas: B, totalPesewas: B, transactionChargePesewas: 0, klownFeeBps: k, feeBearer, bearer }
   }
   const T = Math.ceil((B * (10000 + k)) / denom)
   const transactionCharge = Math.max(0, T - B)
-  return { basePesewas: B, totalPesewas: T, transactionChargePesewas: transactionCharge, klownFeeBps: k }
+  return { basePesewas: B, totalPesewas: T, transactionChargePesewas: transactionCharge, klownFeeBps: k, feeBearer, bearer }
+}
+
+// A tip held back for the waiter (tips to staff) is added to transaction_charge so it stays
+// with Klown. When the restaurant bears Paystack's fee, Klown gives back the fee on that tip
+// (the tip isn't the restaurant's money), so the restaurant only ever pays the fee on its bill.
+export function heldTipCharge(tipPesewas: number, feeBearer: FeeBearer): number {
+  const P = Math.max(0, Math.trunc(tipPesewas))
+  if (feeBearer !== 'restaurant') return P
+  return Math.max(0, P - Math.ceil((P * PAYSTACK_FEE_BPS) / 10000))
+}
+
+// restaurants.paystack_fee_bearer, tolerant of the column not existing yet (code before migration).
+export async function feeBearerFor(restaurantId: string | null): Promise<FeeBearer> {
+  if (!restaurantId) return 'customer'
+  const { data, error } = await supabaseAdmin.from('restaurants').select('paystack_fee_bearer' as any).eq('id', restaurantId).maybeSingle()
+  if (error) return 'customer'
+  return (data as any)?.paystack_fee_bearer === 'restaurant' ? 'restaurant' : 'customer'
 }
 
 // Resolve the owning restaurant for a bill.
