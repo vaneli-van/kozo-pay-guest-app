@@ -24,6 +24,7 @@ import { Route as ApiPublicMenuRouteImport } from './routes/api/public/menu'
 import { Route as ApiPublicMenuBySlugRouteImport } from './routes/api/public/menu-by-slug'
 import { Route as ApiPublicOtpSendRouteImport } from './routes/api/public/otp-send'
 import { Route as ApiPublicOtpVerifyRouteImport } from './routes/api/public/otp-verify'
+import { Route as ApiPublicPaymentCancelRouteImport } from './routes/api/public/payment-cancel'
 import { Route as ApiPublicPaymentInitRouteImport } from './routes/api/public/payment-init'
 import { Route as ApiPublicPaymentOtpRouteImport } from './routes/api/public/payment-otp'
 import { Route as ApiPublicPaymentStatusRouteImport } from './routes/api/public/payment-status'
@@ -42,15 +43,17 @@ import { Route as ApiPublicSplitRouteImport } from './routes/api/public/split'
 import { Route as ApiPublicSplitAssignRouteImport } from './routes/api/public/split-assign'
 import { Route as ApiPublicSplitCancelRouteImport } from './routes/api/public/split-cancel'
 import { Route as ApiPublicSplitClaimRouteImport } from './routes/api/public/split-claim'
-import { Route as ApiPublicTabSelectRouteImport } from './routes/api/public/tab-select'
 import { Route as ApiPublicSplitCreateRouteImport } from './routes/api/public/split-create'
 import { Route as ApiPublicSplitReleaseRouteImport } from './routes/api/public/split-release'
 import { Route as ApiPublicSplitUnassignRouteImport } from './routes/api/public/split-unassign'
+import { Route as ApiPublicTabSelectRouteImport } from './routes/api/public/tab-select'
+import { Route as ApiPublicTestBillRouteImport } from './routes/api/public/test-bill'
 import { Route as ApiPublicTrackRouteImport } from './routes/api/public/track'
 import { Route as ApiPublicWaiterRequestRouteImport } from './routes/api/public/waiter-request'
 import { Route as ApiPublicWhatsappReceiptRouteImport } from './routes/api/public/whatsapp-receipt'
 import { Route as ApiStudioImportPosRouteImport } from './routes/api/studio/import-pos'
 import { Route as ApiSyncPosOrdersRouteImport } from './routes/api/sync/pos-orders'
+import { Route as ApiSyncTipPayoutsRouteImport } from './routes/api/sync/tip-payouts'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -127,6 +130,11 @@ const ApiPublicOtpSendRoute = ApiPublicOtpSendRouteImport.update({
 const ApiPublicOtpVerifyRoute = ApiPublicOtpVerifyRouteImport.update({
   id: '/api/public/otp-verify',
   path: '/api/public/otp-verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaymentCancelRoute = ApiPublicPaymentCancelRouteImport.update({
+  id: '/api/public/payment-cancel',
+  path: '/api/public/payment-cancel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPaymentInitRoute = ApiPublicPaymentInitRouteImport.update({
@@ -221,11 +229,6 @@ const ApiPublicSplitClaimRoute = ApiPublicSplitClaimRouteImport.update({
   path: '/api/public/split-claim',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTabSelectRoute = ApiPublicTabSelectRouteImport.update({
-  id: '/api/public/tab-select',
-  path: '/api/public/tab-select',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicSplitCreateRoute = ApiPublicSplitCreateRouteImport.update({
   id: '/api/public/split-create',
   path: '/api/public/split-create',
@@ -239,6 +242,16 @@ const ApiPublicSplitReleaseRoute = ApiPublicSplitReleaseRouteImport.update({
 const ApiPublicSplitUnassignRoute = ApiPublicSplitUnassignRouteImport.update({
   id: '/api/public/split-unassign',
   path: '/api/public/split-unassign',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTabSelectRoute = ApiPublicTabSelectRouteImport.update({
+  id: '/api/public/tab-select',
+  path: '/api/public/tab-select',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTestBillRoute = ApiPublicTestBillRouteImport.update({
+  id: '/api/public/test-bill',
+  path: '/api/public/test-bill',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicTrackRoute = ApiPublicTrackRouteImport.update({
@@ -267,6 +280,11 @@ const ApiSyncPosOrdersRoute = ApiSyncPosOrdersRouteImport.update({
   path: '/api/sync/pos-orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSyncTipPayoutsRoute = ApiSyncTipPayoutsRouteImport.update({
+  id: '/api/sync/tip-payouts',
+  path: '/api/sync/tip-payouts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -284,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/api/public/menu-by-slug': typeof ApiPublicMenuBySlugRoute
   '/api/public/otp-send': typeof ApiPublicOtpSendRoute
   '/api/public/otp-verify': typeof ApiPublicOtpVerifyRoute
+  '/api/public/payment-cancel': typeof ApiPublicPaymentCancelRoute
   '/api/public/payment-init': typeof ApiPublicPaymentInitRoute
   '/api/public/payment-otp': typeof ApiPublicPaymentOtpRoute
   '/api/public/payment-status': typeof ApiPublicPaymentStatusRoute
@@ -302,15 +321,17 @@ export interface FileRoutesByFullPath {
   '/api/public/split-assign': typeof ApiPublicSplitAssignRoute
   '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
-  '/api/public/tab-select': typeof ApiPublicTabSelectRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
+  '/api/public/tab-select': typeof ApiPublicTabSelectRoute
+  '/api/public/test-bill': typeof ApiPublicTestBillRoute
   '/api/public/track': typeof ApiPublicTrackRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/studio/import-pos': typeof ApiStudioImportPosRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
+  '/api/sync/tip-payouts': typeof ApiSyncTipPayoutsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -328,6 +349,7 @@ export interface FileRoutesByTo {
   '/api/public/menu-by-slug': typeof ApiPublicMenuBySlugRoute
   '/api/public/otp-send': typeof ApiPublicOtpSendRoute
   '/api/public/otp-verify': typeof ApiPublicOtpVerifyRoute
+  '/api/public/payment-cancel': typeof ApiPublicPaymentCancelRoute
   '/api/public/payment-init': typeof ApiPublicPaymentInitRoute
   '/api/public/payment-otp': typeof ApiPublicPaymentOtpRoute
   '/api/public/payment-status': typeof ApiPublicPaymentStatusRoute
@@ -346,15 +368,17 @@ export interface FileRoutesByTo {
   '/api/public/split-assign': typeof ApiPublicSplitAssignRoute
   '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
-  '/api/public/tab-select': typeof ApiPublicTabSelectRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
+  '/api/public/tab-select': typeof ApiPublicTabSelectRoute
+  '/api/public/test-bill': typeof ApiPublicTestBillRoute
   '/api/public/track': typeof ApiPublicTrackRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/studio/import-pos': typeof ApiStudioImportPosRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
+  '/api/sync/tip-payouts': typeof ApiSyncTipPayoutsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -373,6 +397,7 @@ export interface FileRoutesById {
   '/api/public/menu-by-slug': typeof ApiPublicMenuBySlugRoute
   '/api/public/otp-send': typeof ApiPublicOtpSendRoute
   '/api/public/otp-verify': typeof ApiPublicOtpVerifyRoute
+  '/api/public/payment-cancel': typeof ApiPublicPaymentCancelRoute
   '/api/public/payment-init': typeof ApiPublicPaymentInitRoute
   '/api/public/payment-otp': typeof ApiPublicPaymentOtpRoute
   '/api/public/payment-status': typeof ApiPublicPaymentStatusRoute
@@ -391,15 +416,17 @@ export interface FileRoutesById {
   '/api/public/split-assign': typeof ApiPublicSplitAssignRoute
   '/api/public/split-cancel': typeof ApiPublicSplitCancelRoute
   '/api/public/split-claim': typeof ApiPublicSplitClaimRoute
-  '/api/public/tab-select': typeof ApiPublicTabSelectRoute
   '/api/public/split-create': typeof ApiPublicSplitCreateRoute
   '/api/public/split-release': typeof ApiPublicSplitReleaseRoute
   '/api/public/split-unassign': typeof ApiPublicSplitUnassignRoute
+  '/api/public/tab-select': typeof ApiPublicTabSelectRoute
+  '/api/public/test-bill': typeof ApiPublicTestBillRoute
   '/api/public/track': typeof ApiPublicTrackRoute
   '/api/public/waiter-request': typeof ApiPublicWaiterRequestRoute
   '/api/public/whatsapp-receipt': typeof ApiPublicWhatsappReceiptRoute
   '/api/studio/import-pos': typeof ApiStudioImportPosRoute
   '/api/sync/pos-orders': typeof ApiSyncPosOrdersRoute
+  '/api/sync/tip-payouts': typeof ApiSyncTipPayoutsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -419,6 +446,7 @@ export interface FileRouteTypes {
     | '/api/public/menu-by-slug'
     | '/api/public/otp-send'
     | '/api/public/otp-verify'
+    | '/api/public/payment-cancel'
     | '/api/public/payment-init'
     | '/api/public/payment-otp'
     | '/api/public/payment-status'
@@ -437,15 +465,17 @@ export interface FileRouteTypes {
     | '/api/public/split-assign'
     | '/api/public/split-cancel'
     | '/api/public/split-claim'
-    | '/api/public/tab-select'
     | '/api/public/split-create'
     | '/api/public/split-release'
     | '/api/public/split-unassign'
+    | '/api/public/tab-select'
+    | '/api/public/test-bill'
     | '/api/public/track'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/studio/import-pos'
     | '/api/sync/pos-orders'
+    | '/api/sync/tip-payouts'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -463,6 +493,7 @@ export interface FileRouteTypes {
     | '/api/public/menu-by-slug'
     | '/api/public/otp-send'
     | '/api/public/otp-verify'
+    | '/api/public/payment-cancel'
     | '/api/public/payment-init'
     | '/api/public/payment-otp'
     | '/api/public/payment-status'
@@ -481,15 +512,17 @@ export interface FileRouteTypes {
     | '/api/public/split-assign'
     | '/api/public/split-cancel'
     | '/api/public/split-claim'
-    | '/api/public/tab-select'
     | '/api/public/split-create'
     | '/api/public/split-release'
     | '/api/public/split-unassign'
+    | '/api/public/tab-select'
+    | '/api/public/test-bill'
     | '/api/public/track'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/studio/import-pos'
     | '/api/sync/pos-orders'
+    | '/api/sync/tip-payouts'
   id:
     | '__root__'
     | '/'
@@ -507,6 +540,7 @@ export interface FileRouteTypes {
     | '/api/public/menu-by-slug'
     | '/api/public/otp-send'
     | '/api/public/otp-verify'
+    | '/api/public/payment-cancel'
     | '/api/public/payment-init'
     | '/api/public/payment-otp'
     | '/api/public/payment-status'
@@ -525,15 +559,17 @@ export interface FileRouteTypes {
     | '/api/public/split-assign'
     | '/api/public/split-cancel'
     | '/api/public/split-claim'
-    | '/api/public/tab-select'
     | '/api/public/split-create'
     | '/api/public/split-release'
     | '/api/public/split-unassign'
+    | '/api/public/tab-select'
+    | '/api/public/test-bill'
     | '/api/public/track'
     | '/api/public/waiter-request'
     | '/api/public/whatsapp-receipt'
     | '/api/studio/import-pos'
     | '/api/sync/pos-orders'
+    | '/api/sync/tip-payouts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -552,6 +588,7 @@ export interface RootRouteChildren {
   ApiPublicMenuBySlugRoute: typeof ApiPublicMenuBySlugRoute
   ApiPublicOtpSendRoute: typeof ApiPublicOtpSendRoute
   ApiPublicOtpVerifyRoute: typeof ApiPublicOtpVerifyRoute
+  ApiPublicPaymentCancelRoute: typeof ApiPublicPaymentCancelRoute
   ApiPublicPaymentInitRoute: typeof ApiPublicPaymentInitRoute
   ApiPublicPaymentOtpRoute: typeof ApiPublicPaymentOtpRoute
   ApiPublicPaymentStatusRoute: typeof ApiPublicPaymentStatusRoute
@@ -570,15 +607,17 @@ export interface RootRouteChildren {
   ApiPublicSplitAssignRoute: typeof ApiPublicSplitAssignRoute
   ApiPublicSplitCancelRoute: typeof ApiPublicSplitCancelRoute
   ApiPublicSplitClaimRoute: typeof ApiPublicSplitClaimRoute
-  ApiPublicTabSelectRoute: typeof ApiPublicTabSelectRoute
   ApiPublicSplitCreateRoute: typeof ApiPublicSplitCreateRoute
   ApiPublicSplitReleaseRoute: typeof ApiPublicSplitReleaseRoute
   ApiPublicSplitUnassignRoute: typeof ApiPublicSplitUnassignRoute
+  ApiPublicTabSelectRoute: typeof ApiPublicTabSelectRoute
+  ApiPublicTestBillRoute: typeof ApiPublicTestBillRoute
   ApiPublicTrackRoute: typeof ApiPublicTrackRoute
   ApiPublicWaiterRequestRoute: typeof ApiPublicWaiterRequestRoute
   ApiPublicWhatsappReceiptRoute: typeof ApiPublicWhatsappReceiptRoute
   ApiStudioImportPosRoute: typeof ApiStudioImportPosRoute
   ApiSyncPosOrdersRoute: typeof ApiSyncPosOrdersRoute
+  ApiSyncTipPayoutsRoute: typeof ApiSyncTipPayoutsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -686,6 +725,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/otp-verify'
       fullPath: '/api/public/otp-verify'
       preLoaderRoute: typeof ApiPublicOtpVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payment-cancel': {
+      id: '/api/public/payment-cancel'
+      path: '/api/public/payment-cancel'
+      fullPath: '/api/public/payment-cancel'
+      preLoaderRoute: typeof ApiPublicPaymentCancelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/payment-init': {
@@ -814,13 +860,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSplitClaimRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/tab-select': {
-      id: '/api/public/tab-select'
-      path: '/api/public/tab-select'
-      fullPath: '/api/public/tab-select'
-      preLoaderRoute: typeof ApiPublicTabSelectRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/split-create': {
       id: '/api/public/split-create'
       path: '/api/public/split-create'
@@ -840,6 +879,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/split-unassign'
       fullPath: '/api/public/split-unassign'
       preLoaderRoute: typeof ApiPublicSplitUnassignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/tab-select': {
+      id: '/api/public/tab-select'
+      path: '/api/public/tab-select'
+      fullPath: '/api/public/tab-select'
+      preLoaderRoute: typeof ApiPublicTabSelectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/test-bill': {
+      id: '/api/public/test-bill'
+      path: '/api/public/test-bill'
+      fullPath: '/api/public/test-bill'
+      preLoaderRoute: typeof ApiPublicTestBillRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/track': {
@@ -877,6 +930,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSyncPosOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/sync/tip-payouts': {
+      id: '/api/sync/tip-payouts'
+      path: '/api/sync/tip-payouts'
+      fullPath: '/api/sync/tip-payouts'
+      preLoaderRoute: typeof ApiSyncTipPayoutsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -897,6 +957,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMenuBySlugRoute: ApiPublicMenuBySlugRoute,
   ApiPublicOtpSendRoute: ApiPublicOtpSendRoute,
   ApiPublicOtpVerifyRoute: ApiPublicOtpVerifyRoute,
+  ApiPublicPaymentCancelRoute: ApiPublicPaymentCancelRoute,
   ApiPublicPaymentInitRoute: ApiPublicPaymentInitRoute,
   ApiPublicPaymentOtpRoute: ApiPublicPaymentOtpRoute,
   ApiPublicPaymentStatusRoute: ApiPublicPaymentStatusRoute,
@@ -915,15 +976,17 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSplitAssignRoute: ApiPublicSplitAssignRoute,
   ApiPublicSplitCancelRoute: ApiPublicSplitCancelRoute,
   ApiPublicSplitClaimRoute: ApiPublicSplitClaimRoute,
-  ApiPublicTabSelectRoute: ApiPublicTabSelectRoute,
   ApiPublicSplitCreateRoute: ApiPublicSplitCreateRoute,
   ApiPublicSplitReleaseRoute: ApiPublicSplitReleaseRoute,
   ApiPublicSplitUnassignRoute: ApiPublicSplitUnassignRoute,
+  ApiPublicTabSelectRoute: ApiPublicTabSelectRoute,
+  ApiPublicTestBillRoute: ApiPublicTestBillRoute,
   ApiPublicTrackRoute: ApiPublicTrackRoute,
   ApiPublicWaiterRequestRoute: ApiPublicWaiterRequestRoute,
   ApiPublicWhatsappReceiptRoute: ApiPublicWhatsappReceiptRoute,
   ApiStudioImportPosRoute: ApiStudioImportPosRoute,
   ApiSyncPosOrdersRoute: ApiSyncPosOrdersRoute,
+  ApiSyncTipPayoutsRoute: ApiSyncTipPayoutsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

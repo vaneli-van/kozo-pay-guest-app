@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -501,76 +501,83 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          merged_into_bill_id: string | null
+          odoo_line_ids: number[] | null
           odoo_order_id: number | null
           odoo_order_ids: number[] | null
-          odoo_line_ids: number[] | null
-          merged_into_bill_id: string | null
-          server_employee_id: number | null
-          tab_key: string
-          tab_label: string | null
           odoo_pos_config_id: number | null
           odoo_session_id: number | null
           opened_at: string
           register_id: string | null
           restaurant_id: string | null
+          server_employee_id: number | null
           server_name: string | null
           service_charge_pesewas: number
           status: string
           subtotal_pesewas: number
+          tab_key: string
+          tab_label: string | null
+          table_id: string | null
           tax_lines: Json | null
           tax_pesewas: number | null
-          table_id: string | null
           total_pesewas: number
         }
         Insert: {
           created_at?: string
           id?: string
+          merged_into_bill_id?: string | null
+          odoo_line_ids?: number[] | null
           odoo_order_id?: number | null
           odoo_order_ids?: number[] | null
-          odoo_line_ids?: number[] | null
-          merged_into_bill_id?: string | null
-          server_employee_id?: number | null
-          tab_key?: string
-          tab_label?: string | null
           odoo_pos_config_id?: number | null
           odoo_session_id?: number | null
           opened_at?: string
           register_id?: string | null
           restaurant_id?: string | null
+          server_employee_id?: number | null
           server_name?: string | null
           service_charge_pesewas?: number
           status?: string
           subtotal_pesewas?: number
+          tab_key?: string
+          tab_label?: string | null
+          table_id?: string | null
           tax_lines?: Json | null
           tax_pesewas?: number | null
-          table_id?: string | null
           total_pesewas?: number
         }
         Update: {
           created_at?: string
           id?: string
+          merged_into_bill_id?: string | null
+          odoo_line_ids?: number[] | null
           odoo_order_id?: number | null
           odoo_order_ids?: number[] | null
-          odoo_line_ids?: number[] | null
-          merged_into_bill_id?: string | null
-          server_employee_id?: number | null
-          tab_key?: string
-          tab_label?: string | null
           odoo_pos_config_id?: number | null
           odoo_session_id?: number | null
           opened_at?: string
           register_id?: string | null
           restaurant_id?: string | null
+          server_employee_id?: number | null
           server_name?: string | null
           service_charge_pesewas?: number
           status?: string
           subtotal_pesewas?: number
+          tab_key?: string
+          tab_label?: string | null
+          table_id?: string | null
           tax_lines?: Json | null
           tax_pesewas?: number | null
-          table_id?: string | null
           total_pesewas?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "bills_merged_into_bill_id_fkey"
+            columns: ["merged_into_bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bills_register_id_fkey"
             columns: ["register_id"]
@@ -1211,8 +1218,11 @@ export type Database = {
           share_mode: string | null
           split_share_id: string | null
           status: string
+          tip_payout_account_id: string | null
+          tip_payout_id: string | null
           tip_pesewas: number
           total_pesewas: number
+          transaction_charge_pesewas: number | null
           updated_at: string
         }
         Insert: {
@@ -1232,8 +1242,11 @@ export type Database = {
           share_mode?: string | null
           split_share_id?: string | null
           status?: string
+          tip_payout_account_id?: string | null
+          tip_payout_id?: string | null
           tip_pesewas?: number
           total_pesewas: number
+          transaction_charge_pesewas?: number | null
           updated_at?: string
         }
         Update: {
@@ -1253,8 +1266,11 @@ export type Database = {
           share_mode?: string | null
           split_share_id?: string | null
           status?: string
+          tip_payout_account_id?: string | null
+          tip_payout_id?: string | null
           tip_pesewas?: number
           total_pesewas?: number
+          transaction_charge_pesewas?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -1277,6 +1293,20 @@ export type Database = {
             columns: ["split_share_id"]
             isOneToOne: false
             referencedRelation: "bill_split_shares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_attempts_tip_payout_account_id_fkey"
+            columns: ["tip_payout_account_id"]
+            isOneToOne: false
+            referencedRelation: "staff_payout_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_attempts_tip_payout_id_fkey"
+            columns: ["tip_payout_id"]
+            isOneToOne: false
+            referencedRelation: "tip_payouts"
             referencedColumns: ["id"]
           },
         ]
@@ -2358,6 +2388,103 @@ export type Database = {
           },
         ]
       }
+      restaurant_staff: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          phone: string | null
+          restaurant_id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          phone?: string | null
+          restaurant_id: string
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          restaurant_id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_support_tickets: {
         Row: {
           body: string | null
@@ -2457,47 +2584,6 @@ export type Database = {
           },
           {
             foreignKeyName: "restaurant_support_tickets_restaurant_id_fkey"
-            columns: ["restaurant_id"]
-            isOneToOne: false
-            referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      restaurant_staff: {
-        Row: {
-          active: boolean
-          created_at: string
-          id: string
-          name: string
-          phone: string | null
-          restaurant_id: string
-          role: string
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          id?: string
-          name: string
-          phone?: string | null
-          restaurant_id: string
-          role: string
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          id?: string
-          name?: string
-          phone?: string | null
-          restaurant_id?: string
-          role?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
@@ -2751,77 +2837,83 @@ export type Database = {
       restaurants: {
         Row: {
           accent_color: string | null
-          diner_ui: string
           address: string | null
           city: string
           contact_phone: string | null
           created_at: string
+          diner_ui: string
           google_place_id: string | null
           hero_url: string | null
           id: string
           klown_fee_bps: number
           logo_url: string | null
           name: string
-          payment_mode: string
-          paystack_test_subaccount_code: string | null
           notify_phones: string | null
-          paystack_subaccount_code: string | null
+          payment_mode: string
           paystack_fee_bearer: string
+          paystack_subaccount_code: string | null
+          paystack_test_subaccount_code: string | null
           settlement_account_name: string | null
           settlement_account_number: string | null
           settlement_bank_code: string | null
+          settlement_bank_name: string | null
           tagline_bottom: string | null
           tagline_top: string | null
+          tips_to_staff: boolean
           welcome_copy: string | null
         }
         Insert: {
           accent_color?: string | null
-          diner_ui?: string
           address?: string | null
           city: string
           contact_phone?: string | null
           created_at?: string
+          diner_ui?: string
           google_place_id?: string | null
           hero_url?: string | null
           id?: string
           klown_fee_bps?: number
           logo_url?: string | null
           name: string
-          payment_mode: string
-          paystack_test_subaccount_code: string | null
           notify_phones?: string | null
-          paystack_subaccount_code?: string | null
+          payment_mode?: string
           paystack_fee_bearer?: string
+          paystack_subaccount_code?: string | null
+          paystack_test_subaccount_code?: string | null
           settlement_account_name?: string | null
           settlement_account_number?: string | null
           settlement_bank_code?: string | null
+          settlement_bank_name?: string | null
           tagline_bottom?: string | null
           tagline_top?: string | null
+          tips_to_staff?: boolean
           welcome_copy?: string | null
         }
         Update: {
           accent_color?: string | null
-          diner_ui?: string
           address?: string | null
           city?: string
           contact_phone?: string | null
           created_at?: string
+          diner_ui?: string
           google_place_id?: string | null
           hero_url?: string | null
           id?: string
           klown_fee_bps?: number
           logo_url?: string | null
           name?: string
-          payment_mode?: string
-          paystack_test_subaccount_code?: string | null
           notify_phones?: string | null
-          paystack_subaccount_code?: string | null
+          payment_mode?: string
           paystack_fee_bearer?: string
+          paystack_subaccount_code?: string | null
+          paystack_test_subaccount_code?: string | null
           settlement_account_name?: string | null
           settlement_account_number?: string | null
           settlement_bank_code?: string | null
+          settlement_bank_name?: string | null
           tagline_bottom?: string | null
           tagline_top?: string | null
+          tips_to_staff?: boolean
           welcome_copy?: string | null
         }
         Relationships: []
@@ -3281,6 +3373,115 @@ export type Database = {
           },
           {
             foreignKeyName: "staff_notifications_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_payout_accounts: {
+        Row: {
+          active: boolean
+          approved: boolean
+          created_at: string
+          id: string
+          momo_number: string
+          momo_provider: string
+          odoo_employee_id: number
+          paystack_recipient_code: string | null
+          restaurant_id: string
+          staff_name: string
+          updated_at: string
+          verified_name: string | null
+        }
+        Insert: {
+          active?: boolean
+          approved?: boolean
+          created_at?: string
+          id?: string
+          momo_number: string
+          momo_provider: string
+          odoo_employee_id: number
+          paystack_recipient_code?: string | null
+          restaurant_id: string
+          staff_name: string
+          updated_at?: string
+          verified_name?: string | null
+        }
+        Update: {
+          active?: boolean
+          approved?: boolean
+          created_at?: string
+          id?: string
+          momo_number?: string
+          momo_provider?: string
+          odoo_employee_id?: number
+          paystack_recipient_code?: string | null
+          restaurant_id?: string
+          staff_name?: string
+          updated_at?: string
+          verified_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "staff_payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "staff_payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "staff_payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "staff_payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "staff_payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "staff_payout_accounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "staff_payout_accounts_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
@@ -4591,6 +4792,134 @@ export type Database = {
           },
         ]
       }
+      tip_payouts: {
+        Row: {
+          amount_pesewas: number
+          created_at: string
+          failure_reason: string | null
+          fee_pesewas: number
+          id: string
+          paid_at: string | null
+          payout_account_id: string
+          period_end: string
+          restaurant_id: string
+          status: string
+          tip_count: number
+          tips_pesewas: number
+          transfer_attempt: number
+          transfer_code: string | null
+          transfer_reference: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_pesewas: number
+          created_at?: string
+          failure_reason?: string | null
+          fee_pesewas: number
+          id?: string
+          paid_at?: string | null
+          payout_account_id: string
+          period_end: string
+          restaurant_id: string
+          status?: string
+          tip_count: number
+          tips_pesewas: number
+          transfer_attempt?: number
+          transfer_code?: string | null
+          transfer_reference?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_pesewas?: number
+          created_at?: string
+          failure_reason?: string | null
+          fee_pesewas?: number
+          id?: string
+          paid_at?: string | null
+          payout_account_id?: string
+          period_end?: string
+          restaurant_id?: string
+          status?: string
+          tip_count?: number
+          tips_pesewas?: number
+          transfer_attempt?: number
+          transfer_code?: string | null
+          transfer_reference?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_payouts_payout_account_id_fkey"
+            columns: ["payout_account_id"]
+            isOneToOne: false
+            referencedRelation: "staff_payout_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_member_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "tip_payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_menu_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "tip_payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_payment_feed"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "tip_payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_pos_directory"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "tip_payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_registers"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "tip_payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_restaurant_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_devices"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "tip_payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_table_qr"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "tip_payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waiter_requests: {
         Row: {
           created_at: string
@@ -5037,26 +5366,6 @@ export type Database = {
       }
     }
     Functions: {
-      items_split_assign: {
-        Args: { p_session_token: string; p_bill_item_id: string; p_units: number; p_name?: string | null }
-        Returns: Json
-      }
-      items_split_assign_remaining: {
-        Args: { p_session_token: string; p_name?: string | null }
-        Returns: Json
-      }
-      items_split_payload: {
-        Args: { p_split_id: string; p_session_id: string }
-        Returns: Json
-      }
-      items_split_recompute: {
-        Args: { p_split_id: string }
-        Returns: undefined
-      }
-      split_board: {
-        Args: { p_session_token: string }
-        Returns: Json
-      }
       _split_bills_feed: {
         Args: { p_days: number; p_restaurant_id: string }
         Returns: Json
@@ -5124,7 +5433,69 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { uid: string }; Returns: boolean }
+      items_split_assign: {
+        Args: {
+          p_bill_item_id: string
+          p_name?: string
+          p_session_token: string
+          p_units: number
+        }
+        Returns: Json
+      }
+      items_split_assign_remaining: {
+        Args: { p_name?: string; p_session_token: string }
+        Returns: Json
+      }
+      items_split_ensure_share: {
+        Args: { p_name: string; p_session_id: string; p_split_id: string }
+        Returns: Record<string, unknown>
+      }
+      items_split_payload: {
+        Args: { p_session_id: string; p_split_id: string }
+        Returns: Json
+      }
+      items_split_recompute: {
+        Args: { p_split_id: string }
+        Returns: undefined
+      }
+      items_split_resolve: {
+        Args: { p_table_id: string }
+        Returns: Record<string, unknown>
+      }
+      items_split_resolve_session: {
+        Args: { p_session_id: string }
+        Returns: Record<string, unknown>
+      }
+      klown_allocate: {
+        Args: { p_total: number; p_weights: number[] }
+        Returns: number[]
+      }
       klown_daily_report: { Args: { p_day?: string }; Returns: Json }
+      klown_gh_msisdn: { Args: { p_raw: string }; Returns: string }
+      klown_session_bill_id: { Args: { p_session_id: string }; Returns: string }
+      klown_session_for_token: {
+        Args: { p_token: string }
+        Returns: {
+          active_bill_chosen: boolean
+          active_bill_id: string | null
+          bill_status: string
+          created_at: string
+          expires_at: string
+          id: string
+          register_id: string | null
+          session_token: string
+          started_at: string
+          status: string
+          table_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dining_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      klown_table_tabs: { Args: { p_table_id: string }; Returns: Json }
       owner_branding: { Args: never; Returns: Json }
       owner_context: { Args: never; Returns: Json }
       owner_create_ticket: {
@@ -5187,9 +5558,49 @@ export type Database = {
         Returns: Json
       }
       owner_set_schedule: { Args: { p_schedule: string }; Returns: Json }
+      owner_settlement: { Args: never; Returns: Json }
       owner_split_bills: { Args: { p_days?: number }; Returns: Json }
+      owner_staff_delete: { Args: { p_id: string }; Returns: Json }
+      owner_staff_list: { Args: never; Returns: Json }
+      owner_staff_save: {
+        Args: {
+          p_active?: boolean
+          p_id: string
+          p_name: string
+          p_phone: string
+          p_role: string
+        }
+        Returns: Json
+      }
       owner_team: { Args: never; Returns: Json }
       owner_tickets: { Args: never; Returns: Json }
+      payment_context: {
+        Args: {
+          p_bill_id?: string
+          p_idem?: string
+          p_session_token: string
+          p_share_id?: string
+        }
+        Returns: Json
+      }
+      payment_reserve: {
+        Args: {
+          p_amount: number
+          p_bill_id: string
+          p_charged?: number
+          p_idem: string
+          p_method: string
+          p_pay_mode: string
+          p_provider: string
+          p_session_id: string
+          p_share_id: string
+          p_share_mode: string
+          p_tip: number
+          p_total: number
+          p_transaction_charge?: number
+        }
+        Returns: Json
+      }
       promote_staff: {
         Args: {
           p_email: string
@@ -5220,6 +5631,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      split_board: { Args: { p_session_token: string }; Returns: Json }
       studio_catalogue_delete: { Args: { p_id: string }; Returns: Json }
       studio_catalogue_list: {
         Args: { p_restaurant_id?: string }
@@ -5319,6 +5731,38 @@ export type Database = {
           p_user_agent?: string
         }
         Returns: string
+      }
+      tip_payouts_claim: {
+        Args: {
+          p_cutoff: string
+          p_fee: number
+          p_min_net: number
+          p_restaurant: string
+        }
+        Returns: {
+          amount_pesewas: number
+          created_at: string
+          failure_reason: string | null
+          fee_pesewas: number
+          id: string
+          paid_at: string | null
+          payout_account_id: string
+          period_end: string
+          restaurant_id: string
+          status: string
+          tip_count: number
+          tips_pesewas: number
+          transfer_attempt: number
+          transfer_code: string | null
+          transfer_reference: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "tip_payouts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       touch_sign_in: { Args: never; Returns: undefined }
     }
