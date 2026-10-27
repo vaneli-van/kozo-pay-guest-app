@@ -16,7 +16,7 @@ export const Route = createFileRoute('/api/public/split-unassign')({
         const billItemId = body.billItemId
         if (typeof billItemId !== 'string') return json({ ok: false, reason: 'invalid_item' })
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
-        const { data, error } = await supabaseAdmin.rpc('items_split_assign', { p_session_token: sessionToken, p_bill_item_id: billItemId, p_units: 0, p_name: null })
+        const { data, error } = await supabaseAdmin.rpc('items_split_assign', { p_session_token: sessionToken, p_bill_item_id: billItemId, p_units: 0, p_name: null as unknown as string })
         if (error) return json({ ok: false, reason: 'error', message: error.message })
         return json(data ?? { ok: false, reason: 'error' })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }

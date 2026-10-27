@@ -47,7 +47,7 @@ export const Route = createFileRoute('/api/public/test-bill')({
         const { data: open } = await supabaseAdmin.from('bills').select('id').eq('table_id', table.id).in('status', ['open', 'ready'])
         const openIds = (open ?? []).map((b: any) => b.id as string)
         if (openIds.length && !reset) {
-          await supabaseAdmin.from('dining_sessions').update({ active_bill_id: openIds[0], bill_status: 'open' }).eq('id', session.id)
+          await supabaseAdmin.from('dining_sessions').update({ active_bill_id: openIds[0] ?? null, bill_status: 'open' }).eq('id', session.id)
           return json({ ok: true, billId: openIds[0], existing: true })
         }
         if (openIds.length) {
