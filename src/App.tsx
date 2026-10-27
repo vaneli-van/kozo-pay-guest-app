@@ -753,7 +753,7 @@ export default function App({
         stop()
         abandonAttempt(s.paymentRef)
         idemRef.current = ''
-        patch({ paymentRef: undefined, failureReason: 'The payment was not confirmed in time.', failureKind: 'timeout' })
+        patch({ paymentRef: undefined, failureReason: undefined, failureKind: 'timeout' })
         goScreen('payment-error')
       }
     }

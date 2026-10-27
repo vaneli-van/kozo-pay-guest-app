@@ -2401,7 +2401,9 @@ export function PaymentError({ s, dispatch }: any) {
     kind === "blocked"
       ? null
       : kind === "timeout"
-        ? "We didn\u2019t get a confirmation from your bank or mobile money provider in time."
+        ? (isCard
+          ? "We didn\u2019t get a confirmation from your bank in time."
+          : "Your mobile money network hasn\u2019t confirmed this payment. If you entered your PIN and money left your wallet, show the waiter the MoMo SMS: we keep checking, and this screen moves on by itself if it went through. If nothing left your wallet, try again or pay another way.")
         : isCard
           ? "Your card wasn\u2019t charged. This can happen if the card was declined, the details didn\u2019t match, or the payment page closed before it finished."
           : "No money left your account. Check your mobile-money balance and that you approved the prompt, then try again.";
