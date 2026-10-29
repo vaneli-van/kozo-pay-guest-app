@@ -155,10 +155,18 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               }
               const seatedIds = seated.map((o: any) => o.id as number)
               const paidOrderIds = new Set<number>()
+              // Paid bills whose POS order has since grown (new round added onto the paid order):
+              // reopened below at the new total, keeping the payments already made.
+              let grownPaid: { billId: string; key: string; orderIds: number[]; newTotalPesewas: number }[] = []
               if (seatedIds.length && klownTableIds.length) {
-                const { data: settled } = await supabaseAdmin.from('bills').select('odoo_order_ids,odoo_order_id')
-                  .in('table_id', klownTableIds).eq('status', 'settled').overlaps('odoo_order_ids', seatedIds)
-                for (const b of (settled ?? []) as any[]) for (const id of (b.odoo_order_ids ?? [b.odoo_order_id])) if (id != null) paidOrderIds.add(id)
+                const { data: settled } = await supabaseAdmin.from('bills').select('id,table_id,tab_key,total_pesewas,odoo_order_ids,odoo_order_id')
+                  .in('table_id', klownTableIds).eq('status', 'settled').overlaps('odoo_order_ids', seatedIds).order('created_at', { ascending: false })
+                const keyOfOrder = new Map<number, string>()
+                for (const [k, list] of ordersByTable) for (const o of list) keyOfOrder.set(o.id as number, k)
+                const { planPaidGrowth } = await import('@/integrations/pos/paid-growth')
+                const growth = planPaidGrowth((settled ?? []) as any[], seated as any[], (id) => keyOfOrder.get(id))
+                for (const id of growth.stillPaidOrderIds) paidOrderIds.add(id)
+                grownPaid = growth.grown
               }
               for (const [k, list] of ordersByTable) {
                 const unpaid = list.filter((o) => !paidOrderIds.has(o.id)).sort((a, b) => a.id - b.id)
@@ -167,6 +175,50 @@ export const Route = createFileRoute('/api/sync/pos-orders')({
               const billKey = (b: any) => `${b.table_id}|${b.tab_key ?? ''}`
               const liveByTable = new Map<string, any>()
               for (const b of liveBills) if (!liveByTable.has(billKey(b))) liveByTable.set(billKey(b), b)
+
+              // ---- A paid order that grew on the POS: bring its bill back with the new round ----
+              // No live bill on that table/tab yet: reopen the paid bill itself (same id, so its
+              // captured payments and the diners' sessions stay attached; the write below refreshes
+              // its total and items). A live bill already there (another unpaid order on the table):
+              // move the captured payments onto it and retire the paid bill, the same way a POS merge
+              // carries money. Either way the table shows the full total less what was already paid.
+              // If either path fails, hide the grown orders again (today's behaviour) rather than let
+              // them be billed without the payment already made on them.
+              const rehide = (g: { key: string; orderIds: number[] }) => {
+                const list = ordersByTable.get(g.key)
+                if (!list) return
+                const rest = list.filter((o) => !g.orderIds.includes(o.id as number))
+                if (rest.length) ordersByTable.set(g.key, rest); else ordersByTable.delete(g.key)
+              }
+              for (const g of grownPaid) {
+                const sep = g.key.indexOf('|')
+                const tableId = g.key.slice(0, sep)
+                const tabKey = g.key.slice(sep + 1)
+                const live = liveByTable.get(g.key)
+                if (!live) {
+                  const { data: re, error } = await supabaseAdmin.from('bills')
+                    .update({ status: 'open', table_id: tableId, tab_key: tabKey } as any)
+                    .eq('id', g.billId).eq('status', 'settled')
+                    .select(BILL_COLS + (hasLineIds ? ', odoo_line_ids' : '') + (hasServerEmp ? ', server_employee_id' : ''))
+                  const row = (re as any[] | null)?.[0]
+                  if (error || !row) { if (error) console.error('pos-orders: paid bill reopen failed', g.billId, error.message); rehide(g); continue }
+                  liveBills.push(row)
+                  liveByTable.set(g.key, row)
+                  paidBillIds.add(row.id)
+                  await supabaseAdmin.from('dining_sessions').update({ bill_status: 'open' }).eq('active_bill_id', row.id)
+                  await supabaseAdmin.from('audit_events').insert({ type: 'bill.reopened', data: { billId: row.id, reason: 'paid_order_grew', orderIds: g.orderIds, newTotalPesewas: g.newTotalPesewas } })
+                  console.log('pos-orders: paid bill reopened, order grew on the POS', row.id, g.newTotalPesewas)
+                } else {
+                  const { error } = await supabaseAdmin.from('payment_attempts').update({ bill_id: live.id }).eq('bill_id', g.billId).eq('status', 'captured')
+                  if (error) { console.error('pos-orders: grown paid bill carry-over failed', g.billId, error.message); rehide(g); continue }
+                  paidBillIds.add(live.id)
+                  await supabaseAdmin.from('dining_sessions').update({ active_bill_id: live.id, bill_status: 'open' }).eq('active_bill_id', g.billId)
+                  const closed = await supabaseAdmin.from('bills').update({ status: 'void', merged_into_bill_id: live.id } as any).eq('id', g.billId)
+                  if (closed.error) await supabaseAdmin.from('bills').update({ status: 'void' }).eq('id', g.billId)
+                  await supabaseAdmin.from('audit_events').insert({ type: 'bill.reopened', data: { billId: g.billId, mergedInto: live.id, reason: 'paid_order_grew', orderIds: g.orderIds, newTotalPesewas: g.newTotalPesewas } })
+                  console.log('pos-orders: paid bill folded into live bill, order grew on the POS', g.billId, '->', live.id)
+                }
+              }
 
               // ---- Orders moved to another table (waiter app "Move", the register's Transfer) ----
               // The bill follows its order: same bill on the new table, or folded into the bill
