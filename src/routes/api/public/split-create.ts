@@ -4,6 +4,22 @@ const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, 'Content-Type': 'application/json' } })
 const hex = (bytes = 24) => { const a = new Uint8Array(bytes); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join('') }
 
+async function cancelUntouchedSplit(db: any, billId: string, sessionId: string): Promise<boolean> {
+  const { data: open } = await db.from('bill_splits').select('id,mode').eq('bill_id', billId).eq('status', 'open').maybeSingle()
+  if (!open || (open.mode !== 'even' && open.mode !== 'amounts')) return false
+  const { data: rows } = await db.from('bill_split_shares').select('id,status,claimed_by_session').eq('split_id', open.id)
+  const list = (rows ?? []) as any[]
+  if (list.some((r) => r.status === 'paid')) return false
+  if (list.some((r) => r.status === 'claimed' && r.claimed_by_session && r.claimed_by_session !== sessionId)) return false
+  if (list.length) {
+    const since = new Date(Date.now() - 15 * 60_000).toISOString()
+    const { data: paying } = await db.from('payment_attempts').select('id').in('split_share_id', list.map((r) => r.id)).in('status', ['initiated', 'pending']).gt('created_at', since).limit(1)
+    if ((paying ?? []).length) return false
+  }
+  const { data: cancelled } = await db.from('bill_splits').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', open.id).eq('status', 'open').select('id')
+  return ((cancelled ?? []) as any[]).length > 0
+}
+
 export const Route = createFileRoute('/api/public/split-create')({
   server: { handlers: {
     OPTIONS: async () => new Response(null, { headers: cors }),
@@ -69,13 +85,22 @@ export const Route = createFileRoute('/api/public/split-create')({
           if (sum !== total) return json({ ok: false, reason: 'shares_do_not_sum', total, sum })
         }
 
-        const { data: split, error } = await supabaseAdmin.rpc('create_bill_split', {
+        const createSplit = () => supabaseAdmin.rpc('create_bill_split', {
           p_bill: bill.id, p_session: session.id, p_mode: mode, p_total: total, p_shares: shares,
         })
+        let { data: split, error } = await createSplit()
+        // Changing the amounts: the first "Continue" already created a split, so a second attempt
+        // hit split_exists and the app showed the old shares again (Baobab table 5, 29 Oct: GHS 120
+        // typed, every retype came back as 120). Replace an equal/amount split that nobody has
+        // touched yet: no share paid, none being paid, none taken by another phone.
+        if (error && /split_exists/.test(error.message) && await cancelUntouchedSplit(supabaseAdmin, bill.id, session.id)) {
+          ({ data: split, error } = await createSplit())
+        }
         if (error) {
           const reason = /split_exists/.test(error.message) ? 'split_exists' : /shares_do_not_sum/.test(error.message) ? 'shares_do_not_sum' : 'error'
           return json({ ok: false, reason })
         }
+        if (!split) return json({ ok: false, reason: 'error' })
         const { data: rows } = await supabaseAdmin.from('bill_split_shares').select('id,position,label,amount_pesewas,status,claimed_by_name,share_token').eq('split_id', split.id).order('position')
         return json({ ok: true, splitId: split.id, mode, totalPesewas: total, shares: (rows ?? []).map((r: any) => ({ id: r.id, position: r.position, label: r.label, amountPesewas: r.amount_pesewas, status: r.status, claimedByName: r.claimed_by_name, shareToken: r.share_token })) })
       } catch (e) { return json({ ok: false, reason: 'error', message: String(e) }) }
