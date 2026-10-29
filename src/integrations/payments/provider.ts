@@ -310,6 +310,9 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
     const { data: now } = await supabaseAdmin.from('payment_attempts').select('status').eq('id', attempt.id).maybeSingle()
     return { ok: true as const, idempotent: true, status: now?.status ?? attempt.status }
   }
+  // Log first: if this request is cut off later (diner reloads, worker stops), the record of the
+  // capture still exists and the reconcile sweep can finish the side effects.
+  await supabaseAdmin.from('audit_events').insert({ session_id: attempt.session_id, type: `payment.${status}`, data: { providerRef } })
   if (status === 'captured' && attempt.split_share_id) {
     // Freeze the share at what was actually paid (an item share can move by a few pesewas between
     // starting and finishing the payment).
@@ -341,19 +344,22 @@ export async function applyProviderCallback(providerRef: string, outcome: 'captu
           .eq('id', bill.id).neq('status', 'settled').select('id')
         await supabaseAdmin.from('bill_splits').update({ status: 'settled' }).eq('bill_id', bill.id).eq('status', 'open')
         closedNow = !!closed && closed.length > 0
-        if (closedNow) await onBillSettled(bill.id, bill.total_pesewas)
       }
-      // Text the waiter and cashier about this payment (full or part). Once per capture: we are
-      // inside the single call that flipped the attempt row.
+      // Text the waiter and cashier FIRST (full or part), before the slower owner SMS / POS close:
+      // on 29 Oct a closing capture was cut off inside those and the floor never got the text.
+      // Once per capture: we are inside the single call that flipped the attempt row.
       if (closedNow || paid < bill.total_pesewas) {
         await notifyStaffPayment(bill.id, {
           full: closedNow, amountPesewas: attempt.amount_pesewas ?? 0, tipPesewas: (attempt as any).tip_pesewas ?? 0,
           paidPesewas: paid, totalPesewas: bill.total_pesewas, channel: (attempt as any).provider ?? null,
         })
       }
+      await markStaffNotified(attempt.id)
+      if (closedNow) await onBillSettled(bill.id, bill.total_pesewas)
     }
+  } else if (status === 'captured') {
+    await markStaffNotified(attempt.id)
   }
-  await supabaseAdmin.from('audit_events').insert({ session_id: attempt.session_id, type: `payment.${status}`, data: { providerRef } })
   return { ok: true as const, status }
 }
 
@@ -381,9 +387,40 @@ async function flagOverpayment(billId: string, sessionId: string | null, paid: n
   } catch { /* never break capture */ }
 }
 
+async function markStaffNotified(attemptId: string) {
+  try { await (supabaseAdmin as any).from('payment_attempts').update({ staff_notified_at: new Date().toISOString() }).eq('id', attemptId).is('staff_notified_at', null) } catch { /* best-effort */ }
+}
+
+// Safety net for the reconcile sweep: a captured attempt whose waiter/cashier SMS step never ran
+// (request cut off mid-capture). Rebuilds the same message from what was paid up to and including
+// this capture, sends it once, and marks it. Claims the row first so two sweeps can't both send.
+export async function resendMissedStaffSms(attemptId: string): Promise<'sent' | 'skipped' | 'claimed_elsewhere'> {
+  const { data: claimed } = await (supabaseAdmin as any).from('payment_attempts')
+    .update({ staff_notified_at: new Date().toISOString() })
+    .eq('id', attemptId).eq('status', 'captured').is('staff_notified_at', null)
+    .select('id,bill_id,amount_pesewas,tip_pesewas,provider,updated_at')
+  const a = (claimed as any[] | null)?.[0]
+  if (!a) return 'claimed_elsewhere'
+  if (!a.bill_id) return 'skipped'
+  const { data: bill } = await supabaseAdmin.from('bills').select('id,total_pesewas').eq('id', a.bill_id).maybeSingle()
+  if (!bill) return 'skipped'
+  const { data: caps } = await supabaseAdmin.from('payment_attempts').select('id,amount_pesewas,updated_at')
+    .eq('bill_id', a.bill_id).in('status', ['captured', 'settled'])
+  const upTo = ((caps ?? []) as any[]).filter((c) => c.id === a.id || new Date(c.updated_at) < new Date(a.updated_at))
+  const paid = upTo.reduce((sum, c) => sum + (c.amount_pesewas ?? 0), 0)
+  const before = paid - (a.amount_pesewas ?? 0)
+  // Nothing to say if the bill was already fully paid before this capture.
+  if (before >= bill.total_pesewas) return 'skipped'
+  await notifyStaffPayment(bill.id, {
+    full: paid >= bill.total_pesewas, amountPesewas: a.amount_pesewas ?? 0, tipPesewas: a.tip_pesewas ?? 0,
+    paidPesewas: paid, totalPesewas: bill.total_pesewas, channel: a.provider ?? null, resent: true,
+  })
+  return 'sent'
+}
+
 // Floor-staff SMS (Arkesel): the waiter whose order it is + the cashiers, on every captured payment,
 // full or part. Staff and numbers live in restaurant_staff (owner portal, Settings). Best-effort.
-async function notifyStaffPayment(billId: string, p: { full: boolean; amountPesewas: number; tipPesewas: number; paidPesewas: number; totalPesewas: number; channel: string | null }) {
+async function notifyStaffPayment(billId: string, p: { full: boolean; amountPesewas: number; tipPesewas: number; paidPesewas: number; totalPesewas: number; channel: string | null; resent?: boolean }) {
   try {
     const { data: bill } = await supabaseAdmin.from('bills').select('table_id, restaurant_id, server_name, tab_label').eq('id', billId).maybeSingle()
     if (!bill?.table_id) return
@@ -400,10 +437,11 @@ async function notifyStaffPayment(billId: string, p: { full: boolean; amountPese
     const { pickStaffRecipients, staffPaymentMessage } = await import('@/integrations/notify/staffAlert')
     const { phones } = pickStaffRecipients(staff, (bill as any).server_name)
     if (!phones.length) return
-    const msg = staffPaymentMessage({ tableLabel: table.label, tabLabel: (bill as any).tab_label ?? null, serverName: (bill as any).server_name ?? null, ...p })
+    const { resent, ...msgArgs } = p
+    const msg = staffPaymentMessage({ tableLabel: table.label, tabLabel: (bill as any).tab_label ?? null, serverName: (bill as any).server_name ?? null, ...msgArgs })
     const { sendSms } = await import('@/integrations/notify/arkesel.server')
     const r = await sendSms(phones, msg)
-    await supabaseAdmin.from('audit_events').insert({ session_id: null, type: 'sms.staff_payment', data: { billId, full: p.full, recipients: phones.length, ok: r.ok, skipped: r.skipped ?? false, message: r.message ?? null } })
+    await supabaseAdmin.from('audit_events').insert({ session_id: null, type: 'sms.staff_payment', data: { billId, full: p.full, recipients: phones.length, ok: r.ok, skipped: r.skipped ?? false, message: r.message ?? null, ...(resent ? { resent: true } : {}) } })
   } catch { /* SMS is best-effort */ }
 }
 

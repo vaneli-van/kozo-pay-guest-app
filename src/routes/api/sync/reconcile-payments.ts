@@ -63,7 +63,19 @@ export const Route = createFileRoute('/api/sync/reconcile-payments')({
               out.push({ ref, result: 'error', reason: String(e).slice(0, 200) })
             }
           }
-          const changed = out.filter((o) => !['skipped', 'still_pending', 'error'].includes(o.result))
+          // Safety net: captured payments whose waiter/cashier SMS step never ran (the capture
+          // request was cut off). Older than 2 min so a capture still in flight finishes itself.
+          const { resendMissedStaffSms } = await import('@/integrations/payments/provider')
+          const { data: unnotified } = await (supabaseAdmin as any).from('payment_attempts')
+            .select('id,provider_ref').eq('status', 'captured').is('staff_notified_at', null)
+            .lt('updated_at', new Date(now - 2 * 60_000).toISOString())
+            .gt('updated_at', new Date(now - 6 * 3_600_000).toISOString())
+            .limit(20)
+          for (const u of (unnotified ?? []) as any[]) {
+            try { out.push({ ref: u.provider_ref ?? u.id, result: `staff_sms:${await resendMissedStaffSms(u.id)}` }) }
+            catch (e) { out.push({ ref: u.provider_ref ?? u.id, result: 'error', reason: String(e).slice(0, 200) }) }
+          }
+          const changed = out.filter((o) => !['skipped', 'still_pending', 'error', 'staff_sms:claimed_elsewhere'].includes(o.result))
           if (changed.length) {
             await supabaseAdmin.from('audit_events').insert({ session_id: null, type: 'payment.reconciled', data: { count: changed.length, items: changed } })
           }
