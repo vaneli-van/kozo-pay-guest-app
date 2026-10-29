@@ -321,13 +321,10 @@ export function Menu({ s, dispatch }: any) {
               <button
                 className="dish-row"
                 key={i.id}
-                onClick={() =>
-                  dispatch({
-                    type: "patch-go",
-                    value: { selectedItem: i, dish: i.name },
-                    to: "dish",
-                  })
-                }
+                type="button"
+                // Read-only for now (28 Oct 2026): no dish sheet / ask-your-waiter from the menu.
+                onClick={undefined}
+                style={{ cursor: "default" }}
               >
                 <img src={menuImg(i)} alt={i.name} onError={imgFallback} />
                 <span>
@@ -367,12 +364,7 @@ export function Category({ s, dispatch }: any) {
       <div className="section-label">ALL {(cat?.name ?? "ITEMS").toUpperCase()}</div>
       <div className="simple-list">
         {shown.map((i: any) => (
-          <p
-            key={i.id}
-            onClick={() =>
-              dispatch({ type: "patch-go", value: { selectedItem: i, dish: i.name }, to: "dish" })
-            }
-          >
+          <p key={i.id}>
             {i.name} <b>{pes(i.price_pesewas)}</b>
           </p>
         ))}
@@ -406,7 +398,6 @@ export function Dish({ s, dispatch }: any) {
         {t.signature && <span>Chef’s signature</span>}
         {t.origin && <span>{t.origin}</span>}
       </div>
-      <Action onClick={() => dispatch(go("waiter"))}>Ask your waiter about this dish</Action>
     </section>
   );
 }

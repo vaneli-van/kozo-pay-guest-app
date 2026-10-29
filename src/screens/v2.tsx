@@ -1166,14 +1166,16 @@ function MenuV2({ s, dispatch, underlay = false }: any) {
             <ul className="v2-card v2-dishes">
               {sec.items.map((it: any) => (
                 <li key={it.id}>
-                  <button type="button" className={it.soldOut ? "is-off" : undefined} onClick={() => dispatch({ type: "patch-go", value: { selectedItem: it, dish: it.name }, to: "dish" })}>
+                  {/* Read-only for now (28 Oct 2026, Samuel): no dish sheet, no "ask your waiter". To
+                      re-enable, turn this back into a button that patch-goes to "dish". */}
+                  <div className={`v2-dish-row${it.soldOut ? " is-off" : ""}`}>
                     {it.photo ? <img src={it.photo} alt="" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} /> : null}
                     <span className="v2-dish-main">
                       <span className="v2-pick-name">{it.name}</span>
                       {it.soldOut ? <span className="v2-small">Sold out</span> : it.desc ? <span className="v2-small v2-clamp">{it.desc}</span> : null}
                     </span>
                     <b className="v2-dish-price">{it.price}</b>
-                  </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -1204,7 +1206,6 @@ function DishV2({ s, dispatch }: any) {
       title={it.name}
       onClose={() => dispatch(go("menu"))}
       under={<MenuV2 s={s} dispatch={dispatch} underlay />}
-      footer={<button type="button" className="v2-btn v2-btn-secondary" onClick={() => dispatch(go("waiter"))}>Ask your waiter about it</button>}
     >
       {it.photo ? <img className="v2-dish-photo" src={it.photo} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} /> : null}
       <div className="v2-stack">
