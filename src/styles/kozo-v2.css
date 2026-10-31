@@ -254,7 +254,7 @@ html.v2-lock, html.v2-lock body { height: 100%; overflow: hidden; overscroll-beh
 .v2-hero-eyebrow { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.85; }
 .v2-hero-brand { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .v2-hero-logo { margin: 0; line-height: 0; }
-.v2-hero-logo img { height: 76px; width: auto; max-width: 70vw; object-fit: contain; border-radius: 14px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35); }
+.v2-hero-logo img { height: 76px; width: auto; max-width: 70vw; object-fit: contain; border-radius: 14px; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.35)); }
 .v2-hero-name { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; text-wrap: balance; text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35); }
 .v2-hero-tag { margin: 0; font-size: 15px; opacity: 0.9; }
 .v2-hero-open { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; opacity: 0.95; }
